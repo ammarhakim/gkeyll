@@ -93,8 +93,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct passive_ctx ctx = {
-    .cdim = cdim,
+  struct passive_ctx ctx = { .cdim = cdim,
     .vdim = vdim,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
@@ -111,7 +110,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
+    .cells = { Nx, Ny, Nz, Nvpar, Nmu },
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -124,8 +123,7 @@ create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -245,57 +243,25 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .vdim = ctx.vdim,
-    .lower = {-ctx.vpar_max_elc, 0.0},
-    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
-    .cells = {cells_v[0], cells_v[1]},
+    .lower = { -ctx.vpar_max_elc, 0.0 },
+    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
+    .cells = { cells_v[0], cells_v[1] },
     .polarization_density = ctx.n0,
 
-    .projection =
-      {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = distf_elc,
-        .ctx_func = &ctx,
-      },
+    .projection = { .proj_id = GKYL_PROJ_FUNC, .func = distf_elc, .ctx_func = &ctx },
 
-    .collisionless =
-      {
-        .type = GKYL_GK_COLLISIONLESS_PASSIVE,
-        .passive_speeds = passive_velocity_elc,
-        .passive_speeds_ctx = &ctx,
-        .write_diagnostics = true,
-      },
+    .collisionless = { .type = GKYL_GK_COLLISIONLESS_PASSIVE,
+      .passive_speeds = passive_velocity_elc,
+      .passive_speeds_ctx = &ctx,
+      .write_diagnostics = true },
 
-    .bcs =
-      {
-        {
-          .dir = 0,
-          .edge = GKYL_LOWER_EDGE,
-          .type = GKYL_BC_GK_SPECIES_COPY,
-        },
-        {
-          .dir = 0,
-          .edge = GKYL_UPPER_EDGE,
-          .type = GKYL_BC_GK_SPECIES_COPY,
-        },
-        {
-          .dir = 2,
-          .edge = GKYL_LOWER_EDGE,
-          .type = GKYL_BC_GK_SPECIES_TWISTSHIFT,
-        },
-        {
-          .dir = 2,
-          .edge = GKYL_UPPER_EDGE,
-          .type = GKYL_BC_GK_SPECIES_TWISTSHIFT,
-        },
-      },
+    .bcs = { { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT } },
 
     .num_diag_moments = 3,
-    .diag_moments =
-      {
-        GKYL_F_MOMENT_M0,
-        GKYL_F_MOMENT_M1,
-        GKYL_F_MOMENT_M2,
-      },
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 }
     //    .num_integrated_diag_moments = 1,
     //    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     //    .time_rate_diagnostics = true,
@@ -311,57 +277,43 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
-    .zero_init_field = true,
-    .is_static = true,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN, .zero_init_field = true, .is_static = true
   };
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
 
     .cdim = ctx.cdim,
-    .lower = {0.0, 0.0, 0.0},
-    .upper = {ctx.Lx, ctx.Ly, ctx.Lz},
-    .cells = {cells_x[0], cells_x[1], cells_x[2]},
+    .lower = { 0.0, 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly, ctx.Lz },
+    .cells = { cells_x[0], cells_x[1], cells_x[2] },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .geometry =
-      {
-        .geometry_id = GKYL_GEOMETRY_MAPC2P,
-        .world = {},
-        .mapc2p = mapc2p,
-        .c2p_ctx = &ctx,
-        .bfield_func = bfield_func,
-        .bfield_ctx = &ctx,
-        .parallel_lower_bc_shift_func = bc_shift_func_lo,
-        .parallel_upper_bc_shift_func = bc_shift_func_up,
-        .parallel_lower_bc_shift_ctx = &ctx,
-        .parallel_upper_bc_shift_ctx = &ctx,
-      },
+    .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+      .world = {},
+      .mapc2p = mapc2p,
+      .c2p_ctx = &ctx,
+      .bfield_func = bfield_func,
+      .bfield_ctx = &ctx,
+      .parallel_lower_bc_shift_func = bc_shift_func_lo,
+      .parallel_upper_bc_shift_func = bc_shift_func_up,
+      .parallel_lower_bc_shift_ctx = &ctx,
+      .parallel_upper_bc_shift_ctx = &ctx },
 
     .num_periodic_dir = 1,
-    .periodic_dirs =
-      {
-        1,
-      },
+    .periodic_dirs = { 1 },
 
     .num_species = 1,
-    .species =
-      {
-        elc,
-      },
+    .species = { elc },
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1], app_args.cuts[2]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .comm = comm }
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -369,18 +321,15 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
-    .time_stepping =
-      {
-        .t_end = ctx.t_end,
-        .num_frames = ctx.num_frames,
-        .write_phase_freq = ctx.write_phase_freq,
-        .int_diag_calc_num = ctx.int_diag_calc_num,
-        .dt_failure_tol = ctx.dt_failure_tol,
-        .num_failures_max = ctx.num_failures_max,
-        .is_restart = app_args.is_restart,
-        .restart_frame = app_args.restart_frame,
-        .num_steps = app_args.num_steps,
-      },
+    .time_stepping = { .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps }
     //    .print_verbosity = {
     //      .enabled = true,
     //      .disable_timings = true,

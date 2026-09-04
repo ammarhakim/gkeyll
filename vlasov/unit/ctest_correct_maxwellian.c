@@ -92,15 +92,15 @@ eval_vtsq_2v(double t, const double *xn, double *restrict fout, void *ctx)
 void
 test_1x1v(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.1, -6.0}, upper[] = {1.0, 6.0};
-  int cells[] = {2, 32};
+  double lower[] = { 0.1, -6.0 }, upper[] = { 1.0, 6.0 };
+  int cells[] = { 2, 32 };
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
-  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
-  int velCells[] = {cells[1]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  int confCells[] = { cells[0] };
+  double velLower[] = { lower[1] }, velUpper[] = { upper[1] };
+  int velCells[] = { cells[1] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -112,7 +112,7 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = { 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -122,11 +122,11 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0};
+  int ghost[] = { confGhost[0], 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -159,8 +159,7 @@ test_1x1v(int poly_order, bool use_gpu)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
-    .phase_grid = &grid,
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = { .phase_grid = &grid,
     .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
     .vel_basis = &velBasis,
@@ -171,14 +170,12 @@ test_1x1v(int poly_order, bool use_gpu)
     .phase_range = &local,
     .model_id = GKYL_MODEL_DEFAULT,
     .mass = 1.0,
-    .use_gpu = false,
-  };
+    .use_gpu = false };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // Compute the moments of our corrected distribution function
-  struct gkyl_vlasov_lte_moments_inp inp_mom = {
-    .phase_grid = &grid,
+  struct gkyl_vlasov_lte_moments_inp inp_mom = { .phase_grid = &grid,
     .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
     .vel_basis = &velBasis,
@@ -189,13 +186,11 @@ test_1x1v(int poly_order, bool use_gpu)
     .phase_range = &local,
     .model_id = GKYL_MODEL_DEFAULT,
     .mass = 1.0,
-    .use_gpu = false,
-  };
+    .use_gpu = false };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
 
   // correction updater
-  struct gkyl_vlasov_lte_correct_inp inp = {
-    .phase_grid = &grid,
+  struct gkyl_vlasov_lte_correct_inp inp = { .phase_grid = &grid,
     .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
     .vel_basis = &velBasis,
@@ -207,8 +202,7 @@ test_1x1v(int poly_order, bool use_gpu)
     .model_id = GKYL_MODEL_DEFAULT,
     .use_gpu = false,
     .max_iter = 100,
-    .eps = 1e-12,
-  };
+    .eps = 1e-12 };
   gkyl_vlasov_lte_correct *corr_lte = gkyl_vlasov_lte_correct_inew(&inp);
 
   // write distribution function to file
@@ -305,8 +299,5 @@ test_correct_maxwellian_1x1v_p2_ho()
   test_1x1v(2, false);
 }
 
-TEST_LIST = {
-  {"test_correct_maxwellian_1x1v_p1_ho", test_correct_maxwellian_1x1v_p1_ho},
-  {"test_correct_maxwellian_1x1v_p2_ho", test_correct_maxwellian_1x1v_p2_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_correct_maxwellian_1x1v_p1_ho", test_correct_maxwellian_1x1v_p1_ho },
+  { "test_correct_maxwellian_1x1v_p2_ho", test_correct_maxwellian_1x1v_p2_ho }, { NULL, NULL } };

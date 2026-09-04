@@ -42,7 +42,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type q
   int ndim = basis->ndim;
   int num_quad_v = num_quad;
   // Hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[2] = {false}; // 2 is the max vdim for GK.
+  bool is_vdim_p2[2] = { false }; // 2 is the max vdim for GK.
   if (num_quad > 1 && basis->b_type == GKYL_BASIS_MODAL_GKHYBRID) {
     num_quad_v = num_quad + 1;
     is_vdim_p2[0] = true; // only vpar is quadratic in GK hybrid.
@@ -219,7 +219,7 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   // create a map between phase-space and conf-space ordinates.
   int num_quad_v = num_quad; // Hybrid basis have p=2 in velocity space.
   // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[2] = {false}; // 2 is the max vdim for GK.
+  bool is_vdim_p2[2] = { false }; // 2 is the max vdim for GK.
   if (num_quad > 1 && inp->phase_basis->b_type == GKYL_BASIS_MODAL_GKHYBRID) {
     num_quad_v = num_quad + 1;
     is_vdim_p2[0] = true; // only vpar is quadratic in GK hybrid.
@@ -371,11 +371,11 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = {0};
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < conf_range->ndim; ++d)
     rem_dir[d] = 1;
 
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = { 0.0 };
   double phi_quad[tot_quad_conf];
   double qDphiDbmag_quad[tot_quad_conf]; // charge*(phi-phi_m)/(bmag_max-bmag[0]).
 

@@ -133,14 +133,14 @@ test_zdep_nd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
-  double lower[] = {-M_PI, -M_PI}, upper[] = {3 * M_PI / 4, M_PI};
-  int cells[] = {nx, ny};
+  double lower[] = { -M_PI, -M_PI }, upper[] = { 3 * M_PI / 4, M_PI };
+  int cells[] = { nx, ny };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // basis function
@@ -183,7 +183,7 @@ test_zdep_nd_nxnz(int nx, int ny)
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc = {0};
+  struct gkyl_poisson_bc poisson_bc = { 0 };
   poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -242,14 +242,14 @@ test_simplez_dd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
-  double lower[] = {-M_PI, -M_PI}, upper[] = {M_PI, M_PI};
-  int cells[] = {nx, ny};
+  double lower[] = { -M_PI, -M_PI }, upper[] = { M_PI, M_PI };
+  int cells[] = { nx, ny };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // basis function
@@ -291,7 +291,7 @@ test_simplez_dd_nxnz(int nx, int ny)
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc = {0};
+  struct gkyl_poisson_bc poisson_bc = { 0 };
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -351,14 +351,14 @@ test_zind_dd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
-  double lower[] = {-M_PI, -1}, upper[] = {M_PI, 1};
-  int cells[] = {nx, ny};
+  double lower[] = { -M_PI, -1 }, upper[] = { M_PI, 1 };
+  int cells[] = { nx, ny };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // basis function
@@ -400,7 +400,7 @@ test_zind_dd_nxnz(int nx, int ny)
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc = {0};
+  struct gkyl_poisson_bc poisson_bc = { 0 };
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -459,14 +459,14 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz)
 {
   // create the 2d field
   // create xz grid
-  double lower[] = {-3 * M_PI / 4, -M_PI, -M_PI}, upper[] = {3 * M_PI / 4, M_PI, M_PI};
-  int cells[] = {nx, ny, nz};
+  double lower[] = { -3 * M_PI / 4, -M_PI, -M_PI }, upper[] = { 3 * M_PI / 4, M_PI, M_PI };
+  int cells[] = { nx, ny, nz };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // basis function
@@ -520,7 +520,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz)
   //poisson_bc.lo_value[1].v[0] = 0.;
   //poisson_bc.up_value[1].v[0] = 0.;
 
-  struct gkyl_poisson_bc poisson_bc = {0};
+  struct gkyl_poisson_bc poisson_bc = { 0 };
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_type[1] = GKYL_POISSON_DIRICHLET;
@@ -642,10 +642,8 @@ test_deflated_fem_poisson_3x_dd_dd_ho()
   }
 }
 
-TEST_LIST = {
-  {"test_deflated_fem_poisson_zind_dd_ho", test_deflated_fem_poisson_zind_dd_ho},
-  {"test_deflated_fem_poisson_simplez_dd_ho", test_deflated_fem_poisson_simplez_dd_ho},
-  {"test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho},
-  {"test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_deflated_fem_poisson_zind_dd_ho", test_deflated_fem_poisson_zind_dd_ho },
+  { "test_deflated_fem_poisson_simplez_dd_ho", test_deflated_fem_poisson_simplez_dd_ho },
+  { "test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho },
+  { "test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho },
+  { NULL, NULL } };

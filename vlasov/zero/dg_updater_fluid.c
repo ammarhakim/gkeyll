@@ -70,9 +70,7 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid, const struct gkyl_ra
 struct gkyl_dg_updater_fluid_tm
 gkyl_dg_updater_fluid_get_tm(const gkyl_dg_updater_fluid *fluid)
 {
-  return (struct gkyl_dg_updater_fluid_tm){
-    .fluid_tm = fluid->fluid_tm,
-  };
+  return (struct gkyl_dg_updater_fluid_tm){ .fluid_tm = fluid->fluid_tm };
 }
 
 void

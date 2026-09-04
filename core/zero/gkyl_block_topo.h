@@ -11,7 +11,7 @@ enum gkyl_oriented_edge {
   GKYL_LOWER_NEGATIVE,
   GKYL_UPPER_POSITIVE,
   GKYL_UPPER_NEGATIVE,
-  GKYL_PHYSICAL, // edge on physical domain boundary
+  GKYL_PHYSICAL // edge on physical domain boundary
 };
 
 // Connection to a given target edge

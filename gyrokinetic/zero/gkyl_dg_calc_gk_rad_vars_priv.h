@@ -23,10 +23,10 @@ typedef void (*rad_gyrokinetic_nI_nu_t)(const double *vnu_surf, const double *vn
 GKYL_CU_D static struct {
   int vdim[3];
 } cv_index[] = {
-  {-1, -1, -1}, // 0x makes no sense.
-  {-1, 0, 1}, // 1x kernel indices.
-  {-1, -1, 2}, // 2x kernel indices.
-  {-1, -1, 3}, // 3x kernel indices.
+  { -1, -1, -1 }, // 0x makes no sense.
+  { -1, 0, 1 }, // 1x kernel indices.
+  { -1, -1, 2 }, // 2x kernel indices.
+  { -1, -1, 3 } // 3x kernel indices.
 };
 
 // for use in kernel tables
@@ -58,30 +58,30 @@ struct gkyl_dg_calc_gk_rad_vars {
 };
 
 // Radiation drag surface and volume expansions in vpar (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nu_kern_list ser_rad_gyrokinetic_nu_vpar_kernels[] =
-  {
-    {NULL, NULL, NULL}, // 0
-    {NULL, rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1, NULL}, // 1
-    {NULL, rad_gyrokinetic_drag_nuvpar_2x2v_ser_p1, NULL}, // 2
-    {NULL, rad_gyrokinetic_drag_nuvpar_3x2v_ser_p1, NULL}, // 3
-};
+GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nu_kern_list
+  ser_rad_gyrokinetic_nu_vpar_kernels[] = {
+    { NULL, NULL, NULL }, // 0
+    { NULL, rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1, NULL }, // 1
+    { NULL, rad_gyrokinetic_drag_nuvpar_2x2v_ser_p1, NULL }, // 2
+    { NULL, rad_gyrokinetic_drag_nuvpar_3x2v_ser_p1, NULL } // 3
+  };
 
 // Radiation drag surface and volume expansions in mu (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nu_kern_list ser_rad_gyrokinetic_nu_mu_kernels[] = {
-  {NULL, NULL, NULL}, // 0
-  {NULL, rad_gyrokinetic_drag_numu_1x2v_ser_p1, NULL}, // 1
-  {NULL, rad_gyrokinetic_drag_numu_2x2v_ser_p1, NULL}, // 2
-  {NULL, rad_gyrokinetic_drag_numu_3x2v_ser_p1, NULL}, // 3
+  { NULL, NULL, NULL }, // 0
+  { NULL, rad_gyrokinetic_drag_numu_1x2v_ser_p1, NULL }, // 1
+  { NULL, rad_gyrokinetic_drag_numu_2x2v_ser_p1, NULL }, // 2
+  { NULL, rad_gyrokinetic_drag_numu_3x2v_ser_p1, NULL } // 3
 };
 
 // Density-weighted radiation drag surface and volume expansions (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nI_nu_kern_list ser_rad_gyrokinetic_nI_nu_kernels[] =
-  {
-    {NULL, NULL, NULL}, // 0
-    {NULL, rad_gyrokinetic_drag_nI_nu_1x2v_ser_p1, NULL}, // 1
-    {NULL, rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1, NULL}, // 2
-    {NULL, rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1, NULL}, // 3
-};
+GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_nI_nu_kern_list
+  ser_rad_gyrokinetic_nI_nu_kernels[] = {
+    { NULL, NULL, NULL }, // 0
+    { NULL, rad_gyrokinetic_drag_nI_nu_1x2v_ser_p1, NULL }, // 1
+    { NULL, rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1, NULL }, // 2
+    { NULL, rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1, NULL } // 3
+  };
 
 GKYL_CU_D static rad_gyrokinetic_nu_t
 choose_rad_gyrokinetic_nu_vpar_kern(int cdim, int vdim, int poly_order)

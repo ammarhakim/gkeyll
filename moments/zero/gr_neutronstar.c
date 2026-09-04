@@ -993,8 +993,7 @@ struct gkyl_gr_spacetime *
 gkyl_gr_neutronstar_new(bool use_gpu, double mass, double spin, double mass_quadrupole,
   double spin_octupole, double mass_hexadecapole, double pos_x, double pos_y, double pos_z)
 {
-  return gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){
-    .use_gpu = use_gpu,
+  return gkyl_gr_neutronstar_inew(&(struct gkyl_gr_neutronstar_inp){ .use_gpu = use_gpu,
     .mass = mass,
     .spin = spin,
     .mass_quadrupole = mass_quadrupole,
@@ -1002,8 +1001,7 @@ gkyl_gr_neutronstar_new(bool use_gpu, double mass, double spin, double mass_quad
     .mass_hexadecapole = mass_hexadecapole,
     .pos_x = pos_x,
     .pos_y = pos_y,
-    .pos_z = pos_z,
-  });
+    .pos_z = pos_z });
 }
 
 struct gkyl_gr_spacetime *

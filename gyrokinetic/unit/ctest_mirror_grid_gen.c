@@ -20,9 +20,9 @@ SQ(double x)
 static void
 test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
 {
-  double clower[] = {2.0e-6, 0.0, -2.0};
-  double cupper[] = {3.0e-3, 2 * M_PI, 2.0};
-  int cells[] = {10, 16, 32};
+  double clower[] = { 2.0e-6, 0.0, -2.0 };
+  double cupper[] = { 3.0e-3, 2 * M_PI, 2.0 };
+  int cells[] = { 10, 16, 32 };
   int cdim = 3;
 
   const char *fname = "gyrokinetic/data/unit/wham_hires.geqdsk_psi.gkyl";
@@ -41,35 +41,34 @@ test_wham(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord
   struct gkyl_array *psi = gkyl_grid_array_new_from_file(&psi_grid, fname);
 
   struct gkyl_range node_range;
-  gkyl_range_init_from_shape(&node_range, 3, (int[3]){cells[0] + 1, cells[1] + 1, cells[2] + 1});
+  gkyl_range_init_from_shape(&node_range, 3, (int[3]){ cells[0] + 1, cells[1] + 1, cells[2] + 1 });
 
   struct gkyl_range ext_range, range;
-  int nghost[3] = {1, 1, 1};
+  int nghost[3] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
 
   struct gkyl_position_map *gpm = gkyl_position_map_null_new();
 
   // create mirror geometry
-  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){
-    .comp_grid = &comp_grid,
-    .nrange = node_range,
-    .local = range,
-    .global = range,
+  struct gkyl_mirror_grid_gen *geom =
+    gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){ .comp_grid = &comp_grid,
+      .nrange = node_range,
+      .local = range,
+      .global = range,
 
-    .R = {psi_grid.lower[0], psi_grid.upper[0]},
-    .Z = {psi_grid.lower[1], psi_grid.upper[1]},
+      .R = { psi_grid.lower[0], psi_grid.upper[0] },
+      .Z = { psi_grid.lower[1], psi_grid.upper[1] },
 
-    // psi(R,Z) grid size
-    .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
-    .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
+      // psi(R,Z) grid size
+      .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
+      .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
 
-    .psiRZ = psi,
-    .fl_coord = fl_coord,
-    .include_axis = include_axis,
-    .write_psi_cubic = false,
+      .psiRZ = psi,
+      .fl_coord = fl_coord,
+      .include_axis = include_axis,
+      .write_psi_cubic = false,
 
-    .position_map = gpm,
-  });
+      .position_map = gpm });
 
   TEST_CHECK(include_axis == gkyl_mirror_grid_gen_is_include_axis(geom));
   TEST_CHECK(fl_coord == gkyl_mirror_grid_gen_fl_coord(geom));
@@ -167,9 +166,9 @@ test_mirror_grid_gen_wham_with_axis_sqrt_psi_ho(void)
 static void
 test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_coord)
 {
-  double clower[] = {1.0e-3, 0.0, -0.75};
-  double cupper[] = {0.5, 2 * M_PI, 0.75};
-  int cells[] = {3, 3, 3};
+  double clower[] = { 1.0e-3, 0.0, -0.75 };
+  double cupper[] = { 0.5, 2 * M_PI, 0.75 };
+  int cells[] = { 3, 3, 3 };
   int cdim = 3;
 
   // computational grid
@@ -177,15 +176,15 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
   gkyl_rect_grid_init(&comp_grid, cdim, clower, cupper, cells);
 
   // construct analytical psi(R,Z) on a nodal grid:
-  int psi_nodes[] = {9, 17};
+  int psi_nodes[] = { 9, 17 };
   struct gkyl_range psi_nodes_range;
   gkyl_range_init_from_shape(&psi_nodes_range, 2, psi_nodes);
 
   struct gkyl_rect_grid psi_grid;
-  gkyl_rect_grid_init(&psi_grid, 2, (double[]){0.0, -1.0}, (double[]){1.0, 1.0}, psi_nodes);
+  gkyl_rect_grid_init(&psi_grid, 2, (double[]){ 0.0, -1.0 }, (double[]){ 1.0, 1.0 }, psi_nodes);
 
   struct gkyl_array *psi = gkyl_array_new(GKYL_DOUBLE, 1, psi_nodes_range.volume);
-  double dnodes[] = {1.0 / (psi_nodes[0] - 1), 2.0 / (psi_nodes[1] - 1)};
+  double dnodes[] = { 1.0 / (psi_nodes[0] - 1), 2.0 / (psi_nodes[1] - 1) };
 
   struct gkyl_range_iter psi_nodes_iter;
   gkyl_range_iter_init(&psi_nodes_iter, &psi_nodes_range);
@@ -198,36 +197,35 @@ test_quad_geom(bool include_axis, enum gkyl_mirror_grid_gen_field_line_coord fl_
   }
 
   struct gkyl_range node_range;
-  gkyl_range_init_from_shape(&node_range, 3, (int[3]){cells[0] + 1, cells[1] + 1, cells[2] + 1});
+  gkyl_range_init_from_shape(&node_range, 3, (int[3]){ cells[0] + 1, cells[1] + 1, cells[2] + 1 });
 
   struct gkyl_range ext_range, range;
-  int nghost[3] = {1, 1, 1};
+  int nghost[3] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&comp_grid, nghost, &ext_range, &range);
 
   struct gkyl_position_map *gpm = gkyl_position_map_null_new();
 
   // create mirror geometry
-  struct gkyl_mirror_grid_gen *geom = gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){
-    .comp_grid = &comp_grid,
-    .nrange = node_range,
-    .local = range,
-    .global = range,
+  struct gkyl_mirror_grid_gen *geom =
+    gkyl_mirror_grid_gen_inew(&(struct gkyl_mirror_grid_gen_inp){ .comp_grid = &comp_grid,
+      .nrange = node_range,
+      .local = range,
+      .global = range,
 
-    .R = {psi_grid.lower[0], psi_grid.upper[0]},
-    .Z = {psi_grid.lower[1], psi_grid.upper[1]},
+      .R = { psi_grid.lower[0], psi_grid.upper[0] },
+      .Z = { psi_grid.lower[1], psi_grid.upper[1] },
 
-    // psi(R,Z) grid size
-    .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
-    .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
+      // psi(R,Z) grid size
+      .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
+      .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
 
-    .psiRZ = psi,
-    .fl_coord = fl_coord,
-    .include_axis = include_axis,
-    .write_psi_cubic = false,
-    .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl",
+      .psiRZ = psi,
+      .fl_coord = fl_coord,
+      .include_axis = include_axis,
+      .write_psi_cubic = false,
+      .psi_cubic_fname = "ctest_mirror_grid_gen_quad.gkyl",
 
-    .position_map = gpm,
-  });
+      .position_map = gpm });
 
   TEST_CHECK(include_axis == gkyl_mirror_grid_gen_is_include_axis(geom));
   TEST_CHECK(fl_coord == gkyl_mirror_grid_gen_fl_coord(geom));
@@ -339,19 +337,17 @@ test_mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho(void)
   test_quad_geom(true, GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z);
 }
 
-TEST_LIST = {
-  {"mirror_grid_gen_wham_no_axis_psi_ho", test_mirror_grid_gen_wham_no_axis_psi_ho},
-  {"mirror_grid_gen_wham_with_axis_psi_ho", test_mirror_grid_gen_wham_with_axis_psi_ho},
+TEST_LIST = { { "mirror_grid_gen_wham_no_axis_psi_ho", test_mirror_grid_gen_wham_no_axis_psi_ho },
+  { "mirror_grid_gen_wham_with_axis_psi_ho", test_mirror_grid_gen_wham_with_axis_psi_ho },
 
-  {"mirror_grid_gen_wham_no_axis_sqrt_psi_ho", test_mirror_grid_gen_wham_no_axis_sqrt_psi_ho},
-  {"mirror_grid_gen_wham_with_axis_sqrt_psi_ho", test_mirror_grid_gen_wham_with_axis_sqrt_psi_ho},
+  { "mirror_grid_gen_wham_no_axis_sqrt_psi_ho", test_mirror_grid_gen_wham_no_axis_sqrt_psi_ho },
+  { "mirror_grid_gen_wham_with_axis_sqrt_psi_ho", test_mirror_grid_gen_wham_with_axis_sqrt_psi_ho },
 
-  {"mirror_grid_gen_quad_geom_no_axis_psi_ho", test_mirror_grid_gen_quad_geom_no_axis_psi_ho},
-  {"mirror_grid_gen_quad_geom_with_axis_psi_ho", test_mirror_grid_gen_quad_geom_with_axis_psi_ho},
+  { "mirror_grid_gen_quad_geom_no_axis_psi_ho", test_mirror_grid_gen_quad_geom_no_axis_psi_ho },
+  { "mirror_grid_gen_quad_geom_with_axis_psi_ho", test_mirror_grid_gen_quad_geom_with_axis_psi_ho },
 
-  {"mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho",
-    test_mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho},
-  {"mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho",
-    test_mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho},
-  {NULL, NULL},
-};
+  { "mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho",
+    test_mirror_grid_gen_quad_geom_no_axis_sqrt_psi_ho },
+  { "mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho",
+    test_mirror_grid_gen_quad_geom_with_axis_sqrt_psi_ho },
+  { NULL, NULL } };

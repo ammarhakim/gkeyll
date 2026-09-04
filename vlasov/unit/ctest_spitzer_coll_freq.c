@@ -65,8 +65,8 @@ void
 test_1x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI;
-  double lower[] = {-Lx / 2.}, upper[] = {Lx / 2.};
-  int cells[] = {32};
+  double lower[] = { -Lx / 2. }, upper[] = { Lx / 2. };
+  int cells[] = { 32 };
 
   double norm_nu = 1. / 3.;
 
@@ -80,7 +80,7 @@ test_1x(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -152,7 +152,7 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_nu, 0.0, &local, nuA_ho);
 
   for (int k = 0; k < cells[0]; k++) {
-    int idx[] = {k + 1};
+    int idx[] = { k + 1 };
     long linidx = gkyl_range_idx(&local, idx);
     const double *nu_p = gkyl_array_cfetch(nu_ho, linidx);
     const double *nuA_p = gkyl_array_cfetch(nuA_ho, linidx);
@@ -231,8 +231,8 @@ void
 test_2x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
-  double lower[] = {-Lx / 2., -Ly / 2.}, upper[] = {Lx / 2., Ly / 2.};
-  int cells[] = {32, 128};
+  double lower[] = { -Lx / 2., -Ly / 2. }, upper[] = { Lx / 2., Ly / 2. };
+  int cells[] = { 32, 128 };
 
   double norm_nu = 1. / 3.;
 
@@ -246,7 +246,7 @@ test_2x(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -319,7 +319,7 @@ test_2x(int poly_order, bool use_gpu)
 
   for (int j = 0; j < cells[0]; j++) {
     for (int k = 0; k < cells[1]; k++) {
-      int idx[] = {j + 1, k + 1};
+      int idx[] = { j + 1, k + 1 };
       long linidx = gkyl_range_idx(&local, idx);
       const double *nu_p = gkyl_array_cfetch(nu_ho, linidx);
       const double *nuA_p = gkyl_array_cfetch(nuA_ho, linidx);
@@ -403,8 +403,8 @@ void
 test_3x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
-  double lower[] = {-Lx / 2., -Ly / 2., -Lz / 2.}, upper[] = {Lx / 2., Ly / 2., Lz / 2.};
-  int cells[] = {32, 48, 48};
+  double lower[] = { -Lx / 2., -Ly / 2., -Lz / 2. }, upper[] = { Lx / 2., Ly / 2., Lz / 2. };
+  int cells[] = { 32, 48, 48 };
 
   double norm_nu = 1. / 3.;
 
@@ -418,7 +418,7 @@ test_3x(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range local, local_ext; // Local, local-ext phase-space ranges.
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -492,7 +492,7 @@ test_3x(int poly_order, bool use_gpu)
   for (int i = 0; i < cells[0]; i++) {
     for (int j = 0; j < cells[1]; j++) {
       for (int k = 0; k < cells[2]; k++) {
-        int idx[] = {i + 1, j + 1, k + 1};
+        int idx[] = { i + 1, j + 1, k + 1 };
         long linidx = gkyl_range_idx(&local, idx);
         const double *nu_p = gkyl_array_cfetch(nu_ho, linidx);
         const double *nuA_p = gkyl_array_cfetch(nuA_ho, linidx);
@@ -596,24 +596,22 @@ test_spitzer_coll_freq_3x_p2_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_spitzer_coll_freq_1x_p1_ho", test_spitzer_coll_freq_1x_p1_ho},
-  {"test_spitzer_coll_freq_1x_p2_ho", test_spitzer_coll_freq_1x_p2_ho},
+TEST_LIST = { { "test_spitzer_coll_freq_1x_p1_ho", test_spitzer_coll_freq_1x_p1_ho },
+  { "test_spitzer_coll_freq_1x_p2_ho", test_spitzer_coll_freq_1x_p2_ho },
 
-  {"test_spitzer_coll_freq_2x_p1_ho", test_spitzer_coll_freq_2x_p1_ho},
-  {"test_spitzer_coll_freq_2x_p2_ho", test_spitzer_coll_freq_2x_p2_ho},
+  { "test_spitzer_coll_freq_2x_p1_ho", test_spitzer_coll_freq_2x_p1_ho },
+  { "test_spitzer_coll_freq_2x_p2_ho", test_spitzer_coll_freq_2x_p2_ho },
 
-  {"test_spitzer_coll_freq_3x_p1_ho", test_spitzer_coll_freq_3x_p1_ho},
-  {"test_spitzer_coll_freq_3x_p2_ho", test_spitzer_coll_freq_3x_p2_ho},
+  { "test_spitzer_coll_freq_3x_p1_ho", test_spitzer_coll_freq_3x_p1_ho },
+  { "test_spitzer_coll_freq_3x_p2_ho", test_spitzer_coll_freq_3x_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_spitzer_coll_freq_1x_p1_dev", test_spitzer_coll_freq_1x_p1_dev},
-  {"test_spitzer_coll_freq_1x_p2_dev", test_spitzer_coll_freq_1x_p2_dev},
+  { "test_spitzer_coll_freq_1x_p1_dev", test_spitzer_coll_freq_1x_p1_dev },
+  { "test_spitzer_coll_freq_1x_p2_dev", test_spitzer_coll_freq_1x_p2_dev },
 
-  {"test_spitzer_coll_freq_2x_p1_dev", test_spitzer_coll_freq_2x_p1_dev},
-  {"test_spitzer_coll_freq_2x_p2_dev", test_spitzer_coll_freq_2x_p2_dev},
+  { "test_spitzer_coll_freq_2x_p1_dev", test_spitzer_coll_freq_2x_p1_dev },
+  { "test_spitzer_coll_freq_2x_p2_dev", test_spitzer_coll_freq_2x_p2_dev },
 
-  {"test_spitzer_coll_freq_3x_p1_dev", test_spitzer_coll_freq_3x_p1_dev},
-  {"test_spitzer_coll_freq_3x_p2_dev", test_spitzer_coll_freq_3x_p2_dev},
+  { "test_spitzer_coll_freq_3x_p1_dev", test_spitzer_coll_freq_3x_p1_dev },
+  { "test_spitzer_coll_freq_3x_p2_dev", test_spitzer_coll_freq_3x_p2_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

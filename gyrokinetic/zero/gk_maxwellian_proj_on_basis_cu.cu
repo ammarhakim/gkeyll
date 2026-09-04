@@ -150,7 +150,7 @@ gkyl_gk_maxwellian_proj_on_basis_f_quad_ker(struct gkyl_rect_grid phase_grid,
   int vdim = pdim - cdim;
   int tot_conf_quad = conf_basis_at_ords->size;
 
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = { 0.0 };
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM], vidx[2];
 
   // 2D thread grid

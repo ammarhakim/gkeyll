@@ -111,8 +111,7 @@ create_ctx(void)
 
   double x_loc = 1.0; // Shock location (x-direction).
 
-  struct ultra_rel_bhl_spinning_ctx ctx = {
-    .gas_gamma = gas_gamma,
+  struct ultra_rel_bhl_spinning_ctx ctx = { .gas_gamma = gas_gamma,
     .rhol = rhol,
     .ul = ul,
     .rhor = rhor,
@@ -136,8 +135,7 @@ create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .x_loc = x_loc,
-  };
+    .x_loc = x_loc };
 
   return ctx;
 }
@@ -422,8 +420,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *gr_ultra_rel_euler_tetrad = gkyl_wv_gr_ultra_rel_euler_tetrad_new(
     ctx.gas_gamma, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
 
-  struct gkyl_moment_species fluid = {
-    .name = "gr_ultra_rel_euler_tetrad",
+  struct gkyl_moment_species fluid = { .name = "gr_ultra_rel_euler_tetrad",
     .equation = gr_ultra_rel_euler_tetrad,
 
     .init = evalGREulerInit,
@@ -433,9 +430,8 @@ main(int argc, char **argv)
     .has_gr_ultra_rel = true,
     .gr_ultra_rel_gas_gamma = ctx.gas_gamma,
 
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-    .bcy = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-  };
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -445,7 +441,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = {NX, NY};
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -467,14 +463,12 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -499,9 +493,9 @@ main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = {0.0, 0.0},
-    .upper = {ctx.Lx, ctx.Ly},
-    .cells = {NX, NY},
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
 
     .scheme_type = GKYL_MOMENT_WAVE_PROP,
     .mp_recon = app_args.mp_recon,
@@ -509,14 +503,11 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = {fluid},
+    .species = { fluid },
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -551,21 +542,24 @@ main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 

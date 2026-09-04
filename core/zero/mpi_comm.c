@@ -15,13 +15,13 @@
 #include <string.h>
 
 // Mapping of Gkeyll type to MPI_Datatype
-static MPI_Datatype g2_mpi_datatype[] = {[GKYL_INT] = MPI_INT,
+static MPI_Datatype g2_mpi_datatype[] = { [GKYL_INT] = MPI_INT,
   [GKYL_INT_64] = MPI_INT64_T,
   [GKYL_FLOAT] = MPI_FLOAT,
-  [GKYL_DOUBLE] = MPI_DOUBLE};
+  [GKYL_DOUBLE] = MPI_DOUBLE };
 
 // Mapping of Gkeyll ops to MPI_Op
-static MPI_Op g2_mpi_op[] = {[GKYL_MIN] = MPI_MIN, [GKYL_MAX] = MPI_MAX, [GKYL_SUM] = MPI_SUM};
+static MPI_Op g2_mpi_op[] = { [GKYL_MIN] = MPI_MIN, [GKYL_MAX] = MPI_MAX, [GKYL_SUM] = MPI_SUM };
 
 struct gkyl_comm_state {
   MPI_Request req;
@@ -199,7 +199,7 @@ sync(struct gkyl_comm *comm, const struct gkyl_range *local, const struct gkyl_r
   int rank;
   gkyl_comm_get_rank(comm, &rank);
 
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   for (int i = 0; i < mpi->decomp->ndim; ++i)
     nghost[i] = local_ext->upper[i] - local->upper[i];
 
@@ -302,13 +302,13 @@ static int
 per_send_tag(const struct gkyl_range *dir_edge, int dir, int e)
 {
   int base_tag = MPI_BASE_PER_TAG;
-  return base_tag + gkyl_range_idx(dir_edge, (int[]){dir, e});
+  return base_tag + gkyl_range_idx(dir_edge, (int[]){ dir, e });
 }
 static int
 per_recv_tag(const struct gkyl_range *dir_edge, int dir, int e)
 {
   int base_tag = MPI_BASE_PER_TAG;
-  return base_tag + gkyl_range_idx(dir_edge, (int[]){dir, (e + 1) % 2});
+  return base_tag + gkyl_range_idx(dir_edge, (int[]){ dir, (e + 1) % 2 });
 }
 
 static int
@@ -325,7 +325,7 @@ per_sync(struct gkyl_comm *comm, const struct gkyl_range *local, const struct gk
     nghost[i] = local_ext->upper[i] - local->upper[i];
 
   int nridx = 0;
-  int edge_type[] = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE};
+  int edge_type[] = { GKYL_LOWER_EDGE, GKYL_UPPER_EDGE };
 
   // post nonblocking recv to get data into ghost-cells
   for (int i = 0; i < nper_dirs; ++i) {
@@ -469,7 +469,7 @@ sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *dec
     size_t buff_sz;
     FILE *fbuff = open_memstream(&buff, &buff_sz);
 
-    uint64_t loidx[GKYL_MAX_DIM] = {0}, upidx[GKYL_MAX_DIM] = {0};
+    uint64_t loidx[GKYL_MAX_DIM] = { 0 }, upidx[GKYL_MAX_DIM] = { 0 };
     for (int d = 0; d < range->ndim; ++d) {
       loidx[d] = range->lower[d];
       upidx[d] = range->upper[d];
@@ -520,12 +520,12 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm, const struct gkyl_rect_gri
 
   // write header to a char buffer
   gkyl_grid_sub_array_header_write_fp(grid,
-    &(struct gkyl_array_header_info){.file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
+    &(struct gkyl_array_header_info){ .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
       .etype = arr->type,
       .esznc = arr->esznc,
       .tot_cells = decomp->parent_range.volume,
       .meta_size = meta ? meta->meta_sz : 0,
-      .meta = meta ? meta->meta : 0},
+      .meta = meta ? meta->meta : 0 },
     fbuff);
   uint64_t nrange = decomp->ndecomp;
   fwrite(&nrange, sizeof(uint64_t), 1, fbuff);
@@ -540,7 +540,7 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm, const struct gkyl_rect_gri
   }
   free(buff);
 
-  struct gkyl_msgpack_data zero_meta = (struct gkyl_msgpack_data){.meta_sz = 0, .meta = 0};
+  struct gkyl_msgpack_data zero_meta = (struct gkyl_msgpack_data){ .meta_sz = 0, .meta = 0 };
 
   // write data in array
   sub_array_decomp_write(comm, decomp, range, meta ? meta : &zero_meta, arr, fp);
@@ -583,7 +583,7 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, mpi->decomp);
   struct gkyl_comm *ext_comm =
-    gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = mpi->mcomm, .decomp = ext_decomp});
+    gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = mpi->mcomm, .decomp = ext_decomp });
   gkyl_rect_decomp_release(ext_decomp);
   return ext_comm;
 }
@@ -599,10 +599,7 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   assert(ret == MPI_SUCCESS);
 
   return gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-    .mpi_comm = new_mcomm,
-    .sync_corners = mpi->sync_corners,
-    .decomp = new_decomp,
-  });
+    .mpi_comm = new_mcomm, .sync_corners = mpi->sync_corners, .decomp = new_decomp });
 }
 
 static struct gkyl_comm *
@@ -627,11 +624,8 @@ create_comm_from_ranks(const struct gkyl_comm *comm, int nranks, const int *rank
 
     new_comm = mpi_comm_new(
       &(struct gkyl_mpi_comm_inp){
-        .mpi_comm = new_mcomm,
-        .sync_corners = mpi->sync_corners,
-        .decomp = new_decomp,
-      },
-      &(struct extra_mpi_comm_inp){.is_comm_allocated = true});
+        .mpi_comm = new_mcomm, .sync_corners = mpi->sync_corners, .decomp = new_decomp },
+      &(struct extra_mpi_comm_inp){ .is_comm_allocated = true });
   }
 
   MPI_Group_free(&group);
@@ -678,7 +672,7 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp, const struct extra_mpi_comm_in
 
     // construct a dummy decomposition
     mpi->decomp =
-      gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]){comm_size}, (int[]){comm_size});
+      gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]){ comm_size }, (int[]){ comm_size });
   } else {
     mpi->decomp = gkyl_rect_decomp_acquire(inp->decomp);
   }
@@ -698,7 +692,7 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp, const struct extra_mpi_comm_in
     // instead
     mpi->per_neigh[d] = gkyl_rect_decomp_calc_periodic_neigh(mpi->decomp, d, false, rank);
 
-  gkyl_range_init(&mpi->dir_edge, 2, (int[]){0, 0}, (int[]){GKYL_MAX_DIM, 2});
+  gkyl_range_init(&mpi->dir_edge, 2, (int[]){ 0, 0 }, (int[]){ GKYL_MAX_DIM, 2 });
 
   int num_touches = 0;
   for (int d = 0; d < mpi->decomp->ndim; ++d) {
@@ -747,7 +741,7 @@ mpi_comm_new(const struct gkyl_mpi_comm_inp *inp, const struct extra_mpi_comm_in
 struct gkyl_comm *
 gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {
-  return mpi_comm_new(inp, &(struct extra_mpi_comm_inp){.is_comm_allocated = false});
+  return mpi_comm_new(inp, &(struct extra_mpi_comm_inp){ .is_comm_allocated = false });
 }
 
 #endif

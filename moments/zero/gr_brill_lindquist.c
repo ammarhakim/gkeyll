@@ -541,8 +541,7 @@ struct gkyl_gr_spacetime *
 gkyl_gr_brill_lindquist_new(bool use_gpu, double mass1, double mass2, double pos_x1, double pos_y1,
   double pos_z1, double pos_x2, double pos_y2, double pos_z2)
 {
-  return gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){
-    .use_gpu = use_gpu,
+  return gkyl_gr_brill_lindquist_inew(&(struct gkyl_gr_brill_lindquist_inp){ .use_gpu = use_gpu,
     .mass1 = mass1,
     .mass2 = mass2,
     .pos_x1 = pos_x1,
@@ -550,8 +549,7 @@ gkyl_gr_brill_lindquist_new(bool use_gpu, double mass1, double mass2, double pos
     .pos_z1 = pos_z1,
     .pos_x2 = pos_x2,
     .pos_y2 = pos_y2,
-    .pos_z2 = pos_z2,
-  });
+    .pos_z2 = pos_z2 });
 }
 
 struct gkyl_gr_spacetime *

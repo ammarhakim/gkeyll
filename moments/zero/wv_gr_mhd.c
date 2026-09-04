@@ -10,7 +10,7 @@ void
 gkyl_gr_mhd_flux(
   double gas_gamma, double light_speed, double b_fact, const double q[75], double flux[75])
 {
-  double v[75] = {0.0};
+  double v[75] = { 0.0 };
   gkyl_gr_mhd_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -544,7 +544,7 @@ gkyl_gr_mhd_inv_spatial_metric(const double q[75], double ***inv_spatial_metric)
 void
 gkyl_gr_mhd_stress_energy_tensor(double gas_gamma, const double q[75], double ***stress_energy)
 {
-  double v[75] = {0.0};
+  double v[75] = { 0.0 };
   gkyl_gr_mhd_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -707,7 +707,7 @@ gkyl_gr_mhd_stress_energy_tensor(double gas_gamma, const double q[75], double **
 static inline double
 gkyl_gr_mhd_max_abs_speed(double gas_gamma, const double q[75])
 {
-  double v[75] = {0.0};
+  double v[75] = { 0.0 };
   gkyl_gr_mhd_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -1941,7 +1941,7 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   const struct wv_gr_mhd *gr_mhd = container_of(eqn, struct wv_gr_mhd, eqn);
   double gas_gamma = gr_mhd->gas_gamma;
 
-  double v[75] = {0.0};
+  double v[75] = { 0.0 };
   gkyl_gr_mhd_prim_vars(gas_gamma, q, v);
 
   if (v[0] < 0.0 || v[4] < 0.0) {
@@ -1974,7 +1974,7 @@ gr_mhd_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
   const struct wv_gr_mhd *gr_mhd = container_of(eqn, struct wv_gr_mhd, eqn);
   double gas_gamma = gr_mhd->gas_gamma;
 
-  double v[75] = {0.0};
+  double v[75] = { 0.0 };
   gkyl_gr_mhd_prim_vars(gas_gamma, qin, v);
   double rho = v[0];
   double vx = v[1];
@@ -2235,16 +2235,14 @@ gkyl_wv_gr_mhd_new(double gas_gamma, double light_speed, double b_fact,
   enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
   bool use_gpu)
 {
-  return gkyl_wv_gr_mhd_inew(&(struct gkyl_wv_gr_mhd_inp){
-    .gas_gamma = gas_gamma,
+  return gkyl_wv_gr_mhd_inew(&(struct gkyl_wv_gr_mhd_inp){ .gas_gamma = gas_gamma,
     .light_speed = light_speed,
     .b_fact = b_fact,
     .spacetime_gauge = spacetime_gauge,
     .reinit_freq = reinit_freq,
     .spacetime = spacetime,
     .rp_type = WV_GR_MHD_RP_HLL,
-    .use_gpu = use_gpu,
-  });
+    .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

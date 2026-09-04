@@ -138,9 +138,6 @@ test_topo_io_ho()
   gkyl_block_topo_release(btopo);
 }
 
-TEST_LIST = {
-  {"block_topo_mobius_domain_ho", test_block_topo_mobius_domain_ho},
-  {"block_topo_L_domain_ho", test_block_topo_L_domain_ho},
-  {"topo_io_ho", test_topo_io_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "block_topo_mobius_domain_ho", test_block_topo_mobius_domain_ho },
+  { "block_topo_L_domain_ho", test_block_topo_L_domain_ho }, { "topo_io_ho", test_topo_io_ho },
+  { NULL, NULL } };

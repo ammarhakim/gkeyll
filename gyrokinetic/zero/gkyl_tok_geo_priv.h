@@ -104,7 +104,7 @@ struct RdRdZ_sol {
 static inline struct RdRdZ_sol
 calc_RdR_p1(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
-  struct RdRdZ_sol sol = {.nsol = 0};
+  struct RdRdZ_sol sol = { .nsol = 0 };
 
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
@@ -128,7 +128,7 @@ calc_RdR_p1(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 static inline struct RdRdZ_sol
 calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
-  struct RdRdZ_sol sol = {.nsol = 0};
+  struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
   double aq = 0.125 *
@@ -207,7 +207,7 @@ calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], doubl
 static inline struct RdRdZ_sol
 calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
-  struct RdRdZ_sol sol = {.nsol = 0};
+  struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
   double aq = 0.125 *
@@ -286,7 +286,7 @@ static inline struct RdRdZ_sol
 calc_RdR_p2_tensor_with_tolerance(
   const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
-  struct RdRdZ_sol sol = {.nsol = 0};
+  struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
   double aq = 0.125 *
@@ -339,7 +339,7 @@ calc_RdR_p2_tensor_with_tolerance(
 static inline struct RdRdZ_sol
 calc_RdR_p3(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
-  struct RdRdZ_sol sol = {.nsol = 0};
+  struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
   double coeffs[4];
@@ -426,7 +426,7 @@ calc_RdR_p3(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 static inline struct RdRdZ_sol
 calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
-  struct RdRdZ_sol sol = {.nsol = 0};
+  struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
   double coeffs[4];
   // coeffs = [x^0, x^1, x^2, x^3]
@@ -568,7 +568,7 @@ calc_RdR_p3_hyperbolic(const double *psi, double psi0, double Z, double xc[2], d
   double complex r0 = x_0 - (gamma + 0.0 * I);
   double complex r1 = x_1 - (gamma + 0.0 * I);
   double complex r2 = x_2 - (gamma + 0.0 * I);
-  double complex roots[3] = {r0, r1, r2};
+  double complex roots[3] = { r0, r1, r2 };
   int sidx = 0;
   for (int i = 0; i < 3; i++) {
     double rpart = creal(roots[i]);
@@ -625,11 +625,11 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots, doub
   int zcell = get_idx(1, Z, &geo->rzgrid, &geo->rzlocal);
 
   int sidx = 0;
-  int idx[2] = {0, zcell};
-  double dx[2] = {geo->rzgrid.dx[0], geo->rzgrid.dx[1]};
+  int idx[2] = { 0, zcell };
+  double dx[2] = { geo->rzgrid.dx[0], geo->rzgrid.dx[1] };
 
   struct gkyl_range rangeR;
-  gkyl_range_deflate(&rangeR, &geo->rzlocal, (int[]){0, 1}, (int[]){0, zcell});
+  gkyl_range_deflate(&rangeR, &geo->rzlocal, (int[]){ 0, 1 }, (int[]){ 0, zcell });
 
   struct gkyl_range_iter riter;
   gkyl_range_iter_init(&riter, &rangeR);
@@ -697,11 +697,11 @@ R_psiZ_cubic(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots
   int zcell = get_idx(1, Z, &geo->rzgrid_cubic, &geo->rzlocal_cubic);
 
   int sidx = 0;
-  int idx[2] = {0, zcell};
-  double dx[2] = {geo->rzgrid_cubic.dx[0], geo->rzgrid_cubic.dx[1]};
+  int idx[2] = { 0, zcell };
+  double dx[2] = { geo->rzgrid_cubic.dx[0], geo->rzgrid_cubic.dx[1] };
 
   struct gkyl_range rangeR;
-  gkyl_range_deflate(&rangeR, &geo->rzlocal_cubic, (int[]){0, 1}, (int[]){0, zcell});
+  gkyl_range_deflate(&rangeR, &geo->rzlocal_cubic, (int[]){ 0, 1 }, (int[]){ 0, zcell });
 
   struct gkyl_range_iter riter;
   gkyl_range_iter_init(&riter, &rangeR);
@@ -810,8 +810,8 @@ contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
-  double R[4] = {0}, dRdZ[4] = {0};
-  double dR[4] = {0}, dZ[4] = {0};
+  double R[4] = { 0 }, dRdZ[4] = { 0 };
+  double dR[4] = { 0 }, dZ[4] = { 0 };
 
   int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
   double drdz = nr == 1 ? dRdZ[0] : choose_closest(c->last_R, R, dRdZ, nr);
@@ -824,15 +824,15 @@ phi_contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
-  double R[4] = {0}, dRdZ[4] = {0};
-  double dR[4] = {0}, dZ[4] = {0};
+  double R[4] = { 0 }, dRdZ[4] = { 0 };
+  double dR[4] = { 0 }, dZ[4] = { 0 };
 
   int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
   double drdz = nr == 1 ? dRdZ[0] : choose_closest(c->last_R, R, dRdZ, nr);
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
   if (c->geo->use_cubics) {
-    double xn[2] = {r_curr, Z};
+    double xn[2] = { r_curr, Z };
     double fout[3];
     c->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, c->geo->efit->evf->ctx);
     double dpsidR = fout[1];
@@ -862,7 +862,7 @@ phi_contour_func(double Z, void *ctx)
     double x = (r_curr - xc[0]) / (c->geo->rzgrid.dx[0] * 0.5);
     double y = (Z - xc[1]) / (c->geo->rzgrid.dx[1] * 0.5);
 
-    double eta[2] = {x, y};
+    double eta[2] = { x, y };
     double grad_psi_mag = c->geo->calc_grad_psi(psih, eta, c->geo->rzgrid.dx);
 
     double result = (1 / r_curr / grad_psi_mag) * sqrt(1 + drdz * drdz);
@@ -875,15 +875,15 @@ dphidtheta_integrand(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
-  double R[4] = {0}, dRdZ[4] = {0};
-  double dR[4] = {0}, dZ[4] = {0};
+  double R[4] = { 0 }, dRdZ[4] = { 0 };
+  double dR[4] = { 0 }, dZ[4] = { 0 };
 
   int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
   double drdz = nr == 1 ? dRdZ[0] : choose_closest(c->last_R, R, dRdZ, nr);
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
   if (c->geo->use_cubics) {
-    double xn[2] = {r_curr, Z};
+    double xn[2] = { r_curr, Z };
     double fout[3];
     c->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, c->geo->efit->evf->ctx);
     double dpsidR = fout[1];
@@ -913,7 +913,7 @@ dphidtheta_integrand(double Z, void *ctx)
     double x = (r_curr - xc[0]) / (c->geo->rzgrid.dx[0] * 0.5);
     double y = (Z - xc[1]) / (c->geo->rzgrid.dx[1] * 0.5);
 
-    double eta[2] = {x, y};
+    double eta[2] = { x, y };
     double grad_psi_mag = c->geo->calc_grad_psi(psih, eta, c->geo->rzgrid.dx);
     double result = (1 / r_curr / grad_psi_mag);
     return nr > 0 ? result : 0.0;
@@ -930,7 +930,7 @@ static double
 integrate_psi_contour_memo(const struct gkyl_tok_geo *geo, double psi, double zmin, double zmax,
   double rclose, bool use_memo, bool fill_memo, double *memo)
 {
-  struct contour_ctx ctx = {.geo = geo, .psi = psi, .ncall = 0, .last_R = rclose};
+  struct contour_ctx ctx = { .geo = geo, .psi = psi, .ncall = 0, .last_R = rclose };
 
   int nlevels = geo->quad_param.max_level;
   double eps = geo->quad_param.eps;
@@ -986,7 +986,7 @@ static double
 integrate_phi_along_psi_contour_memo(const struct gkyl_tok_geo *geo, double psi, double zmin,
   double zmax, double rclose, bool use_memo, bool fill_memo, double *memo)
 {
-  struct contour_ctx ctx = {.geo = geo, .psi = psi, .ncall = 0, .last_R = rclose};
+  struct contour_ctx ctx = { .geo = geo, .psi = psi, .ncall = 0, .last_R = rclose };
 
   int nlevels = geo->quad_param.max_level;
   double eps = geo->quad_param.eps;

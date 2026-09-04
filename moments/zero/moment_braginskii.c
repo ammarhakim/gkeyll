@@ -28,7 +28,7 @@ create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 {
   // box spanning stencil
   struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, (int[]){-1, -1, -1}, (int[]){0, 0, 0});
+  gkyl_range_init(&box3, range->ndim, (int[]){ -1, -1, -1 }, (int[]){ 0, 0, 0 });
 
   struct gkyl_range_iter iter3;
   gkyl_range_iter_init(&iter3, &box3);
@@ -44,7 +44,7 @@ create_offsets_centers(const struct gkyl_range *range, long offsets[])
 {
   // box spanning stencil
   struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, (int[]){0, 0, 0}, (int[]){1, 1, 1});
+  gkyl_range_init(&box3, range->ndim, (int[]){ 0, 0, 0 }, (int[]){ 1, 1, 1 });
 
   struct gkyl_range_iter iter3;
   gkyl_range_iter_init(&iter3, &box3);
@@ -65,8 +65,8 @@ mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
 {
   int nfluids = bes->nfluids;
 
-  double m[2] = {bes->param[0].mass, bes->param[1].mass};
-  double q[2] = {bes->param[0].charge, bes->param[1].charge};
+  double m[2] = { bes->param[0].mass, bes->param[1].mass };
+  double q[2] = { bes->param[0].charge, bes->param[1].charge };
 
   // Grab indices of electron and ion fluid arrays
   int ELC = bes->param[0].charge < 0.0 ? 0 : 1;
@@ -157,8 +157,8 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
   // Allocate some memory on stack regardless of dimensionality or equation type (Euler vs. isothermal Euler)
   // These allocations allow us to make final construction of Braginskii variables dimensionally independent
   // Note: Braginskii implementation currently assumes only two fluids (electrons and an ion species)
-  double m[2] = {bes->param[0].mass, bes->param[1].mass};
-  double q[2] = {bes->param[0].charge, bes->param[1].charge};
+  double m[2] = { bes->param[0].mass, bes->param[1].mass };
+  double q[2] = { bes->param[0].charge, bes->param[1].charge };
 
   // Grab indices of electron and ion fluid arrays
   int ELC = bes->param[0].charge < 0.0 ? 0 : 1;
@@ -173,10 +173,10 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
   double pi_cross[2][6] = {};
 
   double kappa_par_avg[2] = {}, kappa_perp_avg[2] = {}, kappa_cross_avg[2] = {};
-  double current_par_avg[3] =
-    {}; // Parallel current multiplied by parallel thermal force coefficient at cell edges (using arithmetic average)
-  double current_cross_avg[3] =
-    {}; // Cross current multiplied by perpendicular thermal force coefficient at cell edges (using arithmetic average)
+  double current_par_avg
+    [3] = {}; // Parallel current multiplied by parallel thermal force coefficient at cell edges (using arithmetic average)
+  double current_cross_avg
+    [3] = {}; // Cross current multiplied by perpendicular thermal force coefficient at cell edges (using arithmetic average)
 
   // Temperature gradient, parallel, perp, and cross at cell edges
   double gradxT[2] = {};
@@ -184,12 +184,12 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
   double gradzT[2] = {};
 
   double bbgradT[2][3] = {}; // Parallel temperature gradient (b_hat b_hat dot grad T)
-  double perp_gradT[2][3] =
-    {}; // Perpendicular temperature gradient (grad T - b_hat b_hat dot grad T)
+  double perp_gradT[2]
+                   [3] = {}; // Perpendicular temperature gradient (grad T - b_hat b_hat dot grad T)
   double cross_gradT[2][3] = {}; // Cross temperature gradient (b x grad T)
 
   // Average velocity at cell edges
-  double u_avg[2][3] = {0.0};
+  double u_avg[2][3] = { 0.0 };
 
   if (ndim == 1) {
     double dx = bes->grid.dx[0];
@@ -348,8 +348,8 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
     double Piu[3] = {
       brag_d[n][PIXX] * u_avg[n][0] + brag_d[n][PIXY] * u_avg[n][1] + brag_d[n][PIXZ] * u_avg[n][2],
       brag_d[n][PIXY] * u_avg[n][0] + brag_d[n][PIYY] * u_avg[n][1] + brag_d[n][PIYZ] * u_avg[n][2],
-      brag_d[n][PIXZ] * u_avg[n][0] + brag_d[n][PIYZ] * u_avg[n][1] +
-        brag_d[n][PIZZ] * u_avg[n][2]};
+      brag_d[n][PIXZ] * u_avg[n][0] + brag_d[n][PIYZ] * u_avg[n][1] + brag_d[n][PIZZ] * u_avg[n][2]
+    };
 
     // Total heat flux + viscous heating
     for (int k = 0; k < 3; ++k)
@@ -369,8 +369,8 @@ unmag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
 {
   int nfluids = bes->nfluids;
 
-  double m[2] = {bes->param[0].mass, bes->param[1].mass};
-  double q[2] = {bes->param[0].charge, bes->param[1].charge};
+  double m[2] = { bes->param[0].mass, bes->param[1].mass };
+  double q[2] = { bes->param[0].charge, bes->param[1].charge };
 
   // Grab indices of electron and ion fluid arrays
   int ELC = bes->param[0].charge < 0.0 ? 0 : 1;
@@ -431,8 +431,8 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][
   // Allocate some memory on stack regardless of dimensionality or equation type (Euler vs. isothermal Euler)
   // These allocations allow us to make final construction of Braginskii variables dimensionally independent
   // Note: Braginskii implementation currently assumes only two fluids (electrons and an ion species)
-  double m[2] = {bes->param[0].mass, bes->param[1].mass};
-  double q[2] = {bes->param[0].charge, bes->param[1].charge};
+  double m[2] = { bes->param[0].mass, bes->param[1].mass };
+  double q[2] = { bes->param[0].charge, bes->param[1].charge };
 
   // Grab indices of electron and ion fluid arrays
   int ELC = bes->param[0].charge < 0.0 ? 0 : 1;
@@ -541,14 +541,14 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][
     for (int k = 0; k < 6; ++k)
       brag_d[n][PIXX + k] = -eta_avg[n] * w[n][k];
 
-    double gradT[3] = {gradxT[n], gradyT[n], gradzT[n]};
+    double gradT[3] = { gradxT[n], gradyT[n], gradzT[n] };
 
     // Pi dot u
     double Piu[3] = {
       brag_d[n][PIXX] * u_avg[n][0] + brag_d[n][PIXY] * u_avg[n][1] + brag_d[n][PIXZ] * u_avg[n][2],
       brag_d[n][PIXY] * u_avg[n][0] + brag_d[n][PIYY] * u_avg[n][1] + brag_d[n][PIYZ] * u_avg[n][2],
-      brag_d[n][PIXZ] * u_avg[n][0] + brag_d[n][PIYZ] * u_avg[n][1] +
-        brag_d[n][PIZZ] * u_avg[n][2]};
+      brag_d[n][PIXZ] * u_avg[n][0] + brag_d[n][PIYZ] * u_avg[n][1] + brag_d[n][PIZZ] * u_avg[n][2]
+    };
 
     // Total heat flux + viscous heating
     for (int k = 0; k < 3; ++k)
@@ -672,7 +672,7 @@ gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes, struct gkyl_ra
 {
   int nfluids = bes->nfluids;
   int ndim = update_range.ndim;
-  long sz[] = {2, 4, 8};
+  long sz[] = { 2, 4, 8 };
 
   bool mag = has_mag(bes);
 

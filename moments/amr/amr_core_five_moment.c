@@ -59,13 +59,13 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
   struct five_moment_patch_data mesh_pdata[num_patches];
   struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
-  gkyl_rect_grid_init(&mesh_pdata[0].grid, 1, (double[]){refined_x1}, (double[]){refined_x2},
-    (int[]){Nx * ref_factor});
+  gkyl_rect_grid_init(&mesh_pdata[0].grid, 1, (double[]){ refined_x1 }, (double[]){ refined_x2 },
+    (int[]){ Nx * ref_factor });
 
   gkyl_rect_grid_init(
-    &mesh_pdata[1].grid, 1, (double[]){coarse_x1}, (double[]){refined_x1}, (int[]){Nx});
+    &mesh_pdata[1].grid, 1, (double[]){ coarse_x1 }, (double[]){ refined_x1 }, (int[]){ Nx });
   gkyl_rect_grid_init(
-    &mesh_pdata[2].grid, 1, (double[]){refined_x2}, (double[]){coarse_x2}, (int[]){Nx});
+    &mesh_pdata[2].grid, 1, (double[]){ refined_x2 }, (double[]){ coarse_x2 }, (int[]){ Nx });
 
   for (int i = 0; i < num_patches; i++) {
     mesh_pdata[i].fv_proj_elc = gkyl_fv_proj_new(&mesh_pdata[i].grid, 1, 5, eval_elc, 0);
@@ -75,7 +75,7 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
 
   for (int i = 0; i < num_patches; i++) {
     gkyl_create_grid_ranges(
-      &mesh_pdata[i].grid, (int[]){2}, &mesh_pdata[i].ext_range, &mesh_pdata[i].range);
+      &mesh_pdata[i].grid, (int[]){ 2 }, &mesh_pdata[i].ext_range, &mesh_pdata[i].range);
     mesh_pdata[i].geom =
       gkyl_wave_geom_new(&mesh_pdata[i].grid, &mesh_pdata[i].ext_range, 0, 0, false);
   }
@@ -83,9 +83,7 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
   for (int i = 0; i < num_patches; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma,
-        .rp_type = WV_EULER_RP_HLL,
-        .use_gpu = app_args.use_gpu,
+        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
       };
       mesh_pdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
       mesh_pdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
@@ -95,51 +93,40 @@ five_moment_1d_run_single(int argc, char **argv, struct five_moment_1d_single_in
     }
     mesh_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
-    mesh_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-      .grid = &mesh_pdata[i].grid,
-      .equation = mesh_pdata[i].euler_elc,
-      .limiter = GKYL_MONOTONIZED_CENTERED,
-      .num_up_dirs = 1,
-      .update_dirs = {0},
-      .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom,
-    });
-    mesh_pdata[i].slvr_ion[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-      .grid = &mesh_pdata[i].grid,
-      .equation = mesh_pdata[i].euler_ion,
-      .limiter = GKYL_MONOTONIZED_CENTERED,
-      .num_up_dirs = 1,
-      .update_dirs = {0},
-      .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom,
-    });
-    mesh_pdata[i].slvr_maxwell[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-      .grid = &mesh_pdata[i].grid,
-      .equation = mesh_pdata[i].maxwell,
-      .limiter = GKYL_MONOTONIZED_CENTERED,
-      .num_up_dirs = 1,
-      .update_dirs = {0},
-      .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom,
-    });
+    mesh_pdata[i].slvr_elc[0] =
+      gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_pdata[i].grid,
+        .equation = mesh_pdata[i].euler_elc,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { 0 },
+        .cfl = cfl_frac,
+        .geom = mesh_pdata[i].geom });
+    mesh_pdata[i].slvr_ion[0] =
+      gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_pdata[i].grid,
+        .equation = mesh_pdata[i].euler_ion,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { 0 },
+        .cfl = cfl_frac,
+        .geom = mesh_pdata[i].geom });
+    mesh_pdata[i].slvr_maxwell[0] =
+      gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_pdata[i].grid,
+        .equation = mesh_pdata[i].maxwell,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { 0 },
+        .cfl = cfl_frac,
+        .geom = mesh_pdata[i].geom });
 
     struct gkyl_moment_em_coupling_inp mesh_src_inp = {
-      .grid = &mesh_pdata[i].grid,
-      .nfluids = 2,
-      .epsilon0 = epsilon0,
+      .grid = &mesh_pdata[i].grid, .nfluids = 2, .epsilon0 = epsilon0
     };
 
     mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data){
-      .type = mesh_pdata[i].euler_elc->type,
-      .charge = charge_elc,
-      .mass = mass_elc,
-      .k0 = k0_elc,
+      .type = mesh_pdata[i].euler_elc->type, .charge = charge_elc, .mass = mass_elc, .k0 = k0_elc
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data){
-      .type = mesh_pdata[i].euler_ion->type,
-      .charge = charge_ion,
-      .mass = mass_ion,
-      .k0 = k0_ion,
+      .type = mesh_pdata[i].euler_ion->type, .charge = charge_ion, .mass = mass_ion, .k0 = k0_ion
     };
 
     mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
@@ -366,18 +353,18 @@ five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_in
   struct five_moment_patch_data mesh_pdata[num_patches];
   struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
-  gkyl_rect_grid_init(&mesh_pdata[0].grid, 1, (double[]){refined_x1}, (double[]){refined_x2},
-    (int[]){Nx * (ref_factor1 * ref_factor2)});
+  gkyl_rect_grid_init(&mesh_pdata[0].grid, 1, (double[]){ refined_x1 }, (double[]){ refined_x2 },
+    (int[]){ Nx * (ref_factor1 * ref_factor2) });
 
-  gkyl_rect_grid_init(&mesh_pdata[1].grid, 1, (double[]){intermediate_x1}, (double[]){refined_x1},
-    (int[]){Nx * ref_factor1});
-  gkyl_rect_grid_init(&mesh_pdata[2].grid, 1, (double[]){refined_x2}, (double[]){intermediate_x2},
-    (int[]){Nx * ref_factor1});
+  gkyl_rect_grid_init(&mesh_pdata[1].grid, 1, (double[]){ intermediate_x1 },
+    (double[]){ refined_x1 }, (int[]){ Nx * ref_factor1 });
+  gkyl_rect_grid_init(&mesh_pdata[2].grid, 1, (double[]){ refined_x2 },
+    (double[]){ intermediate_x2 }, (int[]){ Nx * ref_factor1 });
 
   gkyl_rect_grid_init(
-    &mesh_pdata[3].grid, 1, (double[]){coarse_x1}, (double[]){intermediate_x1}, (int[]){Nx});
+    &mesh_pdata[3].grid, 1, (double[]){ coarse_x1 }, (double[]){ intermediate_x1 }, (int[]){ Nx });
   gkyl_rect_grid_init(
-    &mesh_pdata[4].grid, 1, (double[]){intermediate_x2}, (double[]){coarse_x2}, (int[]){Nx});
+    &mesh_pdata[4].grid, 1, (double[]){ intermediate_x2 }, (double[]){ coarse_x2 }, (int[]){ Nx });
 
   for (int i = 0; i < num_patches; i++) {
     mesh_pdata[i].fv_proj_elc = gkyl_fv_proj_new(&mesh_pdata[i].grid, 1, 5, eval_elc, 0);
@@ -387,7 +374,7 @@ five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_in
 
   for (int i = 0; i < num_patches; i++) {
     gkyl_create_grid_ranges(
-      &mesh_pdata[i].grid, (int[]){2}, &mesh_pdata[i].ext_range, &mesh_pdata[i].range);
+      &mesh_pdata[i].grid, (int[]){ 2 }, &mesh_pdata[i].ext_range, &mesh_pdata[i].range);
     mesh_pdata[i].geom =
       gkyl_wave_geom_new(&mesh_pdata[i].grid, &mesh_pdata[i].ext_range, 0, 0, false);
   }
@@ -395,9 +382,7 @@ five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_in
   for (int i = 0; i < num_patches; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma,
-        .rp_type = WV_EULER_RP_HLL,
-        .use_gpu = app_args.use_gpu,
+        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
       };
       mesh_pdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
       mesh_pdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
@@ -407,51 +392,40 @@ five_moment_1d_run_double(int argc, char **argv, struct five_moment_1d_double_in
     }
     mesh_pdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
-    mesh_pdata[i].slvr_elc[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-      .grid = &mesh_pdata[i].grid,
-      .equation = mesh_pdata[i].euler_elc,
-      .limiter = GKYL_MONOTONIZED_CENTERED,
-      .num_up_dirs = 1,
-      .update_dirs = {0},
-      .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom,
-    });
-    mesh_pdata[i].slvr_ion[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-      .grid = &mesh_pdata[i].grid,
-      .equation = mesh_pdata[i].euler_ion,
-      .limiter = GKYL_MONOTONIZED_CENTERED,
-      .num_up_dirs = 1,
-      .update_dirs = {0},
-      .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom,
-    });
-    mesh_pdata[i].slvr_maxwell[0] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-      .grid = &mesh_pdata[i].grid,
-      .equation = mesh_pdata[i].maxwell,
-      .limiter = GKYL_MONOTONIZED_CENTERED,
-      .num_up_dirs = 1,
-      .update_dirs = {0},
-      .cfl = cfl_frac,
-      .geom = mesh_pdata[i].geom,
-    });
+    mesh_pdata[i].slvr_elc[0] =
+      gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_pdata[i].grid,
+        .equation = mesh_pdata[i].euler_elc,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { 0 },
+        .cfl = cfl_frac,
+        .geom = mesh_pdata[i].geom });
+    mesh_pdata[i].slvr_ion[0] =
+      gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_pdata[i].grid,
+        .equation = mesh_pdata[i].euler_ion,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { 0 },
+        .cfl = cfl_frac,
+        .geom = mesh_pdata[i].geom });
+    mesh_pdata[i].slvr_maxwell[0] =
+      gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_pdata[i].grid,
+        .equation = mesh_pdata[i].maxwell,
+        .limiter = GKYL_MONOTONIZED_CENTERED,
+        .num_up_dirs = 1,
+        .update_dirs = { 0 },
+        .cfl = cfl_frac,
+        .geom = mesh_pdata[i].geom });
 
     struct gkyl_moment_em_coupling_inp mesh_src_inp = {
-      .grid = &mesh_pdata[i].grid,
-      .nfluids = 2,
-      .epsilon0 = epsilon0,
+      .grid = &mesh_pdata[i].grid, .nfluids = 2, .epsilon0 = epsilon0
     };
 
     mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data){
-      .type = mesh_pdata[i].euler_elc->type,
-      .charge = charge_elc,
-      .mass = mass_elc,
-      .k0 = k0_elc,
+      .type = mesh_pdata[i].euler_elc->type, .charge = charge_elc, .mass = mass_elc, .k0 = k0_elc
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data){
-      .type = mesh_pdata[i].euler_ion->type,
-      .charge = charge_ion,
-      .mass = mass_ion,
-      .k0 = k0_ion,
+      .type = mesh_pdata[i].euler_ion->type, .charge = charge_ion, .mass = mass_ion, .k0 = k0_ion
     };
 
     mesh_pdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
@@ -697,25 +671,25 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   struct five_moment_block_data mesh_bdata[num_blocks];
   struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
-  gkyl_rect_grid_init(&mesh_bdata[0].grid, 2, (double[]){refined_x1, refined_y1},
-    (double[]){refined_x2, refined_y2}, (int[]){Nx * ref_factor, Ny * ref_factor});
+  gkyl_rect_grid_init(&mesh_bdata[0].grid, 2, (double[]){ refined_x1, refined_y1 },
+    (double[]){ refined_x2, refined_y2 }, (int[]){ Nx * ref_factor, Ny * ref_factor });
 
-  gkyl_rect_grid_init(&mesh_bdata[1].grid, 2, (double[]){coarse_x1, refined_y2},
-    (double[]){refined_x1, coarse_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[2].grid, 2, (double[]){refined_x1, refined_y2},
-    (double[]){refined_x2, coarse_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[3].grid, 2, (double[]){refined_x2, refined_y2},
-    (double[]){coarse_x2, coarse_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[4].grid, 2, (double[]){coarse_x1, refined_y1},
-    (double[]){refined_x1, refined_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[5].grid, 2, (double[]){refined_x2, refined_y1},
-    (double[]){coarse_x2, refined_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[6].grid, 2, (double[]){coarse_x1, coarse_y1},
-    (double[]){refined_x1, refined_y1}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[7].grid, 2, (double[]){refined_x1, coarse_y1},
-    (double[]){refined_x2, refined_y1}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[8].grid, 2, (double[]){refined_x2, coarse_y1},
-    (double[]){coarse_x2, refined_y1}, (int[]){Nx, Ny});
+  gkyl_rect_grid_init(&mesh_bdata[1].grid, 2, (double[]){ coarse_x1, refined_y2 },
+    (double[]){ refined_x1, coarse_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[2].grid, 2, (double[]){ refined_x1, refined_y2 },
+    (double[]){ refined_x2, coarse_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[3].grid, 2, (double[]){ refined_x2, refined_y2 },
+    (double[]){ coarse_x2, coarse_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[4].grid, 2, (double[]){ coarse_x1, refined_y1 },
+    (double[]){ refined_x1, refined_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[5].grid, 2, (double[]){ refined_x2, refined_y1 },
+    (double[]){ coarse_x2, refined_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[6].grid, 2, (double[]){ coarse_x1, coarse_y1 },
+    (double[]){ refined_x1, refined_y1 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[7].grid, 2, (double[]){ refined_x1, coarse_y1 },
+    (double[]){ refined_x2, refined_y1 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[8].grid, 2, (double[]){ refined_x2, coarse_y1 },
+    (double[]){ coarse_x2, refined_y1 }, (int[]){ Nx, Ny });
 
   for (int i = 0; i < num_blocks; i++) {
     mesh_bdata[i].fv_proj_elc = gkyl_fv_proj_new(&mesh_bdata[i].grid, 2, 5, eval_elc, 0);
@@ -725,7 +699,7 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
 
   for (int i = 0; i < num_blocks; i++) {
     gkyl_create_grid_ranges(
-      &mesh_bdata[i].grid, (int[]){2, 2}, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
+      &mesh_bdata[i].grid, (int[]){ 2, 2 }, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
     mesh_bdata[i].geom =
       gkyl_wave_geom_new(&mesh_bdata[i].grid, &mesh_bdata[i].ext_range, 0, 0, false);
 
@@ -739,9 +713,7 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   for (int i = 0; i < num_blocks; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma,
-        .rp_type = WV_EULER_RP_HLL,
-        .use_gpu = app_args.use_gpu,
+        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
       };
       mesh_bdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
       mesh_bdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
@@ -752,52 +724,41 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
-      mesh_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-        .grid = &mesh_bdata[i].grid,
-        .equation = mesh_bdata[i].euler_elc,
-        .limiter = GKYL_MONOTONIZED_CENTERED,
-        .num_up_dirs = 1,
-        .update_dirs = {d},
-        .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom,
-      });
-      mesh_bdata[i].slvr_ion[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-        .grid = &mesh_bdata[i].grid,
-        .equation = mesh_bdata[i].euler_ion,
-        .limiter = GKYL_MONOTONIZED_CENTERED,
-        .num_up_dirs = 1,
-        .update_dirs = {d},
-        .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom,
-      });
-      mesh_bdata[i].slvr_maxwell[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-        .grid = &mesh_bdata[i].grid,
-        .equation = mesh_bdata[i].maxwell,
-        .limiter = GKYL_MONOTONIZED_CENTERED,
-        .num_up_dirs = 1,
-        .update_dirs = {d},
-        .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom,
-      });
+      mesh_bdata[i].slvr_elc[d] =
+        gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_bdata[i].grid,
+          .equation = mesh_bdata[i].euler_elc,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = mesh_bdata[i].geom });
+      mesh_bdata[i].slvr_ion[d] =
+        gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_bdata[i].grid,
+          .equation = mesh_bdata[i].euler_ion,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = mesh_bdata[i].geom });
+      mesh_bdata[i].slvr_maxwell[d] =
+        gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_bdata[i].grid,
+          .equation = mesh_bdata[i].maxwell,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = mesh_bdata[i].geom });
     }
 
     struct gkyl_moment_em_coupling_inp mesh_src_inp = {
-      .grid = &mesh_bdata[i].grid,
-      .nfluids = 2,
-      .epsilon0 = epsilon0,
+      .grid = &mesh_bdata[i].grid, .nfluids = 2, .epsilon0 = epsilon0
     };
 
     mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data){
-      .type = mesh_bdata[i].euler_elc->type,
-      .charge = charge_elc,
-      .mass = mass_elc,
-      .k0 = k0_elc,
+      .type = mesh_bdata[i].euler_elc->type, .charge = charge_elc, .mass = mass_elc, .k0 = k0_elc
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data){
-      .type = mesh_bdata[i].euler_ion->type,
-      .charge = charge_ion,
-      .mass = mass_ion,
-      .k0 = k0_ion,
+      .type = mesh_bdata[i].euler_ion->type, .charge = charge_ion, .mass = mass_ion, .k0 = k0_ion
     };
 
     mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);
@@ -1042,59 +1003,59 @@ five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_in
   struct five_moment_block_data mesh_bdata[num_blocks];
   struct gkyl_job_pool *mesh_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
-  gkyl_rect_grid_init(&mesh_bdata[0].grid, 2, (double[]){refined_x1, refined_y1},
-    (double[]){refined_x2, refined_y2},
-    (int[]){Nx * (ref_factor1 * ref_factor2), Ny * (ref_factor1 * ref_factor2)});
+  gkyl_rect_grid_init(&mesh_bdata[0].grid, 2, (double[]){ refined_x1, refined_y1 },
+    (double[]){ refined_x2, refined_y2 },
+    (int[]){ Nx * (ref_factor1 * ref_factor2), Ny * (ref_factor1 * ref_factor2) });
 
-  gkyl_rect_grid_init(&mesh_bdata[1].grid, 2, (double[]){intermediate_x1, refined_y2},
-    (double[]){refined_x1, intermediate_y2}, (int[]){Nx * ref_factor1, Ny * ref_factor1});
-  gkyl_rect_grid_init(&mesh_bdata[2].grid, 2, (double[]){refined_x1, refined_y2},
-    (double[]){refined_x2, intermediate_y2}, (int[]){Nx * ref_factor1, Ny * ref_factor1});
-  gkyl_rect_grid_init(&mesh_bdata[3].grid, 2, (double[]){refined_x2, refined_y2},
-    (double[]){intermediate_x2, intermediate_y2}, (int[]){Nx * ref_factor1, Ny * ref_factor1});
-  gkyl_rect_grid_init(&mesh_bdata[4].grid, 2, (double[]){intermediate_x1, refined_y1},
-    (double[]){refined_x1, refined_y2}, (int[]){Nx * ref_factor1, Ny * ref_factor1});
-  gkyl_rect_grid_init(&mesh_bdata[5].grid, 2, (double[]){refined_x2, refined_y1},
-    (double[]){intermediate_x2, refined_y2}, (int[]){Nx * ref_factor1, Ny * ref_factor1});
-  gkyl_rect_grid_init(&mesh_bdata[6].grid, 2, (double[]){intermediate_x1, intermediate_y1},
-    (double[]){refined_x1, refined_y1}, (int[]){Nx * ref_factor1, Ny * ref_factor1});
-  gkyl_rect_grid_init(&mesh_bdata[7].grid, 2, (double[]){refined_x1, intermediate_y1},
-    (double[]){refined_x2, refined_y1}, (int[]){Nx * ref_factor1, Ny * ref_factor1});
-  gkyl_rect_grid_init(&mesh_bdata[8].grid, 2, (double[]){refined_x2, intermediate_y1},
-    (double[]){intermediate_x2, refined_y1}, (int[]){Nx * ref_factor1, Ny * ref_factor1});
+  gkyl_rect_grid_init(&mesh_bdata[1].grid, 2, (double[]){ intermediate_x1, refined_y2 },
+    (double[]){ refined_x1, intermediate_y2 }, (int[]){ Nx * ref_factor1, Ny * ref_factor1 });
+  gkyl_rect_grid_init(&mesh_bdata[2].grid, 2, (double[]){ refined_x1, refined_y2 },
+    (double[]){ refined_x2, intermediate_y2 }, (int[]){ Nx * ref_factor1, Ny * ref_factor1 });
+  gkyl_rect_grid_init(&mesh_bdata[3].grid, 2, (double[]){ refined_x2, refined_y2 },
+    (double[]){ intermediate_x2, intermediate_y2 }, (int[]){ Nx * ref_factor1, Ny * ref_factor1 });
+  gkyl_rect_grid_init(&mesh_bdata[4].grid, 2, (double[]){ intermediate_x1, refined_y1 },
+    (double[]){ refined_x1, refined_y2 }, (int[]){ Nx * ref_factor1, Ny * ref_factor1 });
+  gkyl_rect_grid_init(&mesh_bdata[5].grid, 2, (double[]){ refined_x2, refined_y1 },
+    (double[]){ intermediate_x2, refined_y2 }, (int[]){ Nx * ref_factor1, Ny * ref_factor1 });
+  gkyl_rect_grid_init(&mesh_bdata[6].grid, 2, (double[]){ intermediate_x1, intermediate_y1 },
+    (double[]){ refined_x1, refined_y1 }, (int[]){ Nx * ref_factor1, Ny * ref_factor1 });
+  gkyl_rect_grid_init(&mesh_bdata[7].grid, 2, (double[]){ refined_x1, intermediate_y1 },
+    (double[]){ refined_x2, refined_y1 }, (int[]){ Nx * ref_factor1, Ny * ref_factor1 });
+  gkyl_rect_grid_init(&mesh_bdata[8].grid, 2, (double[]){ refined_x2, intermediate_y1 },
+    (double[]){ intermediate_x2, refined_y1 }, (int[]){ Nx * ref_factor1, Ny * ref_factor1 });
 
-  gkyl_rect_grid_init(&mesh_bdata[9].grid, 2, (double[]){coarse_x1, intermediate_y2},
-    (double[]){intermediate_x1, coarse_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[10].grid, 2, (double[]){intermediate_x1, intermediate_y2},
-    (double[]){refined_x1, coarse_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[11].grid, 2, (double[]){refined_x1, intermediate_y2},
-    (double[]){refined_x2, coarse_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[12].grid, 2, (double[]){refined_x2, intermediate_y2},
-    (double[]){intermediate_x2, coarse_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[13].grid, 2, (double[]){intermediate_x2, intermediate_y2},
-    (double[]){coarse_x2, coarse_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[14].grid, 2, (double[]){coarse_x1, refined_y2},
-    (double[]){intermediate_x1, intermediate_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[15].grid, 2, (double[]){intermediate_x2, refined_y2},
-    (double[]){coarse_x2, intermediate_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[16].grid, 2, (double[]){coarse_x1, refined_y1},
-    (double[]){intermediate_x1, refined_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[17].grid, 2, (double[]){intermediate_x2, refined_y1},
-    (double[]){coarse_x2, refined_y2}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[18].grid, 2, (double[]){coarse_x1, intermediate_y1},
-    (double[]){intermediate_x1, refined_y1}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[19].grid, 2, (double[]){intermediate_x2, intermediate_y1},
-    (double[]){coarse_x2, refined_y1}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[20].grid, 2, (double[]){coarse_x1, coarse_y1},
-    (double[]){intermediate_x1, intermediate_y1}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[21].grid, 2, (double[]){intermediate_x1, coarse_y1},
-    (double[]){refined_x1, intermediate_y1}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[22].grid, 2, (double[]){refined_x1, coarse_y1},
-    (double[]){refined_x2, intermediate_y1}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[23].grid, 2, (double[]){refined_x2, coarse_y1},
-    (double[]){intermediate_x2, intermediate_y1}, (int[]){Nx, Ny});
-  gkyl_rect_grid_init(&mesh_bdata[24].grid, 2, (double[]){intermediate_x2, coarse_y1},
-    (double[]){coarse_x2, intermediate_y1}, (int[]){Nx, Ny});
+  gkyl_rect_grid_init(&mesh_bdata[9].grid, 2, (double[]){ coarse_x1, intermediate_y2 },
+    (double[]){ intermediate_x1, coarse_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[10].grid, 2, (double[]){ intermediate_x1, intermediate_y2 },
+    (double[]){ refined_x1, coarse_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[11].grid, 2, (double[]){ refined_x1, intermediate_y2 },
+    (double[]){ refined_x2, coarse_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[12].grid, 2, (double[]){ refined_x2, intermediate_y2 },
+    (double[]){ intermediate_x2, coarse_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[13].grid, 2, (double[]){ intermediate_x2, intermediate_y2 },
+    (double[]){ coarse_x2, coarse_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[14].grid, 2, (double[]){ coarse_x1, refined_y2 },
+    (double[]){ intermediate_x1, intermediate_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[15].grid, 2, (double[]){ intermediate_x2, refined_y2 },
+    (double[]){ coarse_x2, intermediate_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[16].grid, 2, (double[]){ coarse_x1, refined_y1 },
+    (double[]){ intermediate_x1, refined_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[17].grid, 2, (double[]){ intermediate_x2, refined_y1 },
+    (double[]){ coarse_x2, refined_y2 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[18].grid, 2, (double[]){ coarse_x1, intermediate_y1 },
+    (double[]){ intermediate_x1, refined_y1 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[19].grid, 2, (double[]){ intermediate_x2, intermediate_y1 },
+    (double[]){ coarse_x2, refined_y1 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[20].grid, 2, (double[]){ coarse_x1, coarse_y1 },
+    (double[]){ intermediate_x1, intermediate_y1 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[21].grid, 2, (double[]){ intermediate_x1, coarse_y1 },
+    (double[]){ refined_x1, intermediate_y1 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[22].grid, 2, (double[]){ refined_x1, coarse_y1 },
+    (double[]){ refined_x2, intermediate_y1 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[23].grid, 2, (double[]){ refined_x2, coarse_y1 },
+    (double[]){ intermediate_x2, intermediate_y1 }, (int[]){ Nx, Ny });
+  gkyl_rect_grid_init(&mesh_bdata[24].grid, 2, (double[]){ intermediate_x2, coarse_y1 },
+    (double[]){ coarse_x2, intermediate_y1 }, (int[]){ Nx, Ny });
 
   for (int i = 0; i < num_blocks; i++) {
     mesh_bdata[i].fv_proj_elc = gkyl_fv_proj_new(&mesh_bdata[i].grid, 2, 5, eval_elc, 0);
@@ -1104,7 +1065,7 @@ five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_in
 
   for (int i = 0; i < num_blocks; i++) {
     gkyl_create_grid_ranges(
-      &mesh_bdata[i].grid, (int[]){2, 2}, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
+      &mesh_bdata[i].grid, (int[]){ 2, 2 }, &mesh_bdata[i].ext_range, &mesh_bdata[i].range);
     mesh_bdata[i].geom =
       gkyl_wave_geom_new(&mesh_bdata[i].grid, &mesh_bdata[i].ext_range, 0, 0, false);
 
@@ -1118,9 +1079,7 @@ five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_in
   for (int i = 0; i < num_blocks; i++) {
     if (low_order_flux) {
       struct gkyl_wv_euler_inp inp = {
-        .gas_gamma = gas_gamma,
-        .rp_type = WV_EULER_RP_HLL,
-        .use_gpu = app_args.use_gpu,
+        .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu
       };
       mesh_bdata[i].euler_elc = gkyl_wv_euler_inew(&inp);
       mesh_bdata[i].euler_ion = gkyl_wv_euler_inew(&inp);
@@ -1131,52 +1090,41 @@ five_moment_2d_run_double(int argc, char **argv, struct five_moment_2d_double_in
     mesh_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact, app_args.use_gpu);
 
     for (int d = 0; d < ndim; d++) {
-      mesh_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-        .grid = &mesh_bdata[i].grid,
-        .equation = mesh_bdata[i].euler_elc,
-        .limiter = GKYL_MONOTONIZED_CENTERED,
-        .num_up_dirs = 1,
-        .update_dirs = {d},
-        .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom,
-      });
-      mesh_bdata[i].slvr_ion[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-        .grid = &mesh_bdata[i].grid,
-        .equation = mesh_bdata[i].euler_ion,
-        .limiter = GKYL_MONOTONIZED_CENTERED,
-        .num_up_dirs = 1,
-        .update_dirs = {d},
-        .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom,
-      });
-      mesh_bdata[i].slvr_maxwell[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){
-        .grid = &mesh_bdata[i].grid,
-        .equation = mesh_bdata[i].maxwell,
-        .limiter = GKYL_MONOTONIZED_CENTERED,
-        .num_up_dirs = 1,
-        .update_dirs = {d},
-        .cfl = cfl_frac,
-        .geom = mesh_bdata[i].geom,
-      });
+      mesh_bdata[i].slvr_elc[d] =
+        gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_bdata[i].grid,
+          .equation = mesh_bdata[i].euler_elc,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = mesh_bdata[i].geom });
+      mesh_bdata[i].slvr_ion[d] =
+        gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_bdata[i].grid,
+          .equation = mesh_bdata[i].euler_ion,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = mesh_bdata[i].geom });
+      mesh_bdata[i].slvr_maxwell[d] =
+        gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &mesh_bdata[i].grid,
+          .equation = mesh_bdata[i].maxwell,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = mesh_bdata[i].geom });
     }
 
     struct gkyl_moment_em_coupling_inp mesh_src_inp = {
-      .grid = &mesh_bdata[i].grid,
-      .nfluids = 2,
-      .epsilon0 = epsilon0,
+      .grid = &mesh_bdata[i].grid, .nfluids = 2, .epsilon0 = epsilon0
     };
 
     mesh_src_inp.param[0] = (struct gkyl_moment_em_coupling_data){
-      .type = mesh_bdata[i].euler_elc->type,
-      .charge = charge_elc,
-      .mass = mass_elc,
-      .k0 = k0_elc,
+      .type = mesh_bdata[i].euler_elc->type, .charge = charge_elc, .mass = mass_elc, .k0 = k0_elc
     };
     mesh_src_inp.param[1] = (struct gkyl_moment_em_coupling_data){
-      .type = mesh_bdata[i].euler_ion->type,
-      .charge = charge_ion,
-      .mass = mass_ion,
-      .k0 = k0_ion,
+      .type = mesh_bdata[i].euler_ion->type, .charge = charge_ion, .mass = mass_ion, .k0 = k0_ion
     };
 
     mesh_bdata[i].src_slvr = gkyl_moment_em_coupling_new(mesh_src_inp);

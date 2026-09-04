@@ -31,28 +31,30 @@
 #endif
 
 // Poisson boundary conditions -> enum map.
-static const struct gkyl_str_int_pair poisson_bcs[] = {{"bcPeriodic", GKYL_POISSON_PERIODIC},
-  {"bcDirichlet", GKYL_POISSON_DIRICHLET}, {"bcNeumann", GKYL_POISSON_NEUMANN},
-  {"bcRobin", GKYL_POISSON_ROBIN}, {0, 0}};
+static const struct gkyl_str_int_pair poisson_bcs[] = { { "bcPeriodic", GKYL_POISSON_PERIODIC },
+  { "bcDirichlet", GKYL_POISSON_DIRICHLET }, { "bcNeumann", GKYL_POISSON_NEUMANN },
+  { "bcRobin", GKYL_POISSON_ROBIN }, { 0, 0 } };
 
 // Vlasov projection type -> enum map.
-static const struct gkyl_str_int_pair projection_type[] = {{"Func", GKYL_PROJ_FUNC},
-  {"MaxwellianPrimitive", GKYL_PROJ_MAXWELLIAN_PRIM}, {"MaxwellianLab", GKYL_PROJ_MAXWELLIAN_LAB},
-  {"BiMaxwellian", GKYL_PROJ_BIMAXWELLIAN}, {"LTE", GKYL_PROJ_VLASOV_LTE}, {0, 0}};
+static const struct gkyl_str_int_pair projection_type[] = { { "Func", GKYL_PROJ_FUNC },
+  { "MaxwellianPrimitive", GKYL_PROJ_MAXWELLIAN_PRIM },
+  { "MaxwellianLab", GKYL_PROJ_MAXWELLIAN_LAB }, { "BiMaxwellian", GKYL_PROJ_BIMAXWELLIAN },
+  { "LTE", GKYL_PROJ_VLASOV_LTE }, { 0, 0 } };
 
 // Vlasov model type -> enum map.
-static const struct gkyl_str_int_pair model_type[] = {{"Default", GKYL_MODEL_DEFAULT},
-  {"SR", GKYL_MODEL_SR}, {"CanonicalPB", GKYL_MODEL_CANONICAL_PB},
-  {"CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR}, {0, 0}};
+static const struct gkyl_str_int_pair model_type[] = { { "Default", GKYL_MODEL_DEFAULT },
+  { "SR", GKYL_MODEL_SR }, { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
+  { "CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR }, { 0, 0 } };
 
 // Vlasov collision type -> enum map.
-static const struct gkyl_str_int_pair collision_type[] = {{"None", GKYL_NO_COLLISIONS},
-  {"BGK", GKYL_BGK_COLLISIONS}, {"LBO", GKYL_LBO_COLLISIONS}, {"FPO", GKYL_FPO_COLLISIONS}, {0, 0}};
+static const struct gkyl_str_int_pair collision_type[] = { { "None", GKYL_NO_COLLISIONS },
+  { "BGK", GKYL_BGK_COLLISIONS }, { "LBO", GKYL_LBO_COLLISIONS }, { "FPO", GKYL_FPO_COLLISIONS },
+  { 0, 0 } };
 
 // Vlasov source type -> enum map.
-static const struct gkyl_str_int_pair source_type[] = {{"None", GKYL_NO_SOURCE},
-  {"Func", GKYL_FUNC_SOURCE}, {"Proj", GKYL_PROJ_SOURCE}, {"BoundaryFlux", GKYL_BFLUX_SOURCE},
-  {0, 0}};
+static const struct gkyl_str_int_pair source_type[] = { { "None", GKYL_NO_SOURCE },
+  { "Func", GKYL_FUNC_SOURCE }, { "Proj", GKYL_PROJ_SOURCE }, { "BoundaryFlux", GKYL_BFLUX_SOURCE },
+  { 0, 0 } };
 
 void
 gkyl_register_poisson_bc_types(lua_State *L)
@@ -89,7 +91,7 @@ enum vlasov_magic_ids {
   VLASOV_SPECIES_DEFAULT = 100, // Non-relativistic kinetic species.
   VLASOV_FIELD_DEFAULT, // Maxwell equations.
   VLASOV_FLUID_SPECIES_DEFAULT, // Fluid species.
-  VLASOV_EQN_DEFAULT, // Equation object.
+  VLASOV_EQN_DEFAULT // Equation object.
 };
 
 // Metatable name for equation object input struct.
@@ -142,7 +144,7 @@ eqn_euler_lw_new(lua_State *L)
 
   euler_lw->magic = VLASOV_EQN_DEFAULT;
   euler_lw->eqn = gkyl_wv_euler_inew(
-    &(struct gkyl_wv_euler_inp){.gas_gamma = gas_gamma, .rp_type = rp_type, .use_gpu = false});
+    &(struct gkyl_wv_euler_inp){ .gas_gamma = gas_gamma, .rp_type = rp_type, .use_gpu = false });
 
   // Create Lua userdata.
   struct wv_eqn_lw **l_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw *));
@@ -156,7 +158,7 @@ eqn_euler_lw_new(lua_State *L)
 }
 
 // Equation constructor.
-static struct luaL_Reg eqn_euler_ctor[] = {{"new", eqn_euler_lw_new}, {0, 0}};
+static struct luaL_Reg eqn_euler_ctor[] = { { "new", eqn_euler_lw_new }, { 0, 0 } };
 
 /* ****************************** */
 /* Advection Equation */
@@ -185,7 +187,7 @@ eqn_advect_lw_new(lua_State *L)
 }
 
 // Equation constructor.
-static struct luaL_Reg eqn_advect_ctor[] = {{"new", eqn_advect_lw_new}, {0, 0}};
+static struct luaL_Reg eqn_advect_ctor[] = { { "new", eqn_advect_lw_new }, { 0, 0 } };
 
 /* ****************************** */
 /* incompressible Euler Equations */
@@ -212,7 +214,8 @@ eqn_incompress_euler_lw_new(lua_State *L)
 }
 
 // Equation constructor.
-static struct luaL_Reg eqn_incompress_euler_ctor[] = {{"new", eqn_incompress_euler_lw_new}, {0, 0}};
+static struct luaL_Reg eqn_incompress_euler_ctor[] = { { "new", eqn_incompress_euler_lw_new },
+  { 0, 0 } };
 
 /* *********************** */
 /* Hasegawa-Mima Equations */
@@ -239,7 +242,7 @@ eqn_hasegawa_mima_lw_new(lua_State *L)
 }
 
 // Equation constructor.
-static struct luaL_Reg eqn_hasegawa_mima_ctor[] = {{"new", eqn_hasegawa_mima_lw_new}, {0, 0}};
+static struct luaL_Reg eqn_hasegawa_mima_ctor[] = { { "new", eqn_hasegawa_mima_lw_new }, { 0, 0 } };
 
 /* *************************** */
 /* Hasegawa-Wakatani Equations */
@@ -271,8 +274,8 @@ eqn_hasegawa_wakatani_lw_new(lua_State *L)
 }
 
 // Equation constructor.
-static struct luaL_Reg eqn_hasegawa_wakatani_ctor[] = {
-  {"new", eqn_hasegawa_wakatani_lw_new}, {0, 0}};
+static struct luaL_Reg eqn_hasegawa_wakatani_ctor[] = { { "new", eqn_hasegawa_wakatani_lw_new },
+  { 0, 0 } };
 
 // Register and load all wave equation objects.
 static void
@@ -633,7 +636,7 @@ vlasov_species_lw_new(lua_State *L)
   enum gkyl_source_id source_id = GKYL_NO_SOURCE;
 
   double source_length = 1.0;
-  char source_species[128] = {'\0'};
+  char source_species[128] = { '\0' };
 
   int num_sources = 0;
   enum gkyl_projection_id source_proj_id[GKYL_MAX_PROJ];
@@ -717,36 +720,29 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->vm_species = vm_species;
 
   vms_lw->has_hamiltonian_func = has_hamiltonian_func;
-  vms_lw->hamiltonian_func_ref = (struct lua_func_ctx){
-    .func_ref = hamiltonian_func_ref,
+  vms_lw->hamiltonian_func_ref = (struct lua_func_ctx){ .func_ref = hamiltonian_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   vms_lw->has_metric_func = has_metric_func;
-  vms_lw->metric_func_ref = (struct lua_func_ctx){
-    .func_ref = metric_func_ref,
+  vms_lw->metric_func_ref = (struct lua_func_ctx){ .func_ref = metric_func_ref,
     .ndim = 0, // This will be set later.
     .nret = (vdim * (vdim + 1)) / 2,
-    .L = L,
-  };
+    .L = L };
 
   vms_lw->has_inverse_metric_func = has_inverse_metric_func;
-  vms_lw->inverse_metric_func_ref = (struct lua_func_ctx){
-    .func_ref = inverse_metric_func_ref,
+  vms_lw->inverse_metric_func_ref = (struct lua_func_ctx){ .func_ref = inverse_metric_func_ref,
     .ndim = 0, // This will be set later.
     .nret = (vdim * (vdim + 1)) / 2,
-    .L = L,
-  };
+    .L = L };
 
   vms_lw->has_metric_determinant_func = has_metric_determinant_func;
-  vms_lw->metric_determinant_func_ref = (struct lua_func_ctx){
-    .func_ref = metric_determinant_func_ref,
-    .ndim = 0, // This will be set later.
-    .nret = 1,
-    .L = L,
-  };
+  vms_lw->metric_determinant_func_ref =
+    (struct lua_func_ctx){ .func_ref = metric_determinant_func_ref,
+      .ndim = 0, // This will be set later.
+      .nret = 1,
+      .L = L };
 
   vms_lw->output_f_lte = output_f_lte;
 
@@ -755,36 +751,28 @@ vlasov_species_lw_new(lua_State *L)
     vms_lw->proj_id[i] = proj_id[i];
 
     vms_lw->has_init_func[i] = has_init_func[i];
-    vms_lw->init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = init_func_ref[i],
+    vms_lw->init_func_ref[i] = (struct lua_func_ctx){ .func_ref = init_func_ref[i],
       .ndim = 0, // This will be set later.
       .nret = 1,
-      .L = L,
-    };
+      .L = L };
 
     vms_lw->has_density_init_func[i] = has_density_init_func[i];
-    vms_lw->density_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = density_init_func_ref[i],
+    vms_lw->density_init_func_ref[i] = (struct lua_func_ctx){ .func_ref = density_init_func_ref[i],
       .ndim = 0, // This will be set later.
       .nret = 1,
-      .L = L,
-    };
+      .L = L };
 
     vms_lw->has_V_drift_init_func[i] = has_V_drift_init_func[i];
-    vms_lw->V_drift_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = V_drift_init_func_ref[i],
+    vms_lw->V_drift_init_func_ref[i] = (struct lua_func_ctx){ .func_ref = V_drift_init_func_ref[i],
       .ndim = 0, // This will be set later.
       .nret = vdim,
-      .L = L,
-    };
+      .L = L };
 
     vms_lw->has_temp_init_func[i] = has_temp_init_func[i];
-    vms_lw->temp_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = temp_init_func_ref[i],
+    vms_lw->temp_init_func_ref[i] = (struct lua_func_ctx){ .func_ref = temp_init_func_ref[i],
       .ndim = 0, // This will be set later.
       .nret = 1,
-      .L = L,
-    };
+      .L = L };
 
     vms_lw->correct_all_moms[i] = correct_all_moms[i];
     vms_lw->iter_eps[i] = iter_eps[i];
@@ -802,47 +790,38 @@ vlasov_species_lw_new(lua_State *L)
     vms_lw->source_proj_id[i] = source_proj_id[i];
 
     vms_lw->source_has_init_func[i] = source_has_init_func[i];
-    vms_lw->source_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = source_init_func_ref[i],
+    vms_lw->source_init_func_ref[i] = (struct lua_func_ctx){ .func_ref = source_init_func_ref[i],
       .ndim = 0, // This will be set later.
       .nret = 1,
-      .L = L,
-    };
+      .L = L };
 
     vms_lw->source_has_density_init_func[i] = source_has_density_init_func[i];
-    vms_lw->source_density_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = source_density_init_func_ref[i],
-      .ndim = 0, // This will be set later.
-      .nret = 1,
-      .L = L,
-    };
+    vms_lw->source_density_init_func_ref[i] =
+      (struct lua_func_ctx){ .func_ref = source_density_init_func_ref[i],
+        .ndim = 0, // This will be set later.
+        .nret = 1,
+        .L = L };
 
     vms_lw->source_has_V_drift_init_func[i] = source_has_V_drift_init_func[i];
-    vms_lw->source_V_drift_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = source_V_drift_init_func_ref[i],
-      .ndim = 0, // This will be set later.
-      .nret = vdim,
-      .L = L,
-    };
+    vms_lw->source_V_drift_init_func_ref[i] =
+      (struct lua_func_ctx){ .func_ref = source_V_drift_init_func_ref[i],
+        .ndim = 0, // This will be set later.
+        .nret = vdim,
+        .L = L };
 
     vms_lw->source_has_temp_init_func[i] = source_has_temp_init_func[i];
-    vms_lw->source_temp_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = source_temp_init_func_ref[i],
-      .ndim = 0, // This will be set later.
-      .nret = 1,
-      .L = L,
-    };
+    vms_lw->source_temp_init_func_ref[i] =
+      (struct lua_func_ctx){ .func_ref = source_temp_init_func_ref[i],
+        .ndim = 0, // This will be set later.
+        .nret = 1,
+        .L = L };
   }
 
   vms_lw->collision_id = collision_id;
 
   vms_lw->has_self_nu_func = has_self_nu_func;
-  vms_lw->self_nu_func_ref = (struct lua_func_ctx){
-    .func_ref = self_nu_func_ref,
-    .ndim = 0,
-    .nret = 1,
-    .L = L,
-  };
+  vms_lw->self_nu_func_ref =
+    (struct lua_func_ctx){ .func_ref = self_nu_func_ref, .ndim = 0, .nret = 1, .L = L };
 
   vms_lw->num_cross_collisions = num_cross_collisions;
   for (int i = 0; i < num_cross_collisions; i++) {
@@ -864,7 +843,7 @@ vlasov_species_lw_new(lua_State *L)
 }
 
 // Species constructor.
-static struct luaL_Reg vm_species_ctor[] = {{"new", vlasov_species_lw_new}, {0, 0}};
+static struct luaL_Reg vm_species_ctor[] = { { "new", vlasov_species_lw_new }, { 0, 0 } };
 
 /* ********************* */
 /* Fluid Species methods */
@@ -992,36 +971,28 @@ vlasov_fluid_species_lw_new(lua_State *L)
   vmfs_lw->magic = VLASOV_FLUID_SPECIES_DEFAULT;
   vmfs_lw->vlasov_fluid_species = vm_fluid_species;
 
-  vmfs_lw->init_ctx = (struct lua_func_ctx){
-    .func_ref = init_ref,
+  vmfs_lw->init_ctx = (struct lua_func_ctx){ .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = vm_fluid_species.equation->num_equations,
-    .L = L,
-  };
+    .L = L };
 
   vmfs_lw->has_app_advect_func = has_app_advect_func;
-  vmfs_lw->app_advect_func_ref = (struct lua_func_ctx){
-    .func_ref = app_advect_func_ref,
+  vmfs_lw->app_advect_func_ref = (struct lua_func_ctx){ .func_ref = app_advect_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L,
-  };
+    .L = L };
 
   vmfs_lw->has_n0_func = has_n0_func;
-  vmfs_lw->n0_func_ref = (struct lua_func_ctx){
-    .func_ref = n0_func_ref,
+  vmfs_lw->n0_func_ref = (struct lua_func_ctx){ .func_ref = n0_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   vmfs_lw->has_diffusion_func = has_diffusion_func;
-  vmfs_lw->diffusion_func_ref = (struct lua_func_ctx){
-    .func_ref = diffusion_func_ref,
+  vmfs_lw->diffusion_func_ref = (struct lua_func_ctx){ .func_ref = diffusion_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1, // This will be set later.
-    .L = L,
-  };
+    .L = L };
 
   // Set metatable.
   luaL_getmetatable(L, VLASOV_FLUID_SPECIES_METATABLE_NM);
@@ -1031,7 +1002,8 @@ vlasov_fluid_species_lw_new(lua_State *L)
 }
 
 // Species constructor.
-static struct luaL_Reg vm_fluid_species_ctor[] = {{"new", vlasov_fluid_species_lw_new}, {0, 0}};
+static struct luaL_Reg vm_fluid_species_ctor[] = { { "new", vlasov_fluid_species_lw_new },
+  { 0, 0 } };
 
 /* ************* */
 /* Field methods */
@@ -1139,9 +1111,7 @@ vlasov_field_lw_new(lua_State *L)
       int nbc = glua_objlen(L);
 
       for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value lower_bc = {
-          .v = {glua_tbl_iget_number(L, i + 1, 0.0)},
-        };
+        struct gkyl_poisson_bc_value lower_bc = { .v = { glua_tbl_iget_number(L, i + 1, 0.0) } };
 
         vm_field.poisson_bcs.lo_value[i] = lower_bc;
       }
@@ -1152,9 +1122,7 @@ vlasov_field_lw_new(lua_State *L)
       int nbc = glua_objlen(L);
 
       for (int i = 0; i < nbc; i++) {
-        struct gkyl_poisson_bc_value upper_bc = {
-          .v = {glua_tbl_iget_number(L, i + 1, 0.0)},
-        };
+        struct gkyl_poisson_bc_value upper_bc = { .v = { glua_tbl_iget_number(L, i + 1, 0.0) } };
 
         vm_field.poisson_bcs.up_value[i] = upper_bc;
       }
@@ -1200,38 +1168,31 @@ vlasov_field_lw_new(lua_State *L)
   vmf_lw->evolve = evolve;
   vmf_lw->vm_field = vm_field;
 
-  vmf_lw->init_ref = (struct lua_func_ctx){
-    .func_ref = init_ref,
+  vmf_lw->init_ref = (struct lua_func_ctx){ .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L,
-  };
+    .L = L };
 
   vmf_lw->has_external_potential_func = has_external_potential_func;
-  vmf_lw->external_potential_func_ref = (struct lua_func_ctx){
-    .func_ref = external_potential_func_ref,
-    .ndim = 0, // This will be set later.
-    .nret = 4,
-    .L = L,
-  };
+  vmf_lw->external_potential_func_ref =
+    (struct lua_func_ctx){ .func_ref = external_potential_func_ref,
+      .ndim = 0, // This will be set later.
+      .nret = 4,
+      .L = L };
   vmf_lw->evolve_external_potential = evolve_external_potential;
 
   vmf_lw->has_external_field_func = has_external_field_func;
-  vmf_lw->external_field_func_ref = (struct lua_func_ctx){
-    .func_ref = external_field_func_ref,
+  vmf_lw->external_field_func_ref = (struct lua_func_ctx){ .func_ref = external_field_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L,
-  };
+    .L = L };
   vmf_lw->evolve_external_field = evolve_external_field;
 
   vmf_lw->has_applied_current_func = has_applied_current_func;
-  vmf_lw->applied_current_func_ref = (struct lua_func_ctx){
-    .func_ref = applied_current_func_ref,
+  vmf_lw->applied_current_func_ref = (struct lua_func_ctx){ .func_ref = applied_current_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L,
-  };
+    .L = L };
   vmf_lw->evolve_applied_current = evolve_applied_current;
 
   // Set metatable.
@@ -1242,7 +1203,7 @@ vlasov_field_lw_new(lua_State *L)
 }
 
 // Field constructor.
-static struct luaL_Reg vm_field_ctor[] = {{"new", vlasov_field_lw_new}, {0, 0}};
+static struct luaL_Reg vm_field_ctor[] = { { "new", vlasov_field_lw_new }, { 0, 0 } };
 
 /* *********** */
 /* App methods */
@@ -1575,8 +1536,7 @@ struct script_cli {
 static struct script_cli
 vm_parse_script_cli(struct gkyl_tool_args *acv)
 {
-  struct script_cli cli = {
-    .help = -false,
+  struct script_cli cli = { .help = -false,
     .step_mode = false,
     .num_steps = INT_MAX,
     .use_mpi = false,
@@ -1584,8 +1544,7 @@ vm_parse_script_cli(struct gkyl_tool_args *acv)
     .trace_mem = false,
     .use_verbose = false,
     .is_restart = false,
-    .restart_frame = 0,
-  };
+    .restart_frame = 0 };
 
 #ifdef GKYL_HAVE_MPI
   cli.use_mpi = true;
@@ -1594,7 +1553,7 @@ vm_parse_script_cli(struct gkyl_tool_args *acv)
   cli.use_gpu = true;
 #endif
 
-  coption_long longopts[] = {{0}};
+  coption_long longopts[] = { { 0 } };
   const char *shortopts = "+hVs:SGmr:";
 
   coption opt = coption_init();
@@ -2061,9 +2020,7 @@ vm_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-          .mpi_comm = mpi_comm,
-        });
+        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = mpi_comm });
       }
     }
 #else
@@ -2082,26 +2039,18 @@ vm_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-          .mpi_comm = mpi_comm,
-        });
+        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = mpi_comm });
       }
     }
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-      .use_gpu = script_cli.use_gpu,
-    });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-    .use_gpu = script_cli.use_gpu,
-  });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
 #endif
 
   if (comm == 0)
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-      .use_gpu = script_cli.use_gpu,
-    });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
 
   vm.parallelism.comm = comm;
   vm.parallelism.use_gpu = script_cli.use_gpu;
@@ -2557,21 +2506,23 @@ vm_app_run(lua_State *L)
   int integrated_L2_f_calcs = app_lw->integrated_L2_f_calcs;
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
-  struct step_message_trigs m_trig = {
-    .log_count = 0,
+  struct step_message_trigs m_trig = { .log_count = 0,
     .tenth = t_curr > 0.0 ? (int)floor(t_curr / t_end * 10.0) : 0.0,
     .p1c = t_curr > 0.0 ? (int)floor(t_curr / t_end * 100.0) % 10 : 0.0,
-    .log_trig = {.dt = t_end / 10.0, .tcurr = t_curr},
-    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr},
-  };
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr } };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
@@ -2696,19 +2647,19 @@ vm_app_gc(lua_State *L)
 }
 
 // App constructor.
-static struct luaL_Reg vm_app_ctor[] = {{"new", vm_app_new}, {0, 0}};
+static struct luaL_Reg vm_app_ctor[] = { { "new", vm_app_new }, { 0, 0 } };
 
 // App methods.
-static struct luaL_Reg vm_app_funcs[] = {{"apply_ic", vm_app_apply_ic},
-  {"apply_ic_field", vm_app_apply_ic_field}, {"apply_ic_species", vm_app_apply_ic_species},
-  {"calc_mom", vm_app_calc_mom}, {"calc_integrated_mom", vm_app_calc_integrated_mom},
-  {"calc_integrated_L2_f", vm_app_calc_integrated_L2_f},
-  {"calc_field_energy", vm_app_calc_field_energy}, {"write", vm_app_write},
-  {"write_field", vm_app_write_field}, {"write_species", vm_app_write_species},
-  {"write_mom", vm_app_write_mom}, {"write_integrated_mom", vm_app_write_integrated_mom},
-  {"write_integrated_L2_f", vm_app_write_integrated_L2_f},
-  {"write_field_energy", vm_app_write_field_energy}, {"stat_write", vm_app_stat_write},
-  {"run", vm_app_run}, {0, 0}};
+static struct luaL_Reg vm_app_funcs[] = { { "apply_ic", vm_app_apply_ic },
+  { "apply_ic_field", vm_app_apply_ic_field }, { "apply_ic_species", vm_app_apply_ic_species },
+  { "calc_mom", vm_app_calc_mom }, { "calc_integrated_mom", vm_app_calc_integrated_mom },
+  { "calc_integrated_L2_f", vm_app_calc_integrated_L2_f },
+  { "calc_field_energy", vm_app_calc_field_energy }, { "write", vm_app_write },
+  { "write_field", vm_app_write_field }, { "write_species", vm_app_write_species },
+  { "write_mom", vm_app_write_mom }, { "write_integrated_mom", vm_app_write_integrated_mom },
+  { "write_integrated_L2_f", vm_app_write_integrated_L2_f },
+  { "write_field_energy", vm_app_write_field_energy }, { "stat_write", vm_app_stat_write },
+  { "run", vm_app_run }, { 0, 0 } };
 
 static void
 app_openlibs(lua_State *L)

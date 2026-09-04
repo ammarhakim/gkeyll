@@ -24,10 +24,10 @@ typedef double (*lbo_gyrokinetic_diff_boundary_surf_t)(const double *dxv, const 
 static struct {
   int vdim[3];
 } cv_index[] = {
-  {-1, -1, -1}, // 0x makes no sense
-  {-1, 0, 1}, // 1x kernel indices
-  {-1, -1, 2}, // 2x kernel indices
-  {-1, -1, 3}, // 3x kernel indices
+  { -1, -1, -1 }, // 0x makes no sense
+  { -1, 0, 1 }, // 1x kernel indices
+  { -1, -1, 2 }, // 2x kernel indices
+  { -1, -1, 3 } // 3x kernel indices
 };
 
 // for use in kernel tables
@@ -191,100 +191,100 @@ kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  {NULL, kernel_lbo_gyrokinetic_diff_vol_1x1v_ser_p1, NULL}, // 0
-  {NULL, kernel_lbo_gyrokinetic_diff_vol_1x2v_ser_p1, NULL}, // 1
+  { NULL, kernel_lbo_gyrokinetic_diff_vol_1x1v_ser_p1, NULL }, // 0
+  { NULL, kernel_lbo_gyrokinetic_diff_vol_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  {NULL, kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1, NULL}, // 3
+  { NULL, kernel_lbo_gyrokinetic_diff_vol_2x2v_ser_p1, NULL }, // 3
   // 3x kernels
-  {NULL, kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1, NULL}, // 4
+  { NULL, kernel_lbo_gyrokinetic_diff_vol_3x2v_ser_p1, NULL } // 4
 };
 
 // Surface kernel list: vpar-direction
-GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_vpar_mapped_kernels[] =
-  {
+GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list
+  ser_surf_vpar_mapped_kernels[] = {
     // 1x kernels
-    {NULL, lbo_gyrokinetic_diff_mapped_surfvpar_1x1v_ser_p1, NULL}, // 0
-    {NULL, lbo_gyrokinetic_diff_mapped_surfvpar_1x2v_ser_p1, NULL}, // 1
+    { NULL, lbo_gyrokinetic_diff_mapped_surfvpar_1x1v_ser_p1, NULL }, // 0
+    { NULL, lbo_gyrokinetic_diff_mapped_surfvpar_1x2v_ser_p1, NULL }, // 1
     // 2x kernels
-    {NULL, lbo_gyrokinetic_diff_mapped_surfvpar_2x2v_ser_p1, NULL}, // 2
+    { NULL, lbo_gyrokinetic_diff_mapped_surfvpar_2x2v_ser_p1, NULL }, // 2
     // 3x kernels
-    {NULL, lbo_gyrokinetic_diff_mapped_surfvpar_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, lbo_gyrokinetic_diff_mapped_surfvpar_3x2v_ser_p1, NULL } // 3
+  };
 GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list
   ser_surf_vpar_notmapped_kernels[] = {
     // 1x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_1x1v_ser_p1, NULL}, // 0
-    {NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_1x2v_ser_p1, NULL}, // 1
+    { NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_1x1v_ser_p1, NULL }, // 0
+    { NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_1x2v_ser_p1, NULL }, // 1
     // 2x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_2x2v_ser_p1, NULL}, // 2
+    { NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_2x2v_ser_p1, NULL }, // 2
     // 3x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_3x2v_ser_p1, NULL } // 3
+  };
 
 // Surface kernel list: mu-direction
 GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_mu_mapped_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, lbo_gyrokinetic_diff_mapped_surfmu_1x2v_ser_p1, NULL}, // 1
+  { NULL, NULL, NULL }, // 0
+  { NULL, lbo_gyrokinetic_diff_mapped_surfmu_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  {NULL, lbo_gyrokinetic_diff_mapped_surfmu_2x2v_ser_p1, NULL}, // 2
+  { NULL, lbo_gyrokinetic_diff_mapped_surfmu_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  {NULL, lbo_gyrokinetic_diff_mapped_surfmu_3x2v_ser_p1, NULL}, // 3
+  { NULL, lbo_gyrokinetic_diff_mapped_surfmu_3x2v_ser_p1, NULL } // 3
 };
-GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_mu_notmapped_kernels[] =
-  {
+GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list
+  ser_surf_mu_notmapped_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, lbo_gyrokinetic_diff_notmapped_surfmu_1x2v_ser_p1, NULL}, // 1
+    { NULL, NULL, NULL }, // 0
+    { NULL, lbo_gyrokinetic_diff_notmapped_surfmu_1x2v_ser_p1, NULL }, // 1
     // 2x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_surfmu_2x2v_ser_p1, NULL}, // 2
+    { NULL, lbo_gyrokinetic_diff_notmapped_surfmu_2x2v_ser_p1, NULL }, // 2
     // 3x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_surfmu_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, lbo_gyrokinetic_diff_notmapped_surfmu_3x2v_ser_p1, NULL } // 3
+  };
 
 // Boundary surface kernel (zero-flux BCs) list: vpar-direction
 GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list
   ser_boundary_surf_vpar_mapped_kernels[] = {
     // 1x kernels
-    {NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_1x1v_ser_p1, NULL}, // 0
-    {NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_1x2v_ser_p1, NULL}, // 1
+    { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_1x1v_ser_p1, NULL }, // 0
+    { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_1x2v_ser_p1, NULL }, // 1
     // 2x kernels
-    {NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_2x2v_ser_p1, NULL}, // 2
+    { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
     // 3x kernels
-    {NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_3x2v_ser_p1, NULL } // 3
+  };
 GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list
   ser_boundary_surf_vpar_notmapped_kernels[] = {
     // 1x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_1x1v_ser_p1, NULL}, // 0
-    {NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_1x2v_ser_p1, NULL}, // 1
+    { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_1x1v_ser_p1, NULL }, // 0
+    { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_1x2v_ser_p1, NULL }, // 1
     // 2x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_2x2v_ser_p1, NULL}, // 2
+    { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
     // 3x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_3x2v_ser_p1, NULL } // 3
+  };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: mu-direction
 GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list
   ser_boundary_surf_mu_mapped_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_1x2v_ser_p1, NULL}, // 1
+    { NULL, NULL, NULL }, // 0
+    { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_1x2v_ser_p1, NULL }, // 1
     // 2x kernels
-    {NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_2x2v_ser_p1, NULL}, // 2
+    { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_2x2v_ser_p1, NULL }, // 2
     // 3x kernels
-    {NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_3x2v_ser_p1, NULL } // 3
+  };
 GKYL_CU_D static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list
   ser_boundary_surf_mu_notmapped_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_1x2v_ser_p1, NULL}, // 1
+    { NULL, NULL, NULL }, // 0
+    { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_1x2v_ser_p1, NULL }, // 1
     // 2x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_2x2v_ser_p1, NULL}, // 2
+    { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_2x2v_ser_p1, NULL }, // 2
     // 3x kernels
-    {NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_3x2v_ser_p1, NULL } // 3
+  };
 
 void gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count *ref);
 

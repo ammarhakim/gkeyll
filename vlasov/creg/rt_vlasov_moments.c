@@ -223,16 +223,14 @@ get_inp(int argc, char **argv)
   else if (cdim == 3 && vdim == 3)
     eval = evalDistFunc3x3v;
 
-  return (struct moment_inp){
-    .cdim = cdim,
+  return (struct moment_inp){ .cdim = cdim,
     .vdim = vdim,
     .poly_order = poly_order,
-    .ccells = {8, 8, 8},
-    .vcells = {16, 16, 16},
+    .ccells = { 8, 8, 8 },
+    .vcells = { 16, 16, 16 },
     .nloop = nloop,
     .eval = eval,
-    .use_gpu = use_gpu,
-  };
+    .use_gpu = use_gpu };
 }
 
 int
@@ -260,47 +258,35 @@ main(int argc, char **argv)
   printf("nloop = %d\n", inp.nloop);
 
   // electrons
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_species elc = { .name = "elc",
     .charge = -1.0,
     .mass = 1.0,
-    .lower = {-6.0, -6.0, -6.0},
-    .upper = {6.0, 6.0, 6.0},
-    .cells = {inp.vcells[0], inp.vcells[1], inp.vcells[2]},
+    .lower = { -6.0, -6.0, -6.0 },
+    .upper = { 6.0, 6.0, 6.0 },
+    .cells = { inp.vcells[0], inp.vcells[1], inp.vcells[2] },
     .num_init = 1,
-    .projection[0] =
-      {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = inp.eval,
-        .ctx_func = 0,
-      },
+    .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = inp.eval, .ctx_func = 0 },
     .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ},
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2IJ } };
 
   // field
-  struct gkyl_vlasov_field field = {.epsilon0 = 1.0, .mu0 = 1.0, .init = evalFieldFunc};
+  struct gkyl_vlasov_field field = { .epsilon0 = 1.0, .mu0 = 1.0, .init = evalFieldFunc };
 
   // VM app
-  struct gkyl_vm vm = {
-    .name = "vlasov-moment",
+  struct gkyl_vm vm = { .name = "vlasov-moment",
 
     .cdim = inp.cdim,
     .vdim = inp.vdim,
-    .lower = {-1.0, -1.0, -1.0},
-    .upper = {1.0, 1.0, 1.0},
-    .cells = {inp.ccells[0], inp.ccells[1], inp.ccells[2]},
+    .lower = { -1.0, -1.0, -1.0 },
+    .upper = { 1.0, 1.0, 1.0 },
+    .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
     .poly_order = inp.poly_order,
 
     .num_species = 1,
-    .species = {elc},
+    .species = { elc },
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = inp.use_gpu,
-      },
-  };
+    .parallelism = { .use_gpu = inp.use_gpu } };
 
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);

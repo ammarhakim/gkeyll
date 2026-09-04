@@ -188,7 +188,7 @@ vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   gkyl_comm_allreduce(
     app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->es_energy_red, field->es_energy_red_global);
 
-  double energy_global[1] = {0.0};
+  double energy_global[1] = { 0.0 };
   if (app->use_gpu)
     gkyl_cu_memcpy(
       energy_global, field->es_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);

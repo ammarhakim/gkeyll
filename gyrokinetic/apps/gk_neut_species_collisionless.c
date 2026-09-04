@@ -51,7 +51,7 @@ gk_neut_species_collisionless_init(
 
     // Determine which directions are zero-flux. By default
     // we do not have zero-flux boundary conditions in any direction.
-    bool is_zero_flux[2 * GKYL_MAX_DIM] = {false};
+    bool is_zero_flux[2 * GKYL_MAX_DIM] = { false };
     for (int dir = 0; dir < app->cdim; ++dir) {
       if (gkns->lower_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
         is_zero_flux[dir] = true;
@@ -84,10 +84,10 @@ gk_neut_species_collisionless_init(
       gkcls->const_sgn_alpha);
     gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 
-    struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = gkns->hamil,
+    struct gkyl_dg_canonical_pb_auxfields aux_inp = { .hamil = gkns->hamil,
       .alpha_surf = gkcls->alpha_surf,
       .sgn_alpha_surf = gkcls->sgn_alpha_surf,
-      .const_sgn_alpha = gkcls->const_sgn_alpha};
+      .const_sgn_alpha = gkcls->const_sgn_alpha };
 
     gkcls->vlasov_slvr = gkyl_dg_updater_vlasov_new(&gkns->grid, &app->basis, &gkns->basis,
       &app->local, &gkns->local_vel, &gkns->local, is_zero_flux, gkns->model_id, gkns->field_id,

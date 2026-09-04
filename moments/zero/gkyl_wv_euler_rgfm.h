@@ -4,7 +4,7 @@
 
 // Type of Riemann-solver to use:
 enum gkyl_wv_euler_rgfm_rp {
-  WV_EULER_RGFM_RP_LAX = 0, // Default (Lax fluxes).
+  WV_EULER_RGFM_RP_LAX = 0 // Default (Lax fluxes).
 };
 
 // Input context, packaged as a struct.

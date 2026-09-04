@@ -19,9 +19,7 @@ gkyl_dg_updater_vlasov_poisson_acquire_eqn(const gkyl_dg_updater_vlasov *vlasov)
 struct gkyl_dg_updater_vlasov_tm
 gkyl_dg_updater_vlasov_poisson_get_tm(const gkyl_dg_updater_vlasov *vlasov)
 {
-  return (struct gkyl_dg_updater_vlasov_tm){
-    .vlasov_tm = vlasov->vlasov_tm,
-  };
+  return (struct gkyl_dg_updater_vlasov_tm){ .vlasov_tm = vlasov->vlasov_tm };
 }
 
 gkyl_dg_updater_vlasov *
@@ -43,7 +41,7 @@ gkyl_dg_updater_vlasov_poisson_new(const struct gkyl_rect_grid *grid,
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim - cdim;
 
-  int up_dirs[GKYL_MAX_DIM] = {0};
+  int up_dirs[GKYL_MAX_DIM] = { 0 };
   int num_up_dirs = pdim;
   for (int d = 0; d < num_up_dirs; ++d)
     up_dirs[d] = d;

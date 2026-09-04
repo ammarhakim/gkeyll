@@ -63,8 +63,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
   up->error = gkyl_malloc(sizeof(double[up->num_comp]));
 
   // Moments structure
-  struct gkyl_vlasov_lte_moments_inp inp_mom = {
-    .phase_grid = inp->phase_grid,
+  struct gkyl_vlasov_lte_moments_inp inp_mom = { .phase_grid = inp->phase_grid,
     .vel_grid = inp->vel_grid,
     .conf_basis = inp->conf_basis,
     .vel_basis = inp->vel_basis,
@@ -80,15 +79,13 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .det_h = inp->det_h,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
-    .use_gpu = inp->use_gpu,
-  };
+    .use_gpu = inp->use_gpu };
   up->moments_up = gkyl_vlasov_lte_moments_inew(&inp_mom);
 
   // Create a projection updater for projecting the LTE distribution function
   // Projection routine also corrects the density before returning
   // the LTE distribution function.
-  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
-    .phase_grid = inp->phase_grid,
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = { .phase_grid = inp->phase_grid,
     .vel_grid = inp->vel_grid,
     .conf_basis = inp->conf_basis,
     .vel_basis = inp->vel_basis,
@@ -105,8 +102,7 @@ gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
     .det_h = inp->det_h,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
-    .use_gpu = inp->use_gpu,
-  };
+    .use_gpu = inp->use_gpu };
   up->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
   return up;

@@ -45,10 +45,10 @@ kernel_vlasov_poisson_zero_accel_boundary_surf(const double *w, const double *dx
 static struct {
   int vdim[4];
 } cv_index[] = {
-  {-1, -1, -1, -1}, // 0x makes no sense
-  {-1, 0, 1, 2}, // 1x kernel indices
-  {-1, -1, 3, 4}, // 2x kernel indices
-  {-1, -1, -1, 5}, // 3x kernel indices
+  { -1, -1, -1, -1 }, // 0x makes no sense
+  { -1, 0, 1, 2 }, // 1x kernel indices
+  { -1, -1, 3, 4 }, // 2x kernel indices
+  { -1, -1, -1, 5 } // 3x kernel indices
 };
 
 // for use in kernel tables
@@ -92,92 +92,92 @@ struct dg_vlasov_poisson {
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_surf_kern_list
   ser_poisson_stream_surf_x_kernels[] = {
     // 1x kernels
-    {NULL, vlasov_poisson_surfx_1x1v_ser_p1, vlasov_poisson_surfx_1x1v_ser_p2}, // 0
-    {NULL, vlasov_poisson_surfx_1x2v_ser_p1, vlasov_poisson_surfx_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_surfx_1x3v_ser_p1, vlasov_poisson_surfx_1x3v_ser_p2}, // 2
+    { NULL, vlasov_poisson_surfx_1x1v_ser_p1, vlasov_poisson_surfx_1x1v_ser_p2 }, // 0
+    { NULL, vlasov_poisson_surfx_1x2v_ser_p1, vlasov_poisson_surfx_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_surfx_1x3v_ser_p1, vlasov_poisson_surfx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_surfx_2x2v_ser_p1, vlasov_poisson_surfx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_surfx_2x3v_ser_p1, vlasov_poisson_surfx_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_surfx_2x2v_ser_p1, vlasov_poisson_surfx_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_surfx_2x3v_ser_p1, vlasov_poisson_surfx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Streaming surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_surf_kern_list
   ser_poisson_stream_surf_y_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_surfy_2x2v_ser_p1, vlasov_poisson_surfy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_surfy_2x3v_ser_p1, vlasov_poisson_surfy_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_surfy_2x2v_ser_p1, vlasov_poisson_surfy_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_surfy_2x3v_ser_p1, vlasov_poisson_surfy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Streaming surface kernel list: z-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_surf_kern_list
   ser_poisson_stream_surf_z_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, NULL, NULL}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, NULL, NULL }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Streaming boundary surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_boundary_surf_kern_list
   ser_poisson_stream_boundary_surf_x_kernels[] = {
     // 1x kernels
-    {NULL, vlasov_poisson_boundary_surfx_1x1v_ser_p1,
-      vlasov_poisson_boundary_surfx_1x1v_ser_p2}, // 0
-    {NULL, vlasov_poisson_boundary_surfx_1x2v_ser_p1,
-      vlasov_poisson_boundary_surfx_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_boundary_surfx_1x3v_ser_p1,
-      vlasov_poisson_boundary_surfx_1x3v_ser_p2}, // 2
+    { NULL, vlasov_poisson_boundary_surfx_1x1v_ser_p1,
+      vlasov_poisson_boundary_surfx_1x1v_ser_p2 }, // 0
+    { NULL, vlasov_poisson_boundary_surfx_1x2v_ser_p1,
+      vlasov_poisson_boundary_surfx_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_boundary_surfx_1x3v_ser_p1,
+      vlasov_poisson_boundary_surfx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_boundary_surfx_2x2v_ser_p1,
-      vlasov_poisson_boundary_surfx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_boundary_surfx_2x3v_ser_p1,
-      vlasov_poisson_boundary_surfx_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_boundary_surfx_2x2v_ser_p1,
+      vlasov_poisson_boundary_surfx_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_boundary_surfx_2x3v_ser_p1,
+      vlasov_poisson_boundary_surfx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Streaming boundary surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_boundary_surf_kern_list
   ser_poisson_stream_boundary_surf_y_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_boundary_surfy_2x2v_ser_p1,
-      vlasov_poisson_boundary_surfy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_boundary_surfy_2x3v_ser_p1,
-      vlasov_poisson_boundary_surfy_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_boundary_surfy_2x2v_ser_p1,
+      vlasov_poisson_boundary_surfy_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_boundary_surfy_2x3v_ser_p1,
+      vlasov_poisson_boundary_surfy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Streaming boundary surface kernel list: z-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_stream_boundary_surf_kern_list
   ser_poisson_stream_boundary_surf_z_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, NULL, NULL}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, NULL, NULL }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 //
 // Serendipity volume kernels (Vlasov-Poisson)
@@ -297,110 +297,110 @@ kernel_vlasov_poisson_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const doubl
 // Volume kernel list, phi only
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_vol_kernels[] = {
   // 1x kernels
-  {NULL, kernel_vlasov_poisson_vol_1x1v_ser_p1, kernel_vlasov_poisson_vol_1x1v_ser_p2}, // 0
-  {NULL, kernel_vlasov_poisson_vol_1x2v_ser_p1, kernel_vlasov_poisson_vol_1x2v_ser_p2}, // 1
-  {NULL, kernel_vlasov_poisson_vol_1x3v_ser_p1, kernel_vlasov_poisson_vol_1x3v_ser_p2}, // 2
+  { NULL, kernel_vlasov_poisson_vol_1x1v_ser_p1, kernel_vlasov_poisson_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_poisson_vol_1x2v_ser_p1, kernel_vlasov_poisson_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_poisson_vol_1x3v_ser_p1, kernel_vlasov_poisson_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, kernel_vlasov_poisson_vol_2x2v_ser_p1, kernel_vlasov_poisson_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_vlasov_poisson_vol_2x3v_ser_p1, kernel_vlasov_poisson_vol_2x3v_ser_p2}, // 4
+  { NULL, kernel_vlasov_poisson_vol_2x2v_ser_p1, kernel_vlasov_poisson_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_poisson_vol_2x3v_ser_p1, kernel_vlasov_poisson_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Acceleration (phi only) surface kernel list: vx-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_accel_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, vlasov_poisson_surfvx_1x1v_ser_p1, vlasov_poisson_surfvx_1x1v_ser_p2}, // 0
-    {NULL, vlasov_poisson_surfvx_1x2v_ser_p1, vlasov_poisson_surfvx_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_surfvx_1x3v_ser_p1, vlasov_poisson_surfvx_1x3v_ser_p2}, // 2
+    { NULL, vlasov_poisson_surfvx_1x1v_ser_p1, vlasov_poisson_surfvx_1x1v_ser_p2 }, // 0
+    { NULL, vlasov_poisson_surfvx_1x2v_ser_p1, vlasov_poisson_surfvx_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_surfvx_1x3v_ser_p1, vlasov_poisson_surfvx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_surfvx_2x2v_ser_p1, vlasov_poisson_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_surfvx_2x3v_ser_p1, vlasov_poisson_surfvx_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_surfvx_2x2v_ser_p1, vlasov_poisson_surfvx_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_surfvx_2x3v_ser_p1, vlasov_poisson_surfvx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi only) surface kernel list: vy-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_accel_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf}, // 1
-    {NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf }, // 1
+    { NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_surfvy_2x2v_ser_p1, vlasov_poisson_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_surfvy_2x3v_ser_p1, vlasov_poisson_surfvy_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_surfvy_2x2v_ser_p1, vlasov_poisson_surfvy_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_surfvy_2x3v_ser_p1, vlasov_poisson_surfvy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi only) surface kernel list: vz-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_accel_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, kernel_vlasov_poisson_zero_accel_surf, kernel_vlasov_poisson_zero_accel_surf }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi only) boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_accel_boundary_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, vlasov_poisson_boundary_surfvx_1x1v_ser_p1,
-      vlasov_poisson_boundary_surfvx_1x1v_ser_p2}, // 0
-    {NULL, vlasov_poisson_boundary_surfvx_1x2v_ser_p1,
-      vlasov_poisson_boundary_surfvx_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_boundary_surfvx_1x3v_ser_p1,
-      vlasov_poisson_boundary_surfvx_1x3v_ser_p2}, // 2
+    { NULL, vlasov_poisson_boundary_surfvx_1x1v_ser_p1,
+      vlasov_poisson_boundary_surfvx_1x1v_ser_p2 }, // 0
+    { NULL, vlasov_poisson_boundary_surfvx_1x2v_ser_p1,
+      vlasov_poisson_boundary_surfvx_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_boundary_surfvx_1x3v_ser_p1,
+      vlasov_poisson_boundary_surfvx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_boundary_surfvx_2x2v_ser_p1,
-      vlasov_poisson_boundary_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_boundary_surfvx_2x3v_ser_p1,
-      vlasov_poisson_boundary_surfvx_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_boundary_surfvx_2x2v_ser_p1,
+      vlasov_poisson_boundary_surfvx_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_boundary_surfvx_2x3v_ser_p1,
+      vlasov_poisson_boundary_surfvx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi only) boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_accel_boundary_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, kernel_vlasov_poisson_zero_accel_boundary_surf,
-      kernel_vlasov_poisson_zero_accel_boundary_surf}, // 1
-    {NULL, kernel_vlasov_poisson_zero_accel_boundary_surf,
-      kernel_vlasov_poisson_zero_accel_boundary_surf}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, kernel_vlasov_poisson_zero_accel_boundary_surf,
+      kernel_vlasov_poisson_zero_accel_boundary_surf }, // 1
+    { NULL, kernel_vlasov_poisson_zero_accel_boundary_surf,
+      kernel_vlasov_poisson_zero_accel_boundary_surf }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_boundary_surfvy_2x2v_ser_p1,
-      vlasov_poisson_boundary_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_boundary_surfvy_2x3v_ser_p1,
-      vlasov_poisson_boundary_surfvy_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_boundary_surfvy_2x2v_ser_p1,
+      vlasov_poisson_boundary_surfvy_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_boundary_surfvy_2x3v_ser_p1,
+      vlasov_poisson_boundary_surfvy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi only) boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_accel_boundary_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, kernel_vlasov_poisson_zero_accel_boundary_surf,
-      kernel_vlasov_poisson_zero_accel_boundary_surf}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, kernel_vlasov_poisson_zero_accel_boundary_surf,
+      kernel_vlasov_poisson_zero_accel_boundary_surf }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, kernel_vlasov_poisson_zero_accel_boundary_surf,
-      kernel_vlasov_poisson_zero_accel_boundary_surf}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, kernel_vlasov_poisson_zero_accel_boundary_surf,
+      kernel_vlasov_poisson_zero_accel_boundary_surf }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 //
 // Serendipity volume kernels (Vlasov-Poisson + external phi and A)
@@ -520,125 +520,125 @@ kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, co
 // Volume kernel list (with external phi and A).
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_ext_phiA_vol_kernels[] = {
   // 1x kernels
-  {NULL, kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p1,
-    kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p2}, // 0
-  {NULL, kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p1,
-    kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p2}, // 1
-  {NULL, kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p1,
-    kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p2}, // 2
+  { NULL, kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p1,
+    kernel_vlasov_poisson_ext_phiA_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p1,
+    kernel_vlasov_poisson_ext_phiA_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p1,
+    kernel_vlasov_poisson_ext_phiA_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p1,
-    kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p1,
-    kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p2}, // 4
+  { NULL, kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p1,
+    kernel_vlasov_poisson_ext_phiA_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p1,
+    kernel_vlasov_poisson_ext_phiA_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Acceleration (phi and A) surface kernel list: vx-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_ext_phiA_accel_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, vlasov_poisson_ext_phiA_surfvx_1x1v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvx_1x1v_ser_p2}, // 0
-    {NULL, vlasov_poisson_ext_phiA_surfvx_1x2v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvx_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_ext_phiA_surfvx_1x3v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvx_1x3v_ser_p2}, // 2
+    { NULL, vlasov_poisson_ext_phiA_surfvx_1x1v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvx_1x1v_ser_p2 }, // 0
+    { NULL, vlasov_poisson_ext_phiA_surfvx_1x2v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvx_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_ext_phiA_surfvx_1x3v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_ext_phiA_surfvx_2x2v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_phiA_surfvx_2x3v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvx_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_ext_phiA_surfvx_2x2v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvx_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_ext_phiA_surfvx_2x3v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi and A) surface kernel list: vy-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_ext_phiA_accel_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, vlasov_poisson_ext_phiA_surfvy_1x2v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvy_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_ext_phiA_surfvy_1x3v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvy_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, vlasov_poisson_ext_phiA_surfvy_1x2v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvy_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_ext_phiA_surfvy_1x3v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvy_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_ext_phiA_surfvy_2x2v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_phiA_surfvy_2x3v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvy_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_ext_phiA_surfvy_2x2v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvy_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_ext_phiA_surfvy_2x3v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi and A) surface kernel list: vz-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_ext_phiA_accel_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, vlasov_poisson_ext_phiA_surfvz_1x3v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvz_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, vlasov_poisson_ext_phiA_surfvz_1x3v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvz_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, vlasov_poisson_ext_phiA_surfvz_2x3v_ser_p1,
-      vlasov_poisson_ext_phiA_surfvz_2x3v_ser_p2}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, vlasov_poisson_ext_phiA_surfvz_2x3v_ser_p1,
+      vlasov_poisson_ext_phiA_surfvz_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi and A) boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_ext_phiA_accel_boundary_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvx_1x1v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvx_1x1v_ser_p2}, // 0
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvx_1x2v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvx_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvx_1x3v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvx_1x3v_ser_p2}, // 2
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvx_1x1v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvx_1x1v_ser_p2 }, // 0
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvx_1x2v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvx_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvx_1x3v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvx_2x2v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvx_2x3v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvx_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvx_2x2v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvx_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvx_2x3v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (phi and A) boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_ext_phiA_accel_boundary_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvy_1x2v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvy_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvy_1x3v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvy_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvy_1x2v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvy_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvy_1x3v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvy_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvy_2x2v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvy_2x3v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvy_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvy_2x2v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvy_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvy_2x3v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 // Acceleration (phi and A) boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_ext_phiA_accel_boundary_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvz_1x3v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvz_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvz_1x3v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvz_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, vlasov_poisson_ext_phiA_boundary_surfvz_2x3v_ser_p1,
-      vlasov_poisson_ext_phiA_boundary_surfvz_2x3v_ser_p2}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, vlasov_poisson_ext_phiA_boundary_surfvz_2x3v_ser_p1,
+      vlasov_poisson_ext_phiA_boundary_surfvz_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 //
 // Serendipity volume kernels (Vlasov-Poisson + external E and B)
@@ -768,114 +768,125 @@ kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, cons
 // Volume kernel list (with external E and B).
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_ext_EB_vol_kernels[] = {
   // 1x kernels
-  {NULL, kernel_vlasov_poisson_ext_EB_vol_1x1v_ser_p1,
-    kernel_vlasov_poisson_ext_EB_vol_1x1v_ser_p2}, // 0
-  {NULL, kernel_vlasov_poisson_ext_EB_vol_1x2v_ser_p1,
-    kernel_vlasov_poisson_ext_EB_vol_1x2v_ser_p2}, // 1
-  {NULL, kernel_vlasov_poisson_ext_EB_vol_1x3v_ser_p1,
-    kernel_vlasov_poisson_ext_EB_vol_1x3v_ser_p2}, // 2
+  { NULL, kernel_vlasov_poisson_ext_EB_vol_1x1v_ser_p1,
+    kernel_vlasov_poisson_ext_EB_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_poisson_ext_EB_vol_1x2v_ser_p1,
+    kernel_vlasov_poisson_ext_EB_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_poisson_ext_EB_vol_1x3v_ser_p1,
+    kernel_vlasov_poisson_ext_EB_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p1,
-    kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p1,
-    kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p2}, // 4
+  { NULL, kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p1,
+    kernel_vlasov_poisson_ext_EB_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p1,
+    kernel_vlasov_poisson_ext_EB_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Acceleration (E and B) surface kernel list: vx-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_ext_EB_accel_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, vlasov_poisson_ext_EB_surfvx_1x1v_ser_p1, vlasov_poisson_ext_EB_surfvx_1x1v_ser_p2}, // 0
-    {NULL, vlasov_poisson_ext_EB_surfvx_1x2v_ser_p1, vlasov_poisson_ext_EB_surfvx_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_ext_EB_surfvx_1x3v_ser_p1, vlasov_poisson_ext_EB_surfvx_1x3v_ser_p2}, // 2
+    { NULL, vlasov_poisson_ext_EB_surfvx_1x1v_ser_p1,
+      vlasov_poisson_ext_EB_surfvx_1x1v_ser_p2 }, // 0
+    { NULL, vlasov_poisson_ext_EB_surfvx_1x2v_ser_p1,
+      vlasov_poisson_ext_EB_surfvx_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_ext_EB_surfvx_1x3v_ser_p1,
+      vlasov_poisson_ext_EB_surfvx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_ext_EB_surfvx_2x2v_ser_p1, vlasov_poisson_ext_EB_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_EB_surfvx_2x3v_ser_p1, vlasov_poisson_ext_EB_surfvx_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_ext_EB_surfvx_2x2v_ser_p1,
+      vlasov_poisson_ext_EB_surfvx_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_ext_EB_surfvx_2x3v_ser_p1,
+      vlasov_poisson_ext_EB_surfvx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (E and B) surface kernel list: vy-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_ext_EB_accel_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, vlasov_poisson_ext_EB_surfvy_1x2v_ser_p1, vlasov_poisson_ext_EB_surfvy_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_ext_EB_surfvy_1x3v_ser_p1, vlasov_poisson_ext_EB_surfvy_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, vlasov_poisson_ext_EB_surfvy_1x2v_ser_p1,
+      vlasov_poisson_ext_EB_surfvy_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_ext_EB_surfvy_1x3v_ser_p1,
+      vlasov_poisson_ext_EB_surfvy_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_ext_EB_surfvy_2x2v_ser_p1, vlasov_poisson_ext_EB_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_EB_surfvy_2x3v_ser_p1, vlasov_poisson_ext_EB_surfvy_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_ext_EB_surfvy_2x2v_ser_p1,
+      vlasov_poisson_ext_EB_surfvy_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_ext_EB_surfvy_2x3v_ser_p1,
+      vlasov_poisson_ext_EB_surfvy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (E and B) surface kernel list: vz-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_surf_kern_list
   ser_poisson_ext_EB_accel_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, vlasov_poisson_ext_EB_surfvz_1x3v_ser_p1, vlasov_poisson_ext_EB_surfvz_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, vlasov_poisson_ext_EB_surfvz_1x3v_ser_p1,
+      vlasov_poisson_ext_EB_surfvz_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, vlasov_poisson_ext_EB_surfvz_2x3v_ser_p1, vlasov_poisson_ext_EB_surfvz_2x3v_ser_p2}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, vlasov_poisson_ext_EB_surfvz_2x3v_ser_p1,
+      vlasov_poisson_ext_EB_surfvz_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (E and B) boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_ext_EB_accel_boundary_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvx_1x1v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvx_1x1v_ser_p2}, // 0
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvx_1x2v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvx_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvx_1x3v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvx_1x3v_ser_p2}, // 2
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvx_1x1v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvx_1x1v_ser_p2 }, // 0
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvx_1x2v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvx_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvx_1x3v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvx_2x2v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvx_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvx_2x3v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvx_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvx_2x2v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvx_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvx_2x3v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration (E and B) boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_ext_EB_accel_boundary_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvy_1x2v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvy_1x2v_ser_p2}, // 1
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvy_1x3v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvy_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvy_1x2v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvy_1x2v_ser_p2 }, // 1
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvy_1x3v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvy_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvy_2x2v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvy_2x2v_ser_p2}, // 3
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvy_2x3v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvy_2x3v_ser_p2}, // 4
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvy_2x2v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvy_2x2v_ser_p2 }, // 3
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvy_2x3v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 // Acceleration (E and B) boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D static const gkyl_dg_vlasov_poisson_accel_boundary_surf_kern_list
   ser_poisson_ext_EB_accel_boundary_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvz_1x3v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvz_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvz_1x3v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvz_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, vlasov_poisson_ext_EB_boundary_surfvz_2x3v_ser_p1,
-      vlasov_poisson_ext_EB_boundary_surfvz_2x3v_ser_p2}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, vlasov_poisson_ext_EB_boundary_surfvz_2x3v_ser_p1,
+      vlasov_poisson_ext_EB_boundary_surfvz_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK(lst, cdim, vd, poly_order) lst[cv_index[cdim].vdim[vd]].kernels[poly_order]

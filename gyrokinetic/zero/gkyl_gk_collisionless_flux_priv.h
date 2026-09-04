@@ -27,10 +27,10 @@ typedef double (*gk_collisionless_flux_surfvpar_t)(const double *w, const double
 GKYL_CU_D static struct {
   int vdim[3];
 } cv_index[] = {
-  {-1, -1, -1}, // 0x makes no sense.
-  {-1, 0, 1}, // 1x kernel indices.
-  {-1, -1, 2}, // 2x kernel indices.
-  {-1, -1, 3}, // 3x kernel indices.
+  { -1, -1, -1 }, // 0x makes no sense.
+  { -1, 0, 1 }, // 1x kernel indices.
+  { -1, -1, 2 }, // 2x kernel indices.
+  { -1, -1, 3 } // 3x kernel indices.
 };
 
 // for use in kernel tables
@@ -70,65 +70,65 @@ struct gkyl_gk_collisionless_flux {
 // Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_surfx_kernels[] = {
-    {NULL, gk_collisionless_flux_surfx_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_surfx_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_surfx_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_surfx_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_surfx_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_surfx_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_surfx_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_surfx_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_edge_surfx_kernels[] = {
-    {NULL, gk_collisionless_flux_edge_surfx_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_edge_surfx_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_edge_surfx_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_edge_surfx_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_edge_surfx_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_edge_surfx_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_edge_surfx_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_edge_surfx_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux flux surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_surfy_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, gk_collisionless_flux_surfy_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_surfy_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, gk_collisionless_flux_surfy_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_surfy_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux flux edge surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_edge_surfy_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, gk_collisionless_flux_edge_surfy_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_edge_surfy_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, gk_collisionless_flux_edge_surfy_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_edge_surfy_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux flux surface expansions in z (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_surfz_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
-    {NULL, gk_collisionless_flux_surfz_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
+    { NULL, gk_collisionless_flux_surfz_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux flux edge surface expansions in z (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_edge_surfz_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
-    {NULL, gk_collisionless_flux_edge_surfz_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
+    { NULL, gk_collisionless_flux_edge_surfz_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha surface expansions in vpar (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surfvpar_kern_list
   ser_gk_collisionless_flux_surfvpar_kernels[] = {
-    {NULL, gk_collisionless_flux_surfvpar_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_surfvpar_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_surfvpar_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_surfvpar_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_surfvpar_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_surfvpar_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_surfvpar_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_surfvpar_3x2v_ser_p1, NULL } // 3
+  };
 
 //
 // Kernels used at multiblock boundaries.
@@ -137,56 +137,56 @@ GKYL_CU_D static const gkyl_gk_collisionless_flux_surfvpar_kern_list
 // Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_multib_boundary_surfx_kernels[] = {
-    {NULL, gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_multib_boundary_surfx_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_multib_boundary_surfx_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_multib_boundary_surfx_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_multib_boundary_edge_surfx_kernels[] = {
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfx_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfx_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux flux surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_multib_boundary_surfy_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, gk_collisionless_flux_multib_boundary_surfy_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_multib_boundary_surfy_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, gk_collisionless_flux_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_multib_boundary_surfy_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux flux edge surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_multib_boundary_edge_surfy_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfy_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfy_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux flux surface expansions in z (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_multib_boundary_surfz_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
-    {NULL, gk_collisionless_flux_multib_boundary_surfz_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
+    { NULL, gk_collisionless_flux_multib_boundary_surfz_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux flux edge surface expansions in z (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_multib_boundary_edge_surfz_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfz_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfz_3x2v_ser_p1, NULL } // 3
+  };
 
 //
 // Serendipity surface kernels without toroidal field (by=0)
@@ -194,65 +194,65 @@ GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
 // Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_surfx_kernels[] = {
-    {NULL, gk_collisionless_flux_surfx_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_surfx_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_surfx_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_surfx_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_surfx_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_surfx_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_surfx_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_surfx_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_edge_surfx_kernels[] = {
-    {NULL, gk_collisionless_flux_edge_surfx_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_edge_surfx_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_edge_surfx_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_edge_surfx_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_edge_surfx_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_edge_surfx_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_edge_surfx_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_edge_surfx_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_surfy_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_surfy_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_surfy_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_surfy_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_surfy_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_edge_surfy_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_edge_surfy_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_edge_surfy_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_edge_surfy_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_edge_surfy_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha surface expansions in z (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_surfz_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_surfz_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_surfz_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in z (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_edge_surfz_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_edge_surfz_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_edge_surfz_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha surface expansions in vpar (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surfvpar_kern_list
   ser_gk_collisionless_flux_no_by_surfvpar_kernels[] = {
-    {NULL, gk_collisionless_flux_surfvpar_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_surfvpar_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_surfvpar_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_surfvpar_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_surfvpar_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_surfvpar_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_surfvpar_3x2v_ser_p1, NULL } // 3
+  };
 
 //
 // Kernels used at multiblock boundaries.
@@ -261,56 +261,56 @@ GKYL_CU_D static const gkyl_gk_collisionless_flux_surfvpar_kern_list
 // Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_multib_boundary_surfx_kernels[] = {
-    {NULL, gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_surfx_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_surfx_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_multib_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_multib_boundary_surfx_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_surfx_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_surfx_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfx_kernels[] = {
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1, NULL}, // 0
-    {NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfx_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfx_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1, NULL }, // 0
+    { NULL, gk_collisionless_flux_multib_boundary_edge_surfx_1x2v_ser_p1, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfx_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfx_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_multib_boundary_surfy_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_surfy_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_surfy_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_surfy_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_surfy_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfy_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_ser_p1, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfy_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfy_2x2v_ser_p1, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfy_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha surface expansions in z (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_multib_boundary_surfz_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_surfz_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_surfz_3x2v_ser_p1, NULL } // 3
+  };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in z (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   ser_gk_collisionless_flux_no_by_multib_boundary_edge_surfz_kernels[] = {
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
-    {NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfz_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
+    { NULL, gk_collisionless_flux_no_by_multib_boundary_edge_surfz_3x2v_ser_p1, NULL } // 3
+  };
 
 GKYL_CU_D static gk_collisionless_flux_surf_t
 choose_gk_collisionless_flux_surf_conf_kern(

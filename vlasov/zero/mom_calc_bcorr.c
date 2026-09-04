@@ -54,7 +54,7 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = {0};
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   enum gkyl_vel_edge edge;
 
   int pdim = phase_rng->ndim;
@@ -64,7 +64,7 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
   for (int d = 0; d < cdim; ++d)
     rem_dir[d] = 1;
 
-  int defl_vdims[GKYL_MAX_VDIM * (GKYL_MAX_VDIM - 1)] = {0};
+  int defl_vdims[GKYL_MAX_VDIM * (GKYL_MAX_VDIM - 1)] = { 0 };
   for (int d = 0; d < vdim; ++d) {
     int c = 0;
     for (int i = 0; i < vdim; ++i) {

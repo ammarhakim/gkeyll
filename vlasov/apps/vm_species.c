@@ -91,11 +91,11 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
 
   // Determine which directions are not periodic.
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = { 1, 1, 1 };
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np[app->periodic_dirs[d]] = 0;
 
-  bool is_zero_flux[2 * GKYL_MAX_DIM] = {false}; // Default: no zero-flux BCs in any direction.
+  bool is_zero_flux[2 * GKYL_MAX_DIM] = { false }; // Default: no zero-flux BCs in any direction.
   for (int dir = 0; dir < app->cdim; ++dir) {
     s->lower_bc[dir].type = s->upper_bc[dir].type = GKYL_SPECIES_COPY;
     if (is_np[dir]) {
@@ -134,7 +134,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // Project gamma and its inverse
     gkyl_calc_sr_vars_init_p_vars(s->sr_vars, s->gamma, s->gamma_inv);
 
-    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, .gamma = s->gamma};
+    struct gkyl_dg_vlasov_sr_auxfields aux_inp = { .qmem = s->qmem, .gamma = s->gamma };
 
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
@@ -239,10 +239,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->hamil, s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
     gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 
-    struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil,
+    struct gkyl_dg_canonical_pb_auxfields aux_inp = { .hamil = s->hamil,
       .alpha_surf = s->alpha_surf,
       .sgn_alpha_surf = s->sgn_alpha_surf,
-      .const_sgn_alpha = s->const_sgn_alpha};
+      .const_sgn_alpha = s->const_sgn_alpha };
 
     //create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
@@ -250,12 +250,13 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   } else {
     if (s->field_id == GKYL_FIELD_NULL || s->field_id == GKYL_FIELD_E_B) {
       struct gkyl_dg_vlasov_auxfields aux_inp = {
-        .field = s->qmem, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0};
+        .field = s->qmem, .cot_vec = 0, .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0
+      };
       s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, &app->local,
         &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
     } else {
-      struct gkyl_dg_vlasov_poisson_auxfields aux_inp = {
-        .potentials = s->qmem, .fields_ext = s->qmem_ext};
+      struct gkyl_dg_vlasov_poisson_auxfields aux_inp = { .potentials = s->qmem,
+        .fields_ext = s->qmem_ext };
       s->slvr =
         gkyl_dg_updater_vlasov_poisson_new(&s->grid, &app->confBasis, &app->basis, &app->local,
           &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
@@ -338,10 +339,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->bgk = (struct vm_bgk_collisions){};
   if (s->info.output_f_lte) {
     // Always have correct moments on for the f_lte output
-    struct correct_all_moms_inp corr_inp = {.correct_all_moms = true,
+    struct correct_all_moms_inp corr_inp = { .correct_all_moms = true,
       .max_iter = s->info.max_iter,
       .iter_eps = s->info.iter_eps,
-      .use_last_converged = s->info.use_last_converged};
+      .use_last_converged = s->info.use_last_converged };
     vm_species_lte_init(app, s, &s->lte, corr_inp);
   }
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
@@ -589,7 +590,7 @@ vm_species_apply_bc(
   gkyl_comm_array_per_sync(
     species->comm, &species->local, &species->local_ext, num_periodic_dir, app->periodic_dirs, f);
 
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
 
@@ -648,14 +649,14 @@ vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *spe
   gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
 
-  double L2[1] = {0.0};
+  double L2[1] = { 0.0 };
   if (app->use_gpu) {
     gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, &species->local);
     gkyl_cu_memcpy(L2, species->red_L2_f, sizeof(double), GKYL_CU_MEMCPY_D2H);
   } else {
     gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &species->local);
   }
-  double L2_global[1] = {0.0};
+  double L2_global[1] = { 0.0 };
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
 
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);

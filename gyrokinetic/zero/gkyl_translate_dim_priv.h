@@ -68,57 +68,35 @@ typedef struct {
 // Serendipity  kernels.
 GKYL_CU_D static const trans_dim_kern_list_updown trans_dim_kern_list_ser[] = {
   // 1x
-  {
-    .list =
-      {
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-        {translate_dim_1x_ser_p1_to_2x_p1, NULL, NULL},
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL },
+      { translate_dim_1x_ser_p1_to_2x_p1, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL },
+      { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
   // 2x
-  {
-    .list =
-      {
-        {translate_dim_2x_ser_p1_to_1x_p1_dirx_lo, NULL, NULL},
-        {translate_dim_2x_ser_p1_to_1x_p1_dirx_mid, NULL, NULL},
-        {translate_dim_2x_ser_p1_to_1x_p1_dirx_up, NULL, NULL},
-        {translate_dim_2x_ser_p1_to_1x_p1_diry_lo, NULL, NULL},
-        {translate_dim_2x_ser_p1_to_1x_p1_diry_mid, NULL, NULL},
-        {translate_dim_2x_ser_p1_to_1x_p1_diry_up, NULL, NULL},
-        {translate_dim_2x_ser_p1_to_3x_p1, NULL, NULL},
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-      },
-  },
+  { .list = { { translate_dim_2x_ser_p1_to_1x_p1_dirx_lo, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_dirx_mid, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_dirx_up, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_lo, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_mid, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_1x_p1_diry_up, NULL, NULL },
+      { translate_dim_2x_ser_p1_to_3x_p1, NULL, NULL }, { NULL, NULL, NULL },
+      { NULL, NULL, NULL } } },
   // 3x
-  {
-    .list =
-      {
-        {translate_dim_3x_ser_p1_to_2x_p1_dirx_lo, NULL, NULL},
-        {translate_dim_3x_ser_p1_to_2x_p1_dirx_mid, NULL, NULL},
-        {translate_dim_3x_ser_p1_to_2x_p1_dirx_up, NULL, NULL},
-        {translate_dim_3x_ser_p1_to_2x_p1_diry_lo, NULL, NULL},
-        {translate_dim_3x_ser_p1_to_2x_p1_diry_mid, NULL, NULL},
-        {translate_dim_3x_ser_p1_to_2x_p1_diry_up, NULL, NULL},
-        {translate_dim_3x_ser_p1_to_2x_p1_dirz_lo, NULL, NULL},
-        {translate_dim_3x_ser_p1_to_2x_p1_dirz_mid, NULL, NULL},
-        {translate_dim_3x_ser_p1_to_2x_p1_dirz_up, NULL, NULL},
-      },
-  },
+  { .list = { { translate_dim_3x_ser_p1_to_2x_p1_dirx_lo, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirx_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirx_up, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_lo, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_diry_up, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_lo, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_mid, NULL, NULL },
+      { translate_dim_3x_ser_p1_to_2x_p1_dirz_up, NULL, NULL } } }
 };
 
 // GkHybrid kernels.
 GKYL_CU_D static const trans_dim_kern_list trans_dim_kern_list_gkhyb[] = {
-  {translate_dim_gyrokinetic_2x2v_ser_p1_from_1x2v_p1, NULL, NULL},
-  {translate_dim_gyrokinetic_3x2v_ser_p1_from_1x2v_p1, NULL, NULL},
-  {translate_dim_gyrokinetic_3x2v_ser_p1_from_2x2v_p1, NULL, NULL},
+  { translate_dim_gyrokinetic_2x2v_ser_p1_from_1x2v_p1, NULL, NULL },
+  { translate_dim_gyrokinetic_3x2v_ser_p1_from_1x2v_p1, NULL, NULL },
+  { translate_dim_gyrokinetic_3x2v_ser_p1_from_2x2v_p1, NULL, NULL }
 };
 
 struct gkyl_translate_dim_kernels {

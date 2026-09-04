@@ -236,7 +236,7 @@ calc_neigh_no_corners(const struct gkyl_rect_decomp *decomp, int nidx)
   struct gkyl_range erng;
 
   for (int n = 0; n < decomp->ndim; ++n) {
-    int elo[GKYL_MAX_DIM] = {0}, eup[GKYL_MAX_DIM] = {0};
+    int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
     elo[n] = eup[n] = 1; // only extend in 1 direction
     gkyl_range_extend(&erng, &decomp->ranges[nidx], elo, eup);
 
@@ -283,7 +283,7 @@ gkyl_rect_decomp_calc_periodic_neigh(
 
   const struct gkyl_range *curr = &decomp->ranges[nidx];
 
-  int elo[GKYL_MAX_DIM] = {0}, eup[GKYL_MAX_DIM] = {0};
+  int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
   if (inc_corners)
     for (int i = 0; i < decomp->ndim; ++i)
       elo[i] = eup[i] = 1;
@@ -291,7 +291,7 @@ gkyl_rect_decomp_calc_periodic_neigh(
     elo[dir] = eup[dir] = 1;
 
   if (gkyl_range_is_on_lower_edge(dir, curr, &decomp->parent_range)) {
-    int delta[GKYL_MAX_DIM] = {0};
+    int delta[GKYL_MAX_DIM] = { 0 };
     delta[dir] = gkyl_range_shape(&decomp->parent_range, dir);
 
     struct gkyl_range curr_shift;
@@ -313,7 +313,7 @@ gkyl_rect_decomp_calc_periodic_neigh(
         }
       }
   } else if (gkyl_range_is_on_upper_edge(dir, curr, &decomp->parent_range)) {
-    int delta[GKYL_MAX_DIM] = {0};
+    int delta[GKYL_MAX_DIM] = { 0 };
     delta[dir] = -gkyl_range_shape(&decomp->parent_range, dir);
 
     struct gkyl_range curr_shift;
@@ -444,7 +444,7 @@ gkyl_rect_decomp_get_cuts(struct gkyl_rect_decomp *decomp, int *cuts)
   int ndim = decomp->ndim;
 
   for (int d = 0; d < ndim; d++) {
-    int other_dim_lo[GKYL_MAX_DIM] = {0}, other_dim_up[GKYL_MAX_DIM] = {0};
+    int other_dim_lo[GKYL_MAX_DIM] = { 0 }, other_dim_up[GKYL_MAX_DIM] = { 0 };
     for (int i = 0; i < ndim; i++) {
       if (i != d) {
         other_dim_lo[i] = decomp->ranges[0].lower[i];

@@ -213,11 +213,10 @@ create_gk_block_geom(void *ctx)
     another edge are a physical boundary.
   */
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
+  struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
     .filepath = "./gyrokinetic/data/eqdsk/asdex_33292_3.800.eqdsk",
     .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .flux_poly_order = 1
   };
 
   // Theta limits are actually set internally by the code.
@@ -254,26 +253,18 @@ create_gk_block_geom(void *ctx)
             .zmin = -1.3, // Lower Z boundary.
             .zmax = 1.0, // Upper Z boundary.
             .zmin_left = -1.0, // Z of inboard divertor plate.
-            .zmin_right = -1.0, // Z of outboard divertor plate.
+            .zmin_right = -1.0 // Z of outboard divertor plate.
           }},
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-        },
+        {// x-direction.
+          {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}, {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
       .connections[1] =
-        {
-          // y-direction.
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
-        },
-      .connections[2] = {
-        // z-direction.
+        {// y-direction.
+          {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, {.bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}},
+      .connections[2] = {// z-direction.
         {.bid = 0, .dir = 2, .edge = GKYL_PHYSICAL},
-        {.bid = 1, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
-      }});
+        {.bid = 1, .dir = 2, .edge = GKYL_LOWER_POSITIVE}}});
 
   // Block 1: mid SOL.
   gkyl_gk_block_geom_set_block(bgeom, 1,
@@ -295,26 +286,18 @@ create_gk_block_geom(void *ctx)
             .zmin = -1.3, // Lower Z boundary.
             .zmax = 1.0, // Upper Z boundary.
             .zmin_left = -1.0, // Z of inboard divertor plate.
-            .zmin_right = -1.0, // Z of outboard divertor plate.
+            .zmin_right = -1.0 // Z of outboard divertor plate.
           }},
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL},
-          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL},
-        },
+        {// x-direction.
+          {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}, {.bid = 1, .dir = 0, .edge = GKYL_PHYSICAL}},
       .connections[1] =
-        {
-          // y-direction.
-          {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL},
-          {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL},
-        },
-      .connections[2] = {
-        // z-direction.
+        {// y-direction.
+          {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL}, {.bid = 1, .dir = 1, .edge = GKYL_PHYSICAL}},
+      .connections[2] = {// z-direction.
         {.bid = 0, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
-        {.bid = 2, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
-      }});
+        {.bid = 2, .dir = 2, .edge = GKYL_LOWER_POSITIVE}}});
 
   // Block 2: lower inner SOL.
   gkyl_gk_block_geom_set_block(bgeom, 2,
@@ -336,26 +319,18 @@ create_gk_block_geom(void *ctx)
             .zmin = -1.3, // Lower Z boundary.
             .zmax = 1.0, // Upper Z boundary.
             .zmin_left = -1.0, // Z of inboard divertor plate.
-            .zmin_right = -1.0, // Z of outboard divertor plate.
+            .zmin_right = -1.0 // Z of outboard divertor plate.
           }},
 
       .connections[0] =
-        {
-          // x-direction.
-          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL},
-          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL},
-        },
+        {// x-direction.
+          {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}, {.bid = 2, .dir = 0, .edge = GKYL_PHYSICAL}},
       .connections[1] =
-        {
-          // x-direction.
-          {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL},
-          {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL},
-        },
-      .connections[2] = {
-        // z-direction.
+        {// x-direction.
+          {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL}, {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL}},
+      .connections[2] = {// z-direction.
         {.bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL},
-      }});
+        {.bid = 2, .dir = 1, .edge = GKYL_PHYSICAL}}});
 
   return bgeom;
 }
@@ -371,11 +346,9 @@ create_ctx(void)
   // Location of the numerical equilibrium.
 
   // Get info from eqdsk file.
-  struct gkyl_efit_inp efit_inp = {
-    .filepath = "./gyrokinetic/data/eqdsk/asdex_33292_3.800.eqdsk",
+  struct gkyl_efit_inp efit_inp = { .filepath = "./gyrokinetic/data/eqdsk/asdex_33292_3.800.eqdsk",
     .rz_poly_order = 2,
-    .flux_poly_order = 1,
-  };
+    .flux_poly_order = 1 };
 
   struct gkyl_efit *efit = gkyl_efit_new(&efit_inp);
   double R_axis = efit->rmaxis; // R of the magnetic axis.
@@ -440,8 +413,8 @@ create_ctx(void)
     true; // The source will compensate the losses in particle according to given boundaries.
   double energy_srcCORE = P_inj; // What the source must inject in energy [W]
   double particle_srcCORE = 0.0; // What the source must inject in particle [1/s]
-  double center_srcCORE[3] = {x_min, 0.0, -Lz / 4.0}; // This is the position of the ion source,
-  double sigma_srcCORE[3] = {0.06 * Lx, 0.0, Lz / 8.0}; //  the electron source will be at +Lz/2.
+  double center_srcCORE[3] = { x_min, 0.0, -Lz / 4.0 }; // This is the position of the ion source,
+  double sigma_srcCORE[3] = { 0.06 * Lx, 0.0, Lz / 8.0 }; //  the electron source will be at +Lz/2.
   double floor_srcCORE = 1e-10;
   // Wall source:
   // - Injects energy only in the wall region.
@@ -453,8 +426,8 @@ create_ctx(void)
     true; // The source will compensate the losses in particle according to given boundaries.
   double energy_srcWALL = 0.0; // What the source must inject in energy [W]
   double particle_srcWALL = 0.0; // What the source must inject in particle [1/s]
-  double center_srcWALL[3] = {x_min, 0.0, -Lz / 2.0}; // This is the position of the ion source,
-  double sigma_srcWALL[3] = {0.25 * Lx, 0.0, 0.1 * Lz}; //  the electron source will be at +Lz/2.
+  double center_srcWALL[3] = { x_min, 0.0, -Lz / 2.0 }; // This is the position of the ion source,
+  double sigma_srcWALL[3] = { 0.25 * Lx, 0.0, 0.1 * Lz }; //  the electron source will be at +Lz/2.
   double floor_srcWALL = 1e-10;
   double temp_recycle_srcWALL = 4.0 * eV;
 
@@ -479,8 +452,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_app_ctx ctx = {
-    .cdim = cdim,
+  struct gk_app_ctx ctx = { .cdim = cdim,
     .vdim = vdim,
     .psi_sep = psi_sep,
     .psi_axis = psi_axis,
@@ -510,15 +482,15 @@ create_ctx(void)
     .num_sources = num_sources,
     .adapt_energy_srcCORE = adapt_energy_srcCORE,
     .adapt_particle_srcCORE = adapt_particle_srcCORE,
-    .center_srcCORE = {center_srcCORE[0], center_srcCORE[1], center_srcCORE[2]},
-    .sigma_srcCORE = {sigma_srcCORE[0], sigma_srcCORE[1], sigma_srcCORE[2]},
+    .center_srcCORE = { center_srcCORE[0], center_srcCORE[1], center_srcCORE[2] },
+    .sigma_srcCORE = { sigma_srcCORE[0], sigma_srcCORE[1], sigma_srcCORE[2] },
     .energy_srcCORE = energy_srcCORE,
     .particle_srcCORE = particle_srcCORE,
     .floor_srcCORE = floor_srcCORE,
     .adapt_energy_srcWALL = adapt_energy_srcWALL,
     .adapt_particle_srcWALL = adapt_particle_srcWALL,
-    .center_srcWALL = {center_srcWALL[0], center_srcWALL[1], center_srcWALL[2]},
-    .sigma_srcWALL = {sigma_srcWALL[0], sigma_srcWALL[1], sigma_srcWALL[2]},
+    .center_srcWALL = { center_srcWALL[0], center_srcWALL[1], center_srcWALL[2] },
+    .sigma_srcWALL = { sigma_srcWALL[0], sigma_srcWALL[1], sigma_srcWALL[2] },
     .energy_srcWALL = energy_srcWALL,
     .particle_srcWALL = particle_srcWALL,
     .floor_srcWALL = floor_srcWALL,
@@ -528,7 +500,7 @@ create_ctx(void)
     .num_cell_z = num_cell_z,
     .num_cell_vpar = num_cell_vpar,
     .num_cell_mu = num_cell_mu,
-    .cells = {num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu},
+    .cells = { num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu },
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
@@ -539,8 +511,7 @@ create_ctx(void)
     .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -577,161 +548,127 @@ main(int argc, char **argv)
 
   // Electrons.
   // Electron core source:
-  struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
+  struct gkyl_gyrokinetic_projection proj_srcCORE_e = { .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = { ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2] },
+    .gaussian_std_dev = { ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2] },
     .total_num_particles = ctx.particle_srcCORE,
     .total_kin_energy = ctx.energy_srcCORE,
     .temp_max = 5.0 * ctx.Te0,
     .temp_min = 0.1 * ctx.Te0,
-    .f_floor = ctx.floor_srcCORE,
-  };
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e = {
-    .adapt_to_species = "elc",
+    .f_floor = ctx.floor_srcCORE };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e = { .adapt_to_species = "elc",
     .adapt_particle = ctx.adapt_particle_srcCORE,
     .adapt_energy = ctx.adapt_energy_srcCORE,
     .num_boundaries = 1,
-    .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
-  };
+    .dir = { 0 },
+    .edge = { GKYL_LOWER_EDGE } };
   // Electron wall source:
-  struct gkyl_gyrokinetic_projection proj_srcWALL_e = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcWALL[0], ctx.center_srcWALL[1], ctx.center_srcWALL[2]},
-    .gaussian_std_dev = {ctx.sigma_srcWALL[0], ctx.sigma_srcWALL[1], ctx.sigma_srcWALL[2]},
+  struct gkyl_gyrokinetic_projection proj_srcWALL_e = { .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = { ctx.center_srcWALL[0], ctx.center_srcWALL[1], ctx.center_srcWALL[2] },
+    .gaussian_std_dev = { ctx.sigma_srcWALL[0], ctx.sigma_srcWALL[1], ctx.sigma_srcWALL[2] },
     .total_num_particles = ctx.particle_srcWALL,
     .total_kin_energy = ctx.energy_srcWALL,
     .temp_max = 5.0 * ctx.Te0,
     .temp_min = ctx.temp_recycle_srcWALL,
-    .f_floor = ctx.floor_srcWALL,
-  };
-  struct gkyl_gyrokinetic_adapt_source adapt_srcWALL_e = {
-    .adapt_to_species = "elc",
+    .f_floor = ctx.floor_srcWALL };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcWALL_e = { .adapt_to_species = "elc",
     .adapt_particle = ctx.adapt_particle_srcWALL,
     .adapt_energy = ctx.adapt_energy_srcWALL,
     .num_boundaries = 3,
-    .dir = {0, 2, 2},
-    .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
-  };
+    .dir = { 0, 2, 2 },
+    .edge = { GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE } };
 
-  struct gkyl_gyrokinetic_projection elc_ic = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+  struct gkyl_gyrokinetic_projection elc_ic = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
     .ctx_density = &ctx,
     .density = eval_density,
     .ctx_upar = &ctx,
     .upar = eval_upar,
     .ctx_temp = &ctx,
-    .temp = eval_temp_elc,
-  };
+    .temp = eval_temp_elc };
 
   struct gkyl_gyrokinetic_multib_species_pb elc_blocks[3];
 
-  elc_blocks[0] = (struct gkyl_gyrokinetic_multib_species_pb){
-    .block_id = 0,
+  elc_blocks[0] = (struct gkyl_gyrokinetic_multib_species_pb){ .block_id = 0,
     .polarization_density = ctx.n0,
     .projection = elc_ic,
-    .source = {.source_id = GKYL_PROJ_SOURCE,
+    .source = { .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
       .num_adapt_sources = ctx.num_sources,
       .projection[0] = proj_srcCORE_e,
       .adapt[0] = adapt_srcCORE_e,
       .projection[1] = proj_srcWALL_e,
       .adapt[1] = adapt_srcWALL_e,
-      .diagnostics =
-        {
-          .num_diag_moments = 1,
-          .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        }},
+      .diagnostics = { .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN } } }
 
   };
 
-  elc_blocks[1] = (struct gkyl_gyrokinetic_multib_species_pb){
-    .block_id = 1,
+  elc_blocks[1] = (struct gkyl_gyrokinetic_multib_species_pb){ .block_id = 1,
     .polarization_density = ctx.n0,
     .projection = elc_ic,
-    .source = {.source_id = GKYL_PROJ_SOURCE,
+    .source = { .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
       .num_adapt_sources = ctx.num_sources,
       .projection[0] = proj_srcCORE_e,
       .adapt[0] = adapt_srcCORE_e,
       .projection[1] = proj_srcWALL_e,
       .adapt[1] = adapt_srcWALL_e,
-      .diagnostics =
-        {
-          .num_diag_moments = 1,
-          .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        }},
+      .diagnostics = { .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN } } }
 
   };
-  elc_blocks[2] = (struct gkyl_gyrokinetic_multib_species_pb){
-    .block_id = 2,
+  elc_blocks[2] = (struct gkyl_gyrokinetic_multib_species_pb){ .block_id = 2,
     .polarization_density = ctx.n0,
     .projection = elc_ic,
-    .source = {.source_id = GKYL_PROJ_SOURCE,
+    .source = { .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
       .num_adapt_sources = ctx.num_sources,
       .projection[0] = proj_srcCORE_e,
       .adapt[0] = adapt_srcCORE_e,
       .projection[1] = proj_srcWALL_e,
       .adapt[1] = adapt_srcWALL_e,
-      .diagnostics =
-        {
-          .num_diag_moments = 1,
-          .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        }},
+      .diagnostics = { .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN } } }
 
   };
 
-  struct gkyl_gyrokinetic_bc elc_phys_bcs[] = {
-    // block 0 BCs
-    {.bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 0, .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+  struct gkyl_gyrokinetic_bc elc_phys_bcs[] = { // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
     // block 1 BCs
-    {.bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 2 BCs
-    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 2, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH }
   };
 
-  struct gkyl_gyrokinetic_multib_species elc = {
-    .name = "elc",
+  struct gkyl_gyrokinetic_multib_species elc = { .name = "elc",
     .charge = ctx.qe,
     .mass = ctx.me,
     .vdim = ctx.vdim,
-    .lower = {-1.0 / sqrt(2.0), 0.0},
-    .upper = {1.0 / sqrt(2.0), 1.0},
-    .cells = {cells_v[0], cells_v[1]},
+    .lower = { -1.0 / sqrt(2.0), 0.0 },
+    .upper = { 1.0 / sqrt(2.0), 1.0 },
+    .cells = { cells_v[0], cells_v[1] },
 
-    .mapc2p =
-      {
-        .mapping = mapc2p_vel_elc,
-        .ctx = &ctx,
-      },
+    .mapc2p = { .mapping = mapc2p_vel_elc, .ctx = &ctx },
 
-    .collisionless =
-      {
-        .type = GKYL_GK_COLLISIONLESS_ES,
-      },
+    .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES },
 
-    .collisions =
-      {
-        .collision_id = GKYL_BGK_COLLISIONS,
-        .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
-        .temp_ref = ctx.Te0, // Temperature used to calculate coulomb logarithm.
-        .bmag_ref = ctx.B0,
-        .num_cross_collisions = 1,
-        .collide_with = {"ion"},
-      },
+    .collisions = { .collision_id = GKYL_BGK_COLLISIONS,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
+      .temp_ref = ctx.Te0, // Temperature used to calculate coulomb logarithm.
+      .bmag_ref = ctx.B0,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" } },
     .num_physical_bcs = 8,
     .bcs = elc_phys_bcs,
 
@@ -739,173 +676,134 @@ main(int argc, char **argv)
     .duplicate_across_blocks = false,
 
     .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
-      GKYL_F_MOMENT_BIMAXWELLIAN},
+    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
+      GKYL_F_MOMENT_BIMAXWELLIAN },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
-    .boundary_flux_diagnostics =
-      {
-        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
-      },
-  };
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1, .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN }
+      //      .time_integrated = true,
+    } };
 
   // Ions.
   // Ion core source:
-  struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2]},
+  struct gkyl_gyrokinetic_projection proj_srcCORE_i = { .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = { ctx.center_srcCORE[0], ctx.center_srcCORE[1], ctx.center_srcCORE[2] },
+    .gaussian_std_dev = { ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1], ctx.sigma_srcCORE[2] },
     .total_num_particles = ctx.particle_srcCORE,
     .total_kin_energy = ctx.energy_srcCORE,
     .temp_max = 5.0 * ctx.Ti0,
     .temp_min = 0.1 * ctx.Ti0,
-    .f_floor = ctx.floor_srcCORE,
-  };
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i = {
-    .adapt_to_species = "ion",
+    .f_floor = ctx.floor_srcCORE };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i = { .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcCORE,
     .adapt_energy = ctx.adapt_energy_srcCORE,
     .num_boundaries = 1,
-    .dir = {0},
-    .edge = {GKYL_LOWER_EDGE},
-  };
+    .dir = { 0 },
+    .edge = { GKYL_LOWER_EDGE } };
   // Ion wall source:
-  struct gkyl_gyrokinetic_projection proj_srcWALL_i = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcWALL[0], ctx.center_srcWALL[1], ctx.center_srcWALL[2]},
-    .gaussian_std_dev = {ctx.sigma_srcWALL[0], ctx.sigma_srcWALL[1], ctx.sigma_srcWALL[2]},
+  struct gkyl_gyrokinetic_projection proj_srcWALL_i = { .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = { ctx.center_srcWALL[0], ctx.center_srcWALL[1], ctx.center_srcWALL[2] },
+    .gaussian_std_dev = { ctx.sigma_srcWALL[0], ctx.sigma_srcWALL[1], ctx.sigma_srcWALL[2] },
     .total_num_particles = ctx.particle_srcWALL,
     .total_kin_energy = ctx.energy_srcWALL,
     .temp_max = 5.0 * ctx.Ti0,
     .temp_min = ctx.temp_recycle_srcWALL,
-    .f_floor = ctx.floor_srcWALL,
-  };
-  struct gkyl_gyrokinetic_adapt_source adapt_srcWALL_i = {
-    .adapt_to_species = "ion",
+    .f_floor = ctx.floor_srcWALL };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcWALL_i = { .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcWALL,
     .adapt_energy = ctx.adapt_energy_srcWALL,
     .num_boundaries = 3,
-    .dir = {0, 2, 2},
-    .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
-  };
+    .dir = { 0, 2, 2 },
+    .edge = { GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE } };
 
-  struct gkyl_gyrokinetic_projection ion_ic = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+  struct gkyl_gyrokinetic_projection ion_ic = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
     .ctx_density = &ctx,
     .density = eval_density,
     .ctx_upar = &ctx,
     .upar = eval_upar,
     .ctx_temp = &ctx,
-    .temp = eval_temp_ion,
-  };
+    .temp = eval_temp_ion };
 
   struct gkyl_gyrokinetic_multib_species_pb ion_blocks[3];
 
-  ion_blocks[0] = (struct gkyl_gyrokinetic_multib_species_pb){
-    .block_id = 0,
+  ion_blocks[0] = (struct gkyl_gyrokinetic_multib_species_pb){ .block_id = 0,
     .polarization_density = ctx.n0,
     .projection = ion_ic,
-    .source = {.source_id = GKYL_PROJ_SOURCE,
+    .source = { .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
       .num_adapt_sources = ctx.num_sources,
       .projection[0] = proj_srcCORE_i,
       .adapt[0] = adapt_srcCORE_i,
       .projection[1] = proj_srcWALL_i,
       .adapt[1] = adapt_srcWALL_i,
-      .diagnostics =
-        {
-          .num_diag_moments = 1,
-          .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        }},
-  };
+      .diagnostics = { .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN } } } };
 
-  ion_blocks[1] = (struct gkyl_gyrokinetic_multib_species_pb){
-    .block_id = 1,
+  ion_blocks[1] = (struct gkyl_gyrokinetic_multib_species_pb){ .block_id = 1,
     .polarization_density = ctx.n0,
     .projection = ion_ic,
-    .source = {.source_id = GKYL_PROJ_SOURCE,
+    .source = { .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
       .num_adapt_sources = ctx.num_sources,
       .projection[0] = proj_srcCORE_i,
       .adapt[0] = adapt_srcCORE_i,
       .projection[1] = proj_srcWALL_i,
       .adapt[1] = adapt_srcWALL_i,
-      .diagnostics =
-        {
-          .num_diag_moments = 1,
-          .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        }},
-  };
+      .diagnostics = { .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN } } } };
 
-  ion_blocks[2] = (struct gkyl_gyrokinetic_multib_species_pb){
-    .block_id = 2,
+  ion_blocks[2] = (struct gkyl_gyrokinetic_multib_species_pb){ .block_id = 2,
     .polarization_density = ctx.n0,
     .projection = ion_ic,
-    .source = {.source_id = GKYL_PROJ_SOURCE,
+    .source = { .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
       .num_adapt_sources = ctx.num_sources,
       .projection[0] = proj_srcCORE_i,
       .adapt[0] = adapt_srcCORE_i,
       .projection[1] = proj_srcWALL_i,
       .adapt[1] = adapt_srcWALL_i,
-      .diagnostics =
-        {
-          .num_diag_moments = 1,
-          .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-          .num_integrated_diag_moments = 1,
-          .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        }},
-  };
+      .diagnostics = { .num_diag_moments = 1,
+        .diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN } } } };
 
-  struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
-    // block 0 BCs
-    {.bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 0, .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+  struct gkyl_gyrokinetic_bc ion_phys_bcs[] = { // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 0, .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
     // block 1 BCs
-    {.bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
     // block 2 BCs
-    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    {.bidx = 2, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH }
   };
 
-  struct gkyl_gyrokinetic_multib_species ion = {
-    .name = "ion",
+  struct gkyl_gyrokinetic_multib_species ion = { .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
     .vdim = ctx.vdim,
-    .lower = {-1.0 / sqrt(2.0), 0.0},
-    .upper = {1.0 / sqrt(2.0), 1.0},
-    .cells = {cells_v[0], cells_v[1]},
+    .lower = { -1.0 / sqrt(2.0), 0.0 },
+    .upper = { 1.0 / sqrt(2.0), 1.0 },
+    .cells = { cells_v[0], cells_v[1] },
 
-    .mapc2p =
-      {
-        .mapping = mapc2p_vel_ion,
-        .ctx = &ctx,
-      },
+    .mapc2p = { .mapping = mapc2p_vel_ion, .ctx = &ctx },
 
-    .collisionless =
-      {
-        .type = GKYL_GK_COLLISIONLESS_ES,
-      },
+    .collisionless = { .type = GKYL_GK_COLLISIONLESS_ES },
 
-    .collisions =
-      {
-        .collision_id = GKYL_BGK_COLLISIONS,
-        .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
-        .temp_ref = ctx.Ti0, // Temperature used to calculate coulomb logarithm.
-        .bmag_ref = ctx.B0,
-        .num_cross_collisions = 1,
-        .collide_with = {"elc"},
-      },
+    .collisions = { .collision_id = GKYL_BGK_COLLISIONS,
+      .den_ref = ctx.n0, // Density used to calculate coulomb logarithm.
+      .temp_ref = ctx.Ti0, // Temperature used to calculate coulomb logarithm.
+      .bmag_ref = ctx.B0,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" } },
 
     .num_physical_bcs = 8,
     .bcs = ion_phys_bcs,
@@ -914,67 +812,60 @@ main(int argc, char **argv)
     .duplicate_across_blocks = false,
 
     .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
-      GKYL_F_MOMENT_BIMAXWELLIAN},
+    .diag_moments = { GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
+      GKYL_F_MOMENT_BIMAXWELLIAN },
     .num_integrated_diag_moments = 1,
-    .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+    .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     .time_rate_diagnostics = true,
-    .boundary_flux_diagnostics =
-      {
-        .num_integrated_diag_moments = 1, .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
-        //      .time_integrated = true,
-      },
-  };
+    .boundary_flux_diagnostics = {
+      .num_integrated_diag_moments = 1, .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN }
+      //      .time_integrated = true,
+    } };
 
   // Field object
   struct gkyl_gyrokinetic_multib_field_pb field_blocks[1];
-  field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb){
-    .polarization_bmag = 2.18,
-  };
+  field_blocks[0] = (struct gkyl_gyrokinetic_multib_field_pb){ .polarization_bmag = 2.18 };
 
-  struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
-    // block 0 BCs
-    {.bidx = 0,
+  struct gkyl_gyrokinetic_bc field_phys_bcs[] = { // block 0 BCs
+    { .bidx = 0,
       .dir = 0,
       .edge = GKYL_LOWER_EDGE,
       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = {0.0}},
-    {.bidx = 0,
+      .value = { 0.0 } },
+    { .bidx = 0,
       .dir = 0,
       .edge = GKYL_UPPER_EDGE,
       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = {0.0}},
+      .value = { 0.0 } },
     // block 1 BCs
-    {.bidx = 1,
+    { .bidx = 1,
       .dir = 0,
       .edge = GKYL_LOWER_EDGE,
       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = {0.0}},
-    {.bidx = 1,
+      .value = { 0.0 } },
+    { .bidx = 1,
       .dir = 0,
       .edge = GKYL_UPPER_EDGE,
       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = {0.0}},
+      .value = { 0.0 } },
     // block 2 BCs
-    {.bidx = 2,
+    { .bidx = 2,
       .dir = 0,
       .edge = GKYL_LOWER_EDGE,
       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = {0.0}},
-    {.bidx = 2,
+      .value = { 0.0 } },
+    { .bidx = 2,
       .dir = 0,
       .edge = GKYL_UPPER_EDGE,
       .type = GKYL_BC_GK_FIELD_DIRICHLET,
-      .value = {0.0}},
+      .value = { 0.0 } }
   };
 
-  struct gkyl_gyrokinetic_multib_field field = {
-    .duplicate_across_blocks = true,
+  struct gkyl_gyrokinetic_multib_field field = { .duplicate_across_blocks = true,
     .blocks = field_blocks,
     .num_physical_bcs = 6,
     .bcs = field_phys_bcs,
-    .time_rate_diagnostics = true,
-  };
+    .time_rate_diagnostics = true };
 
   struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1, sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
@@ -993,22 +884,17 @@ main(int argc, char **argv)
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);
-  struct gkyl_gyrokinetic_run_inp run_inp = {
-    .app_type = GKYL_GK_MULTIB,
+  struct gkyl_gyrokinetic_run_inp run_inp = { .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = *app_inp,
-    .time_stepping =
-      {
-        .t_end = ctx.t_end,
-        .num_frames = ctx.num_frames,
-        .write_phase_freq = ctx.write_phase_freq,
-        .int_diag_calc_num = ctx.int_diag_calc_num,
-        .dt_failure_tol = ctx.dt_failure_tol,
-        .num_failures_max = ctx.num_failures_max,
-        .is_restart = app_args.is_restart,
-        .restart_frame = app_args.restart_frame,
-        .num_steps = app_args.num_steps,
-      },
-  };
+    .time_stepping = { .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps } };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
 

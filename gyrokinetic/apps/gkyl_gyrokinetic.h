@@ -318,7 +318,7 @@ enum gkyl_gk_species_scaling_type {
   GKYL_GK_SPECIES_SCALING_NONE = 0, // No scaling.
   GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE, // Balance between recycling and ionization.
   GKYL_GK_SPECIES_SCALING_FIXED_FRACTION, // Maintains fixed fraction relative to another species.
-  GKYL_GK_SPECIES_SCALING_BOLTZMANN, // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
+  GKYL_GK_SPECIES_SCALING_BOLTZMANN // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
 };
 
 // Input parameters for scaling a species every time step.
@@ -360,7 +360,7 @@ struct gkyl_gyrokinetic_correct_inp {
 enum gkyl_gyrokinetic_positivity_type {
   GKYL_GK_POSITIVITY_NONE = 0, // Do not enforce positivity (default).
   GKYL_GK_POSITIVITY_SHIFT, // Shift f to zero if <0 at Gauss-Legendre nodes.
-  GKYL_GK_POSITIVITY_MRS_LIMITER, // Use the More-Rossmanith-Seal limiter, and shift when needed.
+  GKYL_GK_POSITIVITY_MRS_LIMITER // Use the More-Rossmanith-Seal limiter, and shift when needed.
 };
 
 struct gkyl_gyrokinetic_positivity {
@@ -373,7 +373,7 @@ struct gkyl_gyrokinetic_positivity {
 enum gkyl_gyrokinetic_damping_type {
   GKYL_GK_DAMPING_NONE = 0,
   GKYL_GK_DAMPING_USER_INPUT,
-  GKYL_GK_DAMPING_LOSS_CONE,
+  GKYL_GK_DAMPING_LOSS_CONE
 };
 
 struct gkyl_gyrokinetic_damping {
@@ -401,7 +401,7 @@ enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES, // Set the dt floor based on the dt from another species.
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD, // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL, // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
-  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
 };
 
 // Input parameters for a single component of the df/dt multiplier chain.

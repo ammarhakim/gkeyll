@@ -63,7 +63,7 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
     cell_center = (m0_idx - 0.5) * dlogM0 + minLogM0;
     cell_vals_2d[1] = 2.0 * (log_m0_av - cell_center) / dlogM0; // M0 value on cell interval
 
-    int ad_idx[2] = {t_idx, m0_idx};
+    int ad_idx[2] = { t_idx, m0_idx };
 
     if ((m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
       coef_recomb_d[0] = 0.0;

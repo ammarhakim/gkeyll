@@ -446,8 +446,8 @@ gk_species_bflux_write_integrated_mom_enabled(
   gkyl_comm_get_rank(app->comm, &rank);
   gkyl_comm_get_size(app->comm, &comm_size);
 
-  const char *vars[] = {"x", "y", "z"};
-  const char *edge[] = {"lower", "upper"};
+  const char *vars[] = { "x", "y", "z" };
+  const char *edge[] = { "lower", "upper" };
 
   int num_diag_int_mom = gks->info.boundary_flux_diagnostics.num_integrated_diag_moments;
   for (int b = 0; b < bflux->num_boundaries; ++b) {
@@ -467,12 +467,12 @@ gk_species_bflux_write_integrated_mom_enabled(
           fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name);
 
         if (bflux->is_first_intmom_write_call[b]) {
-          struct gkyl_msgpack_map_elem io_meta_phi[] = {{.key = "Description",
+          struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
             .elem_type = GKYL_MP_STRING,
-            .cval = "Volume integrated moments of the boundary flux."}};
-          int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-          const struct gkyl_msgpack_map_elem *io_meta[] = {
-            gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+            .cval = "Volume integrated moments of the boundary flux." } };
+          int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
+          const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
+            app->gk_geom->io_meta_basic, io_meta_phi };
           struct gkyl_msgpack_data *mt =
             gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -516,12 +516,12 @@ gk_species_bflux_write_mom_enabled(
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {{.key = "Description",
+  struct gkyl_msgpack_map_elem desc[] = { { .key = "Description",
     .elem_type = GKYL_MP_STRING,
-    .cval = "Velocity-space moment of the boundary flux."}};
-  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+    .cval = "Velocity-space moment of the boundary flux." } };
+  int io_meta_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_conf, app->gk_geom->io_meta_basic,
+    desc };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -529,8 +529,8 @@ gk_species_bflux_write_mom_enabled(
   gkyl_comm_get_rank(app->comm, &rank);
   gkyl_comm_get_size(app->comm, &comm_size);
 
-  const char *vars[] = {"x", "y", "z"};
-  const char *edge[] = {"lower", "upper"};
+  const char *vars[] = { "x", "y", "z" };
+  const char *edge[] = { "lower", "upper" };
 
   int num_diag_mom = gks->info.boundary_flux_diagnostics.num_diag_moments;
 
@@ -889,7 +889,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
         }
 
         bflux->transdim = gkyl_malloc(bflux->num_boundaries * sizeof(struct gkyl_translate_dim *));
-        bool diag_in_dir[GKYL_MAX_CDIM] = {0};
+        bool diag_in_dir[GKYL_MAX_CDIM] = { 0 };
         for (int b = 0; b < bflux->num_boundaries; ++b) {
           int dir = bflux->boundaries_dir[b];
           enum gkyl_edge_loc edge = bflux->boundaries_edge[b];
@@ -945,7 +945,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
             // Local and local extended surface range.
             int rank;
             gkyl_comm_get_rank(bflux->comm_surf[dir], &rank);
-            int ghost[] = {1, 1, 1};
+            int ghost[] = { 1, 1, 1 };
             gkyl_create_ranges(&bflux->decomp_surf[dir]->ranges[rank], ghost,
               &bflux->surf_local_ext[dir], &bflux->surf_local[dir]);
 
@@ -1046,8 +1046,8 @@ gk_species_bflux_read_voltime_integrated_mom(
     gkyl_comm_get_rank(app->comm, &rank);
     gkyl_comm_get_size(app->comm, &comm_size);
 
-    const char *vars[] = {"x", "y", "z"};
-    const char *edge[] = {"lower", "upper"};
+    const char *vars[] = { "x", "y", "z" };
+    const char *edge[] = { "lower", "upper" };
 
     int num_diag_int_mom = gks->info.boundary_flux_diagnostics.num_integrated_diag_moments;
     for (int b = 0; b < bflux->num_boundaries; ++b) {
@@ -1147,7 +1147,7 @@ gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const void *spe
 
         gkyl_free(bflux->transdim);
 
-        bool diag_in_dir[GKYL_MAX_CDIM] = {0};
+        bool diag_in_dir[GKYL_MAX_CDIM] = { 0 };
         for (int b = 0; b < bflux->num_boundaries; ++b) {
           int dir = bflux->boundaries_dir[b];
           if (!diag_in_dir[dir]) {

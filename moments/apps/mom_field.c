@@ -20,14 +20,12 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     mom_fld->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : mom_fld->limiter;
 
   double c = 1 / sqrt(epsilon0 * mu0);
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp){
-    .c = c,
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_inew(&(struct gkyl_wv_maxwell_inp){ .c = c,
     .e_fact = mom_fld->elc_error_speed_fact,
     .b_fact = mom_fld->mag_error_speed_fact,
     .rp_type = WV_MAXWELL_RP_ROE,
     .embed_geo = mom_fld->embed_geo,
-    .use_gpu = false,
-  });
+    .use_gpu = false });
 
   fld->maxwell = gkyl_wv_eqn_acquire(maxwell);
 
@@ -36,16 +34,16 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
     // create updaters for each directional update
     for (int d = 0; d < ndim; ++d)
-      fld->slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){.grid = &app->grid,
+      fld->slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &app->grid,
         .equation = maxwell,
         .split_type = GKYL_WAVE_QWAVE, // q-waves is fine for linear systems
         .limiter = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
-        .update_dirs = {d},
+        .update_dirs = { d },
         .check_inv_domain = false,
         .cfl = app->cfl,
         .geom = app->geom,
-        .comm = app->comm});
+        .comm = app->comm });
 
     // allocate arrays
     fld->fdup = mkarr(false, 8, app->local_ext.volume);
@@ -58,7 +56,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     // NOTE: there is no KEP scheme for Maxwell, and we simply use MP scheme instead
 
     // determine directions to update
-    int num_up_dirs = 0, update_dirs[GKYL_MAX_CDIM] = {0};
+    int num_up_dirs = 0, update_dirs[GKYL_MAX_CDIM] = { 0 };
     for (int d = 0; d < ndim; ++d)
       if (!app->is_dir_skipped[d]) {
         update_dirs[num_up_dirs] = d;
@@ -69,16 +67,14 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     enum gkyl_mp_recon mp_recon = fld->scheme_type == GKYL_MOMENT_KEP ? GKYL_MP_U3 : app->mp_recon;
 
     // single MP updater updates all directions
-    fld->mp_slvr = gkyl_mp_scheme_new(&(struct gkyl_mp_scheme_inp){
-      .grid = &app->grid,
+    fld->mp_slvr = gkyl_mp_scheme_new(&(struct gkyl_mp_scheme_inp){ .grid = &app->grid,
       .equation = maxwell,
       .mp_recon = mp_recon,
       .skip_mp_limiter = mom->skip_mp_limiter,
       .num_up_dirs = num_up_dirs,
-      .update_dirs = {update_dirs[0], update_dirs[1], update_dirs[2]},
+      .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] },
       .cfl = app->cfl,
-      .geom = app->geom,
-    });
+      .geom = app->geom });
 
     // allocate arrays
     fld->f0 = mkarr(false, 8, app->local_ext.volume);
@@ -91,7 +87,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   }
 
   // determine which directions are not periodic
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = { 1, 1, 1 };
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np[app->periodic_dirs[d]] = 0;
 
@@ -100,7 +96,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->upper_bc[i] = 0;
   }
 
-  int nghost[3] = {2, 2, 2};
+  int nghost[3] = { 2, 2, 2 };
   for (int dir = 0; dir < app->ndim; ++dir) {
     if (is_np[dir]) {
       const enum gkyl_field_bc_type *bc;
@@ -263,7 +259,7 @@ moment_field_apply_bc(
 {
   struct timespec wst = gkyl_wall_clock();
 
-  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = { 1, 1, 1 };
 
   for (int d = 0; d < num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
@@ -310,7 +306,7 @@ struct gkyl_update_status
 moment_field_update(gkyl_moment_app *app, const struct moment_field *fld, double tcurr, double dt)
 {
   int ndim = fld->ndim;
-  struct gkyl_wave_prop_status stat = {true, DBL_MAX};
+  struct gkyl_wave_prop_status stat = { true, DBL_MAX };
 
   if (!fld->is_static) {
     for (int d = 0; d < ndim; ++d) {
@@ -319,13 +315,13 @@ moment_field_update(gkyl_moment_app *app, const struct moment_field *fld, double
         fld->slvr[d], tcurr, dt, &app->local, fld->embed_mask, fld->f[d], fld->f[d + 1]);
 
       if (!stat.success)
-        return (struct gkyl_update_status){.success = false, .dt_suggested = stat.dt_suggested};
+        return (struct gkyl_update_status){ .success = false, .dt_suggested = stat.dt_suggested };
       // apply BC
       moment_field_apply_bc(app, tcurr, fld, fld->f[d + 1]);
     }
   }
 
-  return (struct gkyl_update_status){.success = true, .dt_suggested = stat.dt_suggested};
+  return (struct gkyl_update_status){ .success = true, .dt_suggested = stat.dt_suggested };
 }
 
 // Compute RHS of EM equations

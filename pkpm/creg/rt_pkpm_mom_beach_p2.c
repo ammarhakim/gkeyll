@@ -112,8 +112,7 @@ create_ctx(void)
     (6.0 * sqrt(2.0) * pow(pi, 3.0 / 2.0) * pow(epsilon0, 2) * sqrt(mass_elc) *
       pow(T_elc, 3.0 / 2.0));
 
-  struct mom_beach_ctx ctx = {
-    .pi = pi,
+  struct mom_beach_ctx ctx = { .pi = pi,
     .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -136,8 +135,7 @@ create_ctx(void)
     .deltaT = deltaT,
     .factor = factor,
     .omega_drive = omega_drive,
-    .init_dt = init_dt,
-  };
+    .init_dt = init_dt };
 
   return ctx;
 }
@@ -283,32 +281,26 @@ main(int argc, char **argv)
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   // electrons
-  struct gkyl_pkpm_species elc = {
-    .name = "elc",
+  struct gkyl_pkpm_species elc = { .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
-    .lower = {-6.0 * ctx.vt_elc},
-    .upper = {6.0 * ctx.vt_elc},
-    .cells = {NV},
+    .lower = { -6.0 * ctx.vt_elc },
+    .upper = { 6.0 * ctx.vt_elc },
+    .cells = { NV },
 
     .ctx_dist = &ctx,
     .ctx_fluid = &ctx,
     .init_dist = evalDistFuncElc,
     .init_fluid = evalFluidElc,
 
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
+    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
 
-        .ctx = &ctx,
-        .self_nu = evalNuElc,
-      },
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-  };
+      .ctx = &ctx,
+      .self_nu = evalNuElc },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   // field
-  struct gkyl_pkpm_field field = {
-    .epsilon0 = ctx.epsilon0,
+  struct gkyl_pkpm_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -321,8 +313,7 @@ main(int argc, char **argv)
     .app_current = evalAppCurrent,
     .app_current_ctx = &ctx,
     .app_current_evolve = true,
-    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_COPY},
-  };
+    .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -336,22 +327,18 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -359,7 +346,7 @@ main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
-  int ccells[] = {NX};
+  int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
   int ncuts = 1;
   for (int d = 0; d < cdim; d++) {
@@ -379,9 +366,9 @@ main(int argc, char **argv)
 
     .cdim = 1,
     .vdim = 1,
-    .lower = {0.0},
-    .upper = {ctx.Lx},
-    .cells = {NX},
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
@@ -390,15 +377,10 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {elc},
+    .species = { elc },
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
   };
 
   // create app object
@@ -412,7 +394,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // initialize simulation
   gkyl_pkpm_app_apply_ic(app, t_curr);

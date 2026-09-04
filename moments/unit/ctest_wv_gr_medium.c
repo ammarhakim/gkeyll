@@ -27,8 +27,8 @@ test_gr_medium_basic_ho()
   double p = (gas_gamma - 1.0) * rho;
   double W = 1.0 / sqrt(1.0 - (vel * vel));
 
-  double q[15] = {exp_2a, a_dt, a_dx, b_dt, b_dx, c_dt, c_dx, a_dt_dx, a_dx_dx, b_dt_dx, b_dx_dx,
-    c_dt_dx, c_dx_dx, ((rho + p) * (W * W)) - p, (rho + p) * vel * (W * W)};
+  double q[15] = { exp_2a, a_dt, a_dx, b_dt, b_dx, c_dt, c_dx, a_dt_dx, a_dx_dx, b_dt_dx, b_dx_dx,
+    c_dt_dx, c_dx_dx, ((rho + p) * (W * W)) - p, (rho + p) * vel * (W * W) };
 
   double prims[15];
   gkyl_gr_medium_prim_vars(gas_gamma, q, prims);
@@ -52,38 +52,25 @@ test_gr_medium_basic_ho()
   double Etot = ((rho + p) * (W * W)) - p;
   double mom = (rho + p) * vel * (W * W);
 
-  double fluxes[3][15] = {
-    {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+  double fluxes[3][15] = { { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                             -a_dx_dx + (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))),
+                             -a_dt_dx,
+                             -b_dx_dx - (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))),
+                             -b_dt_dx, -c_dx_dx, -c_dt_dx, mom, (mom * vel) + p },
+    { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       -a_dx_dx + (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))), -a_dt_dx,
       -b_dx_dx - (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))), -b_dt_dx, -c_dx_dx, -c_dt_dx,
-      mom, (mom * vel) + p},
-    {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+      mom, (mom * vel) + p },
+    { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
       -a_dx_dx + (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))), -a_dt_dx,
       -b_dx_dx - (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))), -b_dt_dx, -c_dx_dx, -c_dt_dx,
-      mom, (mom * vel) + p},
-    {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-      -a_dx_dx + (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))), -a_dt_dx,
-      -b_dx_dx - (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))), -b_dt_dx, -c_dx_dx, -c_dt_dx,
-      mom, (mom * vel) + p},
-  };
+      mom, (mom * vel) + p } };
 
-  double norm[3][3] = {
-    {1.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0},
-    {0.0, 0.0, 1.0},
-  };
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {
-    {0.0, 1.0, 0.0},
-    {1.0, 0.0, 0.0},
-    {1.0, 0.0, 0.0},
-  };
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {
-    {0.0, 0.0, 1.0},
-    {0.0, 0.0, -1.0},
-    {0.0, 1.0, 0.0},
-  };
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
   double q_local[15], flux_local[15], flux[15];
   for (int d = 0; d < 3; d++) {
@@ -137,9 +124,9 @@ test_gr_medium_waves_ho()
   double p_l = (gas_gamma - 1.0) * rho_l;
   double W_l = 1.0 / sqrt(1.0 - (vel_l * vel_l));
 
-  double ql[15] = {exp_2a_l, a_dt_l, a_dx_l, b_dt_l, b_dx_l, c_dt_l, c_dx_l, a_dt_dx_l, a_dx_dx_l,
+  double ql[15] = { exp_2a_l, a_dt_l, a_dx_l, b_dt_l, b_dx_l, c_dt_l, c_dx_l, a_dt_dx_l, a_dx_dx_l,
     b_dt_dx_l, b_dx_dx_l, c_dt_dx_l, c_dx_dx_l, ((rho_l + p_l) * (W_l * W_l)) - p_l,
-    (rho_l + p_l) * vel_l * (W_l * W_l)};
+    (rho_l + p_l) * vel_l * (W_l * W_l) };
 
   double exp_2a_r = 0.07;
   double a_dt_r = 0.06, a_dx_r = 0.05;
@@ -154,23 +141,15 @@ test_gr_medium_waves_ho()
   double p_r = (gas_gamma - 1.0) * rho_r;
   double W_r = 1.0 / sqrt(1.0 - (vel_r * vel_r));
 
-  double qr[15] = {exp_2a_r, a_dt_r, a_dx_r, b_dt_r, b_dx_r, c_dt_r, c_dx_r, a_dt_dx_r, a_dx_dx_r,
+  double qr[15] = { exp_2a_r, a_dt_r, a_dx_r, b_dt_r, b_dx_r, c_dt_r, c_dx_r, a_dt_dx_r, a_dx_dx_r,
     b_dt_dx_r, b_dx_dx_r, c_dt_dx_r, c_dx_dx_r, ((rho_r + p_r) * (W_r * W_r)) - p_r,
-    (rho_r + p_r) * vel_r * (W_r * W_r)};
+    (rho_r + p_r) * vel_r * (W_r * W_r) };
 
-  double norm[3][3] = {
-    {1.0, 0.0, 0.0},
-    {0.0, -1.0, 0.0},
-    {0.0, 0.0, 1.0},
-  };
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {
-    {0.0, 1.0, 0.0},
-    {1.0, 0.0, 0.0},
-    {1.0, 0.0, 0.0},
-  };
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
 
   for (int d = 0; d < 3; d++) {
     double speeds[2], waves[2 * 15], waves_local[2 * 15];
@@ -236,9 +215,9 @@ test_gr_medium_waves_2_ho()
   double p_l = (gas_gamma - 1.0) * rho_l;
   double W_l = 1.0 / sqrt(1.0 - (vel_l * vel_l));
 
-  double ql[15] = {exp_2a_l, a_dt_l, a_dx_l, b_dt_l, b_dx_l, c_dt_l, c_dx_l, a_dt_dx_l, a_dx_dx_l,
+  double ql[15] = { exp_2a_l, a_dt_l, a_dx_l, b_dt_l, b_dx_l, c_dt_l, c_dx_l, a_dt_dx_l, a_dx_dx_l,
     b_dt_dx_l, b_dx_dx_l, c_dt_dx_l, c_dx_dx_l, ((rho_l + p_l) * (W_l * W_l)) - p_l,
-    (rho_l + p_l) * vel_l * (W_l * W_l)};
+    (rho_l + p_l) * vel_l * (W_l * W_l) };
 
   double exp_2a_r = 0.07;
   double a_dt_r = 0.06, a_dx_r = 0.05;
@@ -253,23 +232,15 @@ test_gr_medium_waves_2_ho()
   double p_r = (gas_gamma - 1.0) * rho_r;
   double W_r = 1.0 / sqrt(1.0 - (vel_r * vel_r));
 
-  double qr[15] = {exp_2a_r, a_dt_r, a_dx_r, b_dt_r, b_dx_r, c_dt_r, c_dx_r, a_dt_dx_r, a_dx_dx_r,
+  double qr[15] = { exp_2a_r, a_dt_r, a_dx_r, b_dt_r, b_dx_r, c_dt_r, c_dx_r, a_dt_dx_r, a_dx_dx_r,
     b_dt_dx_r, b_dx_dx_r, c_dt_dx_r, c_dx_dx_r, ((rho_r + p_r) * (W_r * W_r)) - p_r,
-    (rho_r + p_r) * vel_r * (W_r * W_r)};
+    (rho_r + p_r) * vel_r * (W_r * W_r) };
 
-  double norm[3][3] = {
-    {1.0, 0.0, 0.0},
-    {0.0, -1.0, 0.0},
-    {0.0, 0.0, 1.0},
-  };
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {
-    {0.0, 1.0, 0.0},
-    {1.0, 0.0, 0.0},
-    {1.0, 0.0, 0.0},
-  };
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
 
   for (int d = 0; d < 3; d++) {
     double speeds[2], waves[2 * 15], waves_local[2 * 15];
@@ -315,9 +286,6 @@ test_gr_medium_waves_2_ho()
   gkyl_wv_eqn_release(gr_medium);
 }
 
-TEST_LIST = {
-  {"gr_medium_basic_ho", test_gr_medium_basic_ho},
-  {"gr_medium_waves_ho", test_gr_medium_waves_ho},
-  {"gr_medium_waves_2_ho", test_gr_medium_waves_2_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "gr_medium_basic_ho", test_gr_medium_basic_ho },
+  { "gr_medium_waves_ho", test_gr_medium_waves_ho },
+  { "gr_medium_waves_2_ho", test_gr_medium_waves_2_ho }, { NULL, NULL } };

@@ -28,10 +28,10 @@ evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
 
   double rho1 = 5.477875e-3, p1 = 2.762987e-3;
 
-  double upLeft[] = {0., 1., 0.1, 0.99, 0.0};
-  double upRight[] = {0., p1, rho1, 0., 0.0};
-  double loLeft[] = {0., 1., 0.5, 0., 0.};
-  double loRight[] = {0., 1., 0.1, 0., 0.99};
+  double upLeft[] = { 0., 1., 0.1, 0.99, 0.0 };
+  double upRight[] = { 0., p1, rho1, 0., 0.0 };
+  double loLeft[] = { 0., 1., 0.5, 0., 0. };
+  double loRight[] = { 0., 1., 0.1, 0., 0.99 };
   /*Sod shock
   double rhol = 10.0, ul = 0.0, pl = 40./3.;
   double rhor = 1.0, ur = 0.0, pr = 2./(3.e7);
@@ -81,7 +81,7 @@ evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
 struct sr_euler_ctx
 sr_euler_ctx(void)
 {
-  return (struct sr_euler_ctx){.gas_gamma = 4. / 3.};
+  return (struct sr_euler_ctx){ .gas_gamma = 4. / 3. };
 }
 
 void
@@ -108,31 +108,29 @@ main(int argc, char **argv)
   // equation object
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(ctx.gas_gamma);
 
-  struct gkyl_moment_species fluid = {
-    .name = "sr_euler",
+  struct gkyl_moment_species fluid = { .name = "sr_euler",
 
     .equation = sr_euler,
 
     .ctx = &ctx,
     .init = evalSREulerInit,
 
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-    .bcy = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-    .limiter = GKYL_MIN_MOD,
-  };
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .limiter = GKYL_MIN_MOD };
 
   // VM app
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = {-1., -1.},
-    .upper = {1.0, 1.},
-    .cells = {NX, NY},
+    .lower = { -1., -1. },
+    .upper = { 1.0, 1. },
+    .cells = { NX, NY },
 
     .cfl_frac = 0.9,
 
     .num_species = 1,
-    .species = {fluid},
+    .species = { fluid }
   };
 
   // create app object
@@ -145,7 +143,7 @@ main(int argc, char **argv)
   int nframe = 10;
 
   // create trigger for IO
-  struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};
+  struct gkyl_tm_trigger io_trig = { .dt = tend / nframe };
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);

@@ -105,7 +105,7 @@ gkyl_mom_vlasov_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pb
 
     mom_vm->kernel = m3ijk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
-    int m3ijk_count[] = {1, 4, 10};
+    int m3ijk_count[] = { 1, 4, 10 };
     mom_vm->momt.num_mom = m3ijk_count[vdim - 1];
   } else if (mom_type ==
     GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together

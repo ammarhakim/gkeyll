@@ -54,7 +54,7 @@ gkyl_deflate_geo_advance(const gkyl_deflate_geo *up, const struct gkyl_range *ra
   // Inflated grid will always be 1 long in other directions
   // So deflate reange to the cell at index 1 in the ignored directions (z or x and y). 1 and not 0 because it is a local range
 
-  int loc_dir[3] = {0.};
+  int loc_dir[3] = { 0. };
 
   for (int i = 0; i < 3; i++) {
     loc_dir[i] = 1;
@@ -98,7 +98,7 @@ gkyl_deflate_geo_advance_nodal(const gkyl_deflate_geo *up, const struct gkyl_ran
   // Inflated nodal range will always be 3 long in other directions
   // Use middle node (1) to populate deflated fields
 
-  int loc_dir[3] = {0.};
+  int loc_dir[3] = { 0. };
 
   for (int i = 0; i < 3; i++) {
     loc_dir[i] = 1;
@@ -142,7 +142,7 @@ gkyl_deflate_geo_surf_advance(const struct gkyl_deflate_geo_surf *up,
   // Inflated grid will always be 1 long in other directions
   // So deflate reange to the cell at index 1 in the ignored directions (z or x and y). 1 and not 0 because it is a local range
 
-  int loc_dir[3] = {0.};
+  int loc_dir[3] = { 0. };
 
   for (int i = 0; i < 3; i++) {
     loc_dir[i] = 1;
@@ -186,7 +186,7 @@ gkyl_deflate_geo_surf_advance_nodal(const struct gkyl_deflate_geo_surf *up,
   // Inflated grid will always be 1 long in other directions
   // So deflate reange to the cell at index 1 in the ignored directions (z or x and y). 1 and not 0 because it is a local range
 
-  int loc_dir[3] = {0.};
+  int loc_dir[3] = { 0. };
 
   for (int i = 0; i < 3; i++) {
     loc_dir[i] = 1;

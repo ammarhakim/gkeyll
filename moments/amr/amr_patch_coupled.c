@@ -814,12 +814,7 @@ five_moment_update_all_patches(const struct gkyl_job_pool *job_pool,
 
   for (int i = 0; i < num_patches; i++) {
     five_moment_patch_ctx[i] = (struct five_moment_update_patch_ctx){
-      .pdata = &pdata[i],
-      .t_curr = t_curr,
-      .dir = 0,
-      .dt = dt,
-      .pidx = i,
-      .nstrang = 0,
+      .pdata = &pdata[i], .t_curr = t_curr, .dir = 0, .dt = dt, .pidx = i, .nstrang = 0
     };
   }
 
@@ -846,10 +841,7 @@ five_moment_update_all_patches(const struct gkyl_job_pool *job_pool,
       dt_suggested = fmin(dt_suggested, five_moment_patch_ctx[i].stat_ion.dt_suggested);
       dt_suggested = fmin(dt_suggested, five_moment_patch_ctx[i].stat_maxwell.dt_suggested);
 
-      return (struct gkyl_update_status){
-        .success = false,
-        .dt_suggested = dt_suggested,
-      };
+      return (struct gkyl_update_status){ .success = false, .dt_suggested = dt_suggested };
     }
 
     dt_suggested = fmin(dt_suggested, five_moment_patch_ctx[i].stat_elc.dt_suggested);
@@ -863,10 +855,7 @@ five_moment_update_all_patches(const struct gkyl_job_pool *job_pool,
 
   five_moment_sync_patches(ptopo, pdata, fld_elc, fld_ion, fld_maxwell);
 
-  return (struct gkyl_update_status){
-    .success = true,
-    .dt_suggested = dt_suggested,
-  };
+  return (struct gkyl_update_status){ .success = true, .dt_suggested = dt_suggested };
 }
 
 void
@@ -880,12 +869,7 @@ five_moment_update_all_patches_source(const struct gkyl_job_pool *job_pool,
 
   for (int i = 0; i < num_patches; i++) {
     five_moment_patch_ctx[i] = (struct five_moment_update_patch_ctx){
-      .pdata = &pdata[i],
-      .t_curr = t_curr,
-      .dir = 0,
-      .dt = dt,
-      .pidx = i,
-      .nstrang = nstrang,
+      .pdata = &pdata[i], .t_curr = t_curr, .dir = 0, .dt = dt, .pidx = i, .nstrang = nstrang
     };
   }
 
@@ -938,7 +922,7 @@ five_moment_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl
     FIRST_COUPLING_UPDATE,
     PATCH_UPDATE,
     SECOND_COUPLING_UPDATE,
-    UPDATE_REDO,
+    UPDATE_REDO
   } state = PRE_UPDATE;
 
   struct five_moment_copy_job_ctx five_moment_copy_ctx[num_patches];
@@ -949,15 +933,13 @@ five_moment_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl
       state = FIRST_COUPLING_UPDATE;
 
       for (int i = 0; i < num_patches; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
-          .bidx = i,
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){ .bidx = i,
           .inp_elc = pdata[i].f_elc[0],
           .inp_ion = pdata[i].f_ion[0],
           .inp_maxwell = pdata[i].f_maxwell[0],
           .out_elc = pdata[i].fdup_elc,
           .out_ion = pdata[i].fdup_ion,
-          .out_maxwell = pdata[i].fdup_maxwell,
-        };
+          .out_maxwell = pdata[i].fdup_maxwell };
       }
 
 #ifdef AMR_USETHREADS
@@ -995,15 +977,13 @@ five_moment_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl
       state = UPDATE_DONE;
 
       for (int i = 0; i < num_patches; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
-          .bidx = i,
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){ .bidx = i,
           .inp_elc = pdata[i].f_elc[1],
           .inp_ion = pdata[i].f_ion[1],
           .inp_maxwell = pdata[i].f_maxwell[1],
           .out_elc = pdata[i].f_elc[0],
           .out_ion = pdata[i].f_ion[0],
-          .out_maxwell = pdata[i].f_maxwell[0],
-        };
+          .out_maxwell = pdata[i].f_maxwell[0] };
       }
 
 #ifdef AMR_USETHREADS
@@ -1020,15 +1000,13 @@ five_moment_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl
       state = PRE_UPDATE;
 
       for (int i = 0; i < num_patches; i++) {
-        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){
-          .bidx = i,
+        five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx){ .bidx = i,
           .inp_elc = pdata[i].fdup_elc,
           .inp_ion = pdata[i].fdup_ion,
           .inp_maxwell = pdata[i].fdup_maxwell,
           .out_elc = pdata[i].f_elc[0],
           .out_ion = pdata[i].f_ion[0],
-          .out_maxwell = pdata[i].f_maxwell[0],
-        };
+          .out_maxwell = pdata[i].f_maxwell[0] };
       }
 
 #ifdef AMR_USETHREADS
@@ -1044,11 +1022,8 @@ five_moment_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl
     }
   }
 
-  return (struct gkyl_update_status){
-    .success = true,
-    .dt_actual = dt,
-    .dt_suggested = dt_suggested,
-  };
+  return (
+    struct gkyl_update_status){ .success = true, .dt_actual = dt, .dt_suggested = dt_suggested };
 }
 
 void

@@ -53,8 +53,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   } else {
     // Create moment operator.
     if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
-      struct gkyl_gk_maxwellian_moments_inp inp_mom = {
-        .phase_grid = &s->grid,
+      struct gkyl_gk_maxwellian_moments_inp inp_mom = { .phase_grid = &s->grid,
         .conf_basis = &app->basis,
         .phase_basis = &s->basis,
         .conf_range = &app->local,
@@ -63,8 +62,7 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         .vel_map = s->vel_map,
         .divide_jacobgeo = false,
         .mass = s->info.mass,
-        .use_gpu = app->use_gpu,
-      };
+        .use_gpu = app->use_gpu };
       sm->gyrokinetic_maxwellian_moms = gkyl_gk_maxwellian_moments_inew(&inp_mom);
       if (sm->is_maxwellian_moms) {
         sm->num_mom = 3; // (n, u_par, T/m)

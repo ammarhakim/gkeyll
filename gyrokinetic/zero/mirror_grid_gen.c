@@ -29,7 +29,7 @@ psirz(double R, void *ctx)
 {
   struct psirz_ctx *rctx = ctx;
   double Z = rctx->Z;
-  double xn[2] = {R, Z};
+  double xn[2] = { R, Z };
   double fout[1];
   rctx->evcub->eval_cubic(0, xn, fout, rctx->evcub->ctx);
   return fout[0] - rctx->psi;
@@ -38,7 +38,7 @@ psirz(double R, void *ctx)
 static double
 calc_running_coord(double coord_lo, int i, double dx)
 {
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   double coord = coord_lo;
   for (int j = 0; j < i; j++)
     coord += dels[j % 2] * dx;
@@ -57,7 +57,7 @@ curlbhat_func(double r_curr, double Z, double phi, struct gkyl_basis_ops_evalf *
   double dBrdR = 0.0, dBrdZ = 0.0;
   double dBzdR = 0.0, dBzdZ = 0.0;
 
-  double xn[2] = {r_curr, Z};
+  double xn[2] = { r_curr, Z };
   double fout[4];
   evcub->eval_cubic_wgrad(0.0, xn, fout, evcub->ctx);
   dpsidR = fout[1];
@@ -96,9 +96,9 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   geo->gg_x->include_axis = inp->include_axis;
 
   int nr = inp->nrcells, nz = inp->nzcells;
-  int cells[] = {nr, nz};
-  double lower[2] = {inp->R[0], inp->Z[0]};
-  double upper[2] = {inp->R[1], inp->Z[1]};
+  int cells[] = { nr, nz };
+  double lower[2] = { inp->R[0], inp->Z[0] };
+  double upper[2] = { inp->R[1], inp->Z[1] };
 
   struct gkyl_rect_grid gridRZ;
   gkyl_rect_grid_init(&gridRZ, 2, lower, upper, cells);
@@ -157,7 +157,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   double rlow = lower[0], rup = upper[0];
   double rmin = rlow + 1e-8 * (rup - rlow);
 
-  struct psirz_ctx pctx = {.evcub = evcub};
+  struct psirz_ctx pctx = { .evcub = evcub };
 
   // Compute node locations
   bool status = true;
@@ -169,14 +169,14 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
     zcurr = Zcurr; // update zcurr to be the mapped value
 
     double psi_min[1], psi_max[1];
-    evcub->eval_cubic(0.0, (double[2]){rmin, zcurr}, psi_min, evcub->ctx);
-    evcub->eval_cubic(0.0, (double[2]){rup, zcurr}, psi_max, evcub->ctx);
+    evcub->eval_cubic(0.0, (double[2]){ rmin, zcurr }, psi_min, evcub->ctx);
+    evcub->eval_cubic(0.0, (double[2]){ rup, zcurr }, psi_max, evcub->ctx);
 
     for (int ipsi = inp->nrange.lower[NPSI]; ipsi <= inp->nrange.upper[NPSI]; ++ipsi) {
       if (inc_axis && (ipsi == 0)) {
         for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
           double alpha_curr = alpha_lo + ia * dalpha;
-          int idx[3] = {ipsi, ia, iz};
+          int idx[3] = { ipsi, ia, iz };
           double *rz = gkyl_array_fetch(geo->nodes_rza, gkyl_range_idx(&inp->nrange, idx));
           rz[0] = 0.0;
           rz[1] = zcurr;
@@ -203,7 +203,7 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
         for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
           double alpha_curr = alpha_lo + ia * dalpha;
-          int idx[3] = {ipsi, ia, iz};
+          int idx[3] = { ipsi, ia, iz };
           double *rz = gkyl_array_fetch(geo->nodes_rza, gkyl_range_idx(&inp->nrange, idx));
           rz[0] = root.res;
           rz[1] = zcurr;
@@ -221,11 +221,11 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   for (int iz = inp->nrange.lower[NZ]; iz <= inp->nrange.upper[NZ]; ++iz) {
     for (int ipsi = inp->nrange.lower[NPSI]; ipsi <= inp->nrange.upper[NPSI]; ++ipsi) {
       for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
-        int idx[3] = {ipsi, ia, iz};
+        int idx[3] = { ipsi, ia, iz };
         long loc = gkyl_range_idx(&inp->nrange, idx);
 
         const double *rzp = gkyl_array_cfetch(geo->nodes_rza, loc);
-        double rz[2] = {rzp[0], rzp[1]};
+        double rz[2] = { rzp[0], rzp[1] };
 
         double dZ_dz = gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
           &inp->nrange); // derivative of the position map in Z direction
@@ -358,9 +358,9 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   geo->gg_x->include_axis = inp->include_axis;
 
   int nr = inp->nrcells, nz = inp->nzcells;
-  int cells[] = {nr, nz};
-  double lower[2] = {inp->R[0], inp->Z[0]};
-  double upper[2] = {inp->R[1], inp->Z[1]};
+  int cells[] = { nr, nz };
+  double lower[2] = { inp->R[0], inp->Z[0] };
+  double upper[2] = { inp->R[1], inp->Z[1] };
 
   struct gkyl_rect_grid gridRZ;
   gkyl_rect_grid_init(&gridRZ, 2, lower, upper, cells);
@@ -416,7 +416,7 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
     psic_up = sqrt(psi_up);
   }
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   z_lo = z_lo + dels[1] * dz / 2.0;
   psic_lo = psic_lo + dels[1] * dpsi / 2.0;
   alpha_lo = alpha_lo + dels[1] * dalpha / 2.0;
@@ -424,7 +424,7 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   double rlow = lower[0], rup = upper[0];
   double rmin = rlow + 1e-8 * (rup - rlow);
 
-  struct psirz_ctx pctx = {.evcub = evcub};
+  struct psirz_ctx pctx = { .evcub = evcub };
 
   // Compute node locations
   bool status = true;
@@ -436,8 +436,8 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
     zcurr = Zcurr; // update zcurr to be the mapped value
 
     double psi_min[1], psi_max[1];
-    evcub->eval_cubic(0.0, (double[2]){rmin, zcurr}, psi_min, evcub->ctx);
-    evcub->eval_cubic(0.0, (double[2]){rup, zcurr}, psi_max, evcub->ctx);
+    evcub->eval_cubic(0.0, (double[2]){ rmin, zcurr }, psi_min, evcub->ctx);
+    evcub->eval_cubic(0.0, (double[2]){ rup, zcurr }, psi_max, evcub->ctx);
 
     for (int ipsi = inp->nrange.lower[NPSI]; ipsi <= inp->nrange.upper[NPSI]; ++ipsi) {
       double psic_curr = calc_running_coord(psic_lo, ipsi - inp->nrange.lower[NPSI], dpsi);
@@ -460,7 +460,7 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
       for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
         double alpha_curr = calc_running_coord(alpha_lo, ia - inp->nrange.lower[NAL], dalpha);
-        int idx[3] = {ipsi, ia, iz};
+        int idx[3] = { ipsi, ia, iz };
         double *rz = gkyl_array_fetch(geo->nodes_rza, gkyl_range_idx(&inp->nrange, idx));
         rz[0] = root.res;
         rz[1] = zcurr;
@@ -477,11 +477,11 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   for (int iz = inp->nrange.lower[NZ]; iz <= inp->nrange.upper[NZ]; ++iz) {
     for (int ipsi = inp->nrange.lower[NPSI]; ipsi <= inp->nrange.upper[NPSI]; ++ipsi) {
       for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
-        int idx[3] = {ipsi, ia, iz};
+        int idx[3] = { ipsi, ia, iz };
         long loc = gkyl_range_idx(&inp->nrange, idx);
 
         const double *rzp = gkyl_array_cfetch(geo->nodes_rza, loc);
-        double rz[2] = {rzp[0], rzp[1]};
+        double rz[2] = { rzp[0], rzp[1] };
 
         double dZ_dz = gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
           &inp->nrange); // derivative of the position map in Z direction
@@ -565,9 +565,9 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   geo->gg_x->include_axis = inp->include_axis;
 
   int nr = inp->nrcells, nz = inp->nzcells;
-  int cells[] = {nr, nz};
-  double lower[2] = {inp->R[0], inp->Z[0]};
-  double upper[2] = {inp->R[1], inp->Z[1]};
+  int cells[] = { nr, nz };
+  double lower[2] = { inp->R[0], inp->Z[0] };
+  double upper[2] = { inp->R[1], inp->Z[1] };
 
   struct gkyl_rect_grid gridRZ;
   gkyl_rect_grid_init(&gridRZ, 2, lower, upper, cells);
@@ -623,7 +623,7 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
     psic_up = sqrt(psi_up);
   }
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   z_lo += inp->dir == 2 ? 0.0 : dels[1] * dz / 2.0;
   psic_lo += inp->dir == 0 ? 0.0 : dels[1] * dpsi / 2.0;
   alpha_lo += inp->dir == 1 ? 0. : dels[1] * dalpha / 2.0;
@@ -631,7 +631,7 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   double rlow = lower[0], rup = upper[0];
   double rmin = rlow + 1e-8 * (rup - rlow);
 
-  struct psirz_ctx pctx = {.evcub = evcub};
+  struct psirz_ctx pctx = { .evcub = evcub };
 
   // Compute node locations
   bool status = true;
@@ -645,14 +645,14 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
     zcurr = Zcurr; // update zcurr to be the mapped value
 
     double psi_min[1], psi_max[1];
-    evcub->eval_cubic(0.0, (double[2]){rmin, zcurr}, psi_min, evcub->ctx);
-    evcub->eval_cubic(0.0, (double[2]){rup, zcurr}, psi_max, evcub->ctx);
+    evcub->eval_cubic(0.0, (double[2]){ rmin, zcurr }, psi_min, evcub->ctx);
+    evcub->eval_cubic(0.0, (double[2]){ rup, zcurr }, psi_max, evcub->ctx);
 
     for (int ipsi = inp->nrange.lower[NPSI]; ipsi <= inp->nrange.upper[NPSI]; ++ipsi) {
       if (inc_axis && (ipsi == 0) && inp->dir == 0) {
         for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
           double alpha_curr = calc_running_coord(alpha_lo, ia - inp->nrange.lower[NAL], dalpha);
-          int idx[3] = {ipsi, ia, iz};
+          int idx[3] = { ipsi, ia, iz };
           double *rz = gkyl_array_fetch(geo->nodes_rza, gkyl_range_idx(&inp->nrange, idx));
           rz[0] = 0.0;
           rz[1] = zcurr;
@@ -683,7 +683,7 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
           double alpha_curr = inp->dir == 1
             ? alpha_lo + ia * dalpha
             : calc_running_coord(alpha_lo, ia - inp->nrange.lower[NAL], dalpha);
-          int idx[3] = {ipsi, ia, iz};
+          int idx[3] = { ipsi, ia, iz };
           double *rz = gkyl_array_fetch(geo->nodes_rza, gkyl_range_idx(&inp->nrange, idx));
           rz[0] = root.res;
           rz[1] = zcurr;
@@ -701,11 +701,11 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   for (int iz = inp->nrange.lower[NZ]; iz <= inp->nrange.upper[NZ]; ++iz) {
     for (int ipsi = inp->nrange.lower[NPSI]; ipsi <= inp->nrange.upper[NPSI]; ++ipsi) {
       for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
-        int idx[3] = {ipsi, ia, iz};
+        int idx[3] = { ipsi, ia, iz };
         long loc = gkyl_range_idx(&inp->nrange, idx);
 
         const double *rzp = gkyl_array_cfetch(geo->nodes_rza, loc);
-        double rz[2] = {rzp[0], rzp[1]};
+        double rz[2] = { rzp[0], rzp[1] };
 
         double dZ_dz = gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
           &inp->nrange); // derivative of the position map in Z direction

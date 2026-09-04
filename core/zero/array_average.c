@@ -12,7 +12,7 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   const struct gkyl_range *local_avg, const struct gkyl_range *local_avg_ext,
   const struct gkyl_array *weight, const int *avg_dim, bool use_gpu)
 {
-  return gkyl_array_average_inew(&(struct gkyl_array_average_inp){.grid = grid,
+  return gkyl_array_average_inew(&(struct gkyl_array_average_inp){ .grid = grid,
     .basis = *basis,
     .basis_avg = *basis_avg,
     .local = local,
@@ -20,7 +20,7 @@ gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
     .local_avg_ext = local_avg_ext,
     .weight = weight,
     .avg_dim = avg_dim,
-    .use_gpu = use_gpu});
+    .use_gpu = use_gpu });
 }
 
 struct gkyl_array_average *
@@ -85,14 +85,14 @@ gkyl_array_average_inew(const struct gkyl_array_average_inp *inp)
       ? gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume)
       : gkyl_array_new(GKYL_DOUBLE, up->basis_avg.num_basis, inp->local_avg_ext->volume);
     // create new average routine to integrate the weight
-    struct gkyl_array_average_inp inp_integral = {.grid = inp->grid,
+    struct gkyl_array_average_inp inp_integral = { .grid = inp->grid,
       .basis = inp->basis,
       .basis_avg = inp->basis_avg,
       .local = inp->local,
       .local_avg = inp->local_avg,
       .weight = NULL, // Recursive call without weights
       .avg_dim = inp->avg_dim,
-      .use_gpu = inp->use_gpu};
+      .use_gpu = inp->use_gpu };
     struct gkyl_array_average *int_w = gkyl_array_average_inew(&inp_integral);
     // run the updater to integrate the weight
     gkyl_array_average_advance(int_w, inp->weight, up->weight_avg);
@@ -149,7 +149,7 @@ gkyl_array_average_advance(
     double *avg_i = gkyl_array_fetch(avgout, lidx_avg);
 
     // we need to pass the moving index to the deflate operation as a sub dimensional iterator
-    int parent_idx[GKYL_MAX_CDIM] = {0};
+    int parent_idx[GKYL_MAX_CDIM] = { 0 };
     int cnter = 0;
     for (int i = 0; i < up->basis.ndim; i++) {
       if (up->dim_remains[i]) {

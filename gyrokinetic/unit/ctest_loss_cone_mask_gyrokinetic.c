@@ -92,7 +92,7 @@ mask_ref_1x2v(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   phi_func_1x(t, &z_m, &phi_m, ctx);
 
   double bfield[3], bmag;
-  double zinfl[3] = {0.0}, z_minfl[3] = {0.0};
+  double zinfl[3] = { 0.0 }, z_minfl[3] = { 0.0 };
   zinfl[2] = z, z_minfl[2] = z_m;
   bfield_func_3x(t, zinfl, bfield, ctx);
   bmag = bfield[2];
@@ -117,8 +117,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   double mass_proton = GKYL_PROTON_MASS;
 
   // Set reference parameters.
-  struct loss_cone_mask_test_ctx ctx = {
-    .cdim = 1,
+  struct loss_cone_mask_test_ctx ctx = { .cdim = 1,
     .eV = eV,
     .R_m = 8.0,
     .B_m = 4.0,
@@ -134,16 +133,15 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .Nmu = 4,
     .quad_type = GKYL_GAUSS_LOBATTO_QUAD,
     .num_quad = 2,
-    .cellwise_trap_loss = true,
-  };
+    .cellwise_trap_loss = true };
   ctx.B0 = ctx.B_m / 2.0;
   ctx.vpar_max = 6.0 * sqrt(ctx.T0 / ctx.mass);
   ctx.mu_max = 0.5 * ctx.mass * pow(ctx.vpar_max, 2) / ctx.B0;
 
   double mass = ctx.mass;
-  double lower[] = {-ctx.z_max, -ctx.vpar_max, 0.0},
-         upper[] = {ctx.z_max, ctx.vpar_max, ctx.mu_max};
-  int cells[] = {ctx.Nz, ctx.Nvpar, ctx.Nmu};
+  double lower[] = { -ctx.z_max, -ctx.vpar_max, 0.0 },
+         upper[] = { ctx.z_max, ctx.vpar_max, ctx.mu_max };
+  int cells[] = { ctx.Nz, ctx.Nvpar, ctx.Nmu };
   const int ndim = sizeof(cells) / sizeof(cells[0]);
   const int cdim = ctx.cdim;
   const int vdim = ndim - ctx.cdim;
@@ -195,15 +193,15 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   }
 
   // Ranges.
-  int ghost_conf[] = {1, 1, 1}; // 3 elements because it's used by geo.
+  int ghost_conf[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range local_conf, local_ext_conf; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_ext_conf, &local_conf);
 
-  int ghost_vel[] = {0, 0};
+  int ghost_vel[] = { 0, 0 };
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_ext_vel, &local_vel);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = ghost_conf[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -212,9 +210,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = {0.0, 0.0},
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = { 0.0, 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
@@ -225,8 +222,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .local_ext = local_ext_conf,
     .global = local_conf,
     .global_ext = local_ext_conf,
-    .basis = basis_conf,
-  };
+    .basis = basis_conf };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(grid_conf, geometry_input);
   gkyl_create_grid_ranges(
     &geometry_input.geo_grid, ghost_conf, &geometry_input.geo_local_ext, &geometry_input.geo_local);
@@ -260,7 +256,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_array_copy(phi, phi_ho);
 
   // Location of the mirror throat.
-  double bmag_max_loc_ho[] = {ctx.z_m};
+  double bmag_max_loc_ho[] = { ctx.z_m };
   double *bmag_max_loc;
   if (use_gpu) {
     bmag_max_loc = gkyl_cu_malloc(sizeof(double));
@@ -272,7 +268,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   // Get the magnetic field at the mirror throat.
   double bfield_max_ho[3], bmag_max_ho[1];
-  double xc_infl[] = {0.0, 0.0, ctx.z_m};
+  double xc_infl[] = { 0.0, 0.0, ctx.z_m };
   bfield_func_3x(0.0, xc_infl, bfield_max_ho, &ctx);
   bmag_max_ho[0] = bfield_max_ho[2];
   double *bmag_max;
@@ -286,7 +282,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   // Get the potential at the mirror throat (z=pi/2).
   double phi_m_ho[1];
-  double xc[] = {ctx.z_m};
+  double xc[] = { ctx.z_m };
   phi_func_1x(0.0, xc, phi_m_ho, &ctx);
   double *phi_m;
   if (use_gpu) {
@@ -314,8 +310,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     use_gpu ? mkarr(false, mask->ncomp, mask->size) : gkyl_array_acquire(mask);
 
   // Project the loss cone mask.
-  struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
-    .phase_grid = &grid,
+  struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = { .phase_grid = &grid,
     .conf_basis = &basis_conf,
     .phase_basis = &basis,
     .conf_range = &local_conf,
@@ -330,8 +325,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .qtype = ctx.quad_type,
     .num_quad = ctx.num_quad,
     .cellwise_trap_loss = ctx.cellwise_trap_loss,
-    .use_gpu = use_gpu,
-  };
+    .use_gpu = use_gpu };
   struct gkyl_loss_cone_mask_gyrokinetic *proj_mask =
     gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
@@ -425,11 +419,9 @@ test_loss_cone_mask_1x2v_p1_gk_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_loss_cone_mask_1x2v_p1_gk_ho", test_loss_cone_mask_1x2v_p1_gk_ho},
+TEST_LIST = { { "test_loss_cone_mask_1x2v_p1_gk_ho", test_loss_cone_mask_1x2v_p1_gk_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  {"test_loss_cone_mask_1x2v_p1_gk_dev", test_loss_cone_mask_1x2v_p1_gk_dev},
+  { "test_loss_cone_mask_1x2v_p1_gk_dev", test_loss_cone_mask_1x2v_p1_gk_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

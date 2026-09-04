@@ -40,12 +40,12 @@ void
 test_apply_bc_1_ho()
 {
   int ndim = 1;
-  double lower[] = {-1.0}, upper[] = {1.0};
-  int cells[] = {16};
+  double lower[] = { -1.0 }, upper[] = { 1.0 };
+  int cells[] = { 16 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
-  int nghost[GKYL_MAX_DIM] = {2};
+  int nghost[GKYL_MAX_DIM] = { 2 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -91,12 +91,12 @@ void
 test_apply_bc_2_ho()
 {
   int ndim = 2;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {16, 8};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 16, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
-  int nghost[] = {2, 2};
+  int nghost[] = { 2, 2 };
 
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
@@ -163,12 +163,12 @@ void
 test_apply_bc_3_ho()
 {
   int ndim = 2;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {16, 8};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 16, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
-  int nghost[] = {2, 1};
+  int nghost[] = { 2, 1 };
 
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
@@ -205,7 +205,7 @@ test_apply_bc_3_ho()
 
   /** apply BCs on restricted range: test 1 */
   struct gkyl_range sub_range;
-  gkyl_sub_range_init(&sub_range, &ext_range, (int[]){1, 2}, (int[]){10, 6});
+  gkyl_sub_range_init(&sub_range, &ext_range, (int[]){ 1, 2 }, (int[]){ 10, 6 });
 
   gkyl_wv_apply_bc_advance(lbc, 0.0, &sub_range, distf);
   gkyl_wv_apply_bc_advance(rbc, 0.0, &sub_range, distf);
@@ -230,7 +230,7 @@ test_apply_bc_3_ho()
   gkyl_array_clear(distf, 0.0);
   gkyl_array_clear_range(distf, 1.0, &range);
 
-  gkyl_sub_range_init(&sub_range, &ext_range, (int[]){2, 1}, (int[]){8, 4});
+  gkyl_sub_range_init(&sub_range, &ext_range, (int[]){ 2, 1 }, (int[]){ 8, 4 });
 
   gkyl_wv_apply_bc_advance(lbc, 0.0, &sub_range, distf);
   gkyl_wv_apply_bc_advance(rbc, 0.0, &sub_range, distf);
@@ -255,7 +255,7 @@ test_apply_bc_3_ho()
   gkyl_array_clear(distf, 0.0);
   gkyl_array_clear_range(distf, 1.0, &range);
 
-  gkyl_sub_range_init(&sub_range, &ext_range, (int[]){2, 2}, (int[]){8, 4});
+  gkyl_sub_range_init(&sub_range, &ext_range, (int[]){ 2, 2 }, (int[]){ 8, 4 });
 
   gkyl_wv_apply_bc_advance(lbc, 0.0, &sub_range, distf);
   gkyl_wv_apply_bc_advance(rbc, 0.0, &sub_range, distf);
@@ -311,14 +311,14 @@ void
 test_apply_bc_buff_rtheta_ho()
 {
   int ndim = 2;
-  double lower[] = {0.25, 0.0}, upper[] = {1.25, 2 * M_PI / 4};
-  int cells[] = {16, 8};
+  double lower[] = { 0.25, 0.0 }, upper[] = { 1.25, 2 * M_PI / 4 };
+  int cells[] = { 16, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
   struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4, false);
 
-  int nghost[] = {2, 2};
+  int nghost[] = { 2, 2 };
 
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
@@ -423,10 +423,6 @@ test_apply_bc_buff_rtheta_ho()
   gkyl_array_release(bc_buffer);
 }
 
-TEST_LIST = {
-  {"test_apply_bc_1_ho", test_apply_bc_1_ho},
-  {"test_apply_bc_2_ho", test_apply_bc_2_ho},
-  {"test_apply_bc_3_ho", test_apply_bc_3_ho},
-  {"test_apply_bc_buff_rtheta_ho", test_apply_bc_buff_rtheta_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_apply_bc_1_ho", test_apply_bc_1_ho },
+  { "test_apply_bc_2_ho", test_apply_bc_2_ho }, { "test_apply_bc_3_ho", test_apply_bc_3_ho },
+  { "test_apply_bc_buff_rtheta_ho", test_apply_bc_buff_rtheta_ho }, { NULL, NULL } };

@@ -42,7 +42,7 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
   double dt, struct gkyl_array *heat_flux, struct gkyl_array *rhs)
 {
   int ndim = update_range->ndim;
-  long sz[] = {2, 4, 8};
+  long sz[] = { 2, 4, 8 };
 
   double *cfla = gces->cfla;
   double cfl = gces->cfl, cflm = 1.1 * cfl;
@@ -90,8 +90,8 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
     is_cfl_violated = 1.0;
 
   // compute actual CFL, status & max-speed across all domains
-  double red_vars[2] = {cfla[0], is_cfl_violated};
-  double red_vars_global[2] = {0.0, 0.0};
+  double red_vars[2] = { cfla[0], is_cfl_violated };
+  double red_vars_global[2] = { 0.0, 0.0 };
   gkyl_comm_allreduce(gces->comm, GKYL_DOUBLE, GKYL_MAX, 2, red_vars, red_vars_global);
 
   cfla[0] = red_vars_global[0];
@@ -101,18 +101,14 @@ gkyl_ten_moment_grad_closure_advance(const gkyl_ten_moment_grad_closure *gces,
 
   if (is_cfl_violated > 0.0) {
     // indicate failure, and return smaller stable time-step
-    return (struct gkyl_ten_moment_grad_closure_status){
-      .success = 0,
-      .dt_suggested = dt_suggested,
-    };
+    return (
+      struct gkyl_ten_moment_grad_closure_status){ .success = 0, .dt_suggested = dt_suggested };
   }
   // on success, suggest only bigger time-step; (Only way dt can
   // reduce is if the update fails. If the code comes here the update
   // succeeded and so we should not allow dt to reduce).
-  return (struct gkyl_ten_moment_grad_closure_status){
-    .success = is_cfl_violated > 0.0 ? 0 : 1,
-    .dt_suggested = dt_suggested > dt ? dt_suggested : dt,
-  };
+  return (struct gkyl_ten_moment_grad_closure_status){ .success = is_cfl_violated > 0.0 ? 0 : 1,
+    .dt_suggested = dt_suggested > dt ? dt_suggested : dt };
 }
 
 void

@@ -22,38 +22,24 @@ typedef struct {
 } dim_array_average_kern_list;
 
 GKYL_CU_D static const dim_array_average_kern_list gkyl_array_average_ker_list[] = {
-  {// kernel list for 1x integration
-    .list =
-      {
-        {gkyl_array_average_1x_ser_p1_avgx, gkyl_array_average_1x_ser_p2_avgx},
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      }},
-  {// kernel list for 2x integration
-    .list =
-      {
-        {gkyl_array_average_2x_ser_p1_avgx, gkyl_array_average_2x_ser_p2_avgy},
-        {gkyl_array_average_2x_ser_p1_avgy, gkyl_array_average_2x_ser_p2_avgy},
-        {gkyl_array_average_2x_ser_p1_avgxy, gkyl_array_average_2x_ser_p2_avgxy},
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      }},
-  {// kernel list for 3x integration
-    .list = {
-      {gkyl_array_average_3x_ser_p1_avgx, gkyl_array_average_3x_ser_p2_avgx},
-      {gkyl_array_average_3x_ser_p1_avgy, gkyl_array_average_3x_ser_p2_avgy},
-      {gkyl_array_average_3x_ser_p1_avgxy, gkyl_array_average_3x_ser_p2_avgxy},
-      {gkyl_array_average_3x_ser_p1_avgz, gkyl_array_average_3x_ser_p2_avgz},
-      {gkyl_array_average_3x_ser_p1_avgxz, gkyl_array_average_3x_ser_p2_avgxz},
-      {gkyl_array_average_3x_ser_p1_avgyz, gkyl_array_average_3x_ser_p2_avgyz},
-      {gkyl_array_average_3x_ser_p1_avgxyz, gkyl_array_average_3x_ser_p2_avgxyz},
-    }}};
+  { // kernel list for 1x integration
+    .list = { { gkyl_array_average_1x_ser_p1_avgx, gkyl_array_average_1x_ser_p2_avgx },
+      { NULL, NULL }, { NULL, NULL }, { NULL, NULL }, { NULL, NULL }, { NULL, NULL },
+      { NULL, NULL } } },
+  { // kernel list for 2x integration
+    .list = { { gkyl_array_average_2x_ser_p1_avgx, gkyl_array_average_2x_ser_p2_avgy },
+      { gkyl_array_average_2x_ser_p1_avgy, gkyl_array_average_2x_ser_p2_avgy },
+      { gkyl_array_average_2x_ser_p1_avgxy, gkyl_array_average_2x_ser_p2_avgxy }, { NULL, NULL },
+      { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
+  { // kernel list for 3x integration
+    .list = { { gkyl_array_average_3x_ser_p1_avgx, gkyl_array_average_3x_ser_p2_avgx },
+      { gkyl_array_average_3x_ser_p1_avgy, gkyl_array_average_3x_ser_p2_avgy },
+      { gkyl_array_average_3x_ser_p1_avgxy, gkyl_array_average_3x_ser_p2_avgxy },
+      { gkyl_array_average_3x_ser_p1_avgz, gkyl_array_average_3x_ser_p2_avgz },
+      { gkyl_array_average_3x_ser_p1_avgxz, gkyl_array_average_3x_ser_p2_avgxz },
+      { gkyl_array_average_3x_ser_p1_avgyz, gkyl_array_average_3x_ser_p2_avgyz },
+      { gkyl_array_average_3x_ser_p1_avgxyz, gkyl_array_average_3x_ser_p2_avgxyz } } }
+};
 
 // primary struct in this updater.
 struct gkyl_array_average {

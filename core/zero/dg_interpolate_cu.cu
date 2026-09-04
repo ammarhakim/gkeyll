@@ -36,8 +36,8 @@ gkyl_dg_interpolate_advance_1x_cu_ker(struct gkyl_dg_interpolate_kernels *kernel
   struct gkyl_range range_do, struct gkyl_range range_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar)
 {
-  int idx_do[GKYL_MAX_DIM] = {-1};
-  int idx_tar[GKYL_MAX_DIM] = {-1};
+  int idx_do[GKYL_MAX_DIM] = { -1 };
+  int idx_tar[GKYL_MAX_DIM] = { -1 };
   int idx_tar_lo;
   double xc_do[GKYL_MAX_DIM];
   double xc_tar[GKYL_MAX_DIM];

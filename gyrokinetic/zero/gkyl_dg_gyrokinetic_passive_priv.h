@@ -22,10 +22,10 @@ typedef double (*dg_gyrokinetic_passive_boundary_surf_t)(const double *w, const 
 static struct {
   int vdim[3];
 } cv_index_gkp[] = {
-  {-1, -1, -1}, // 0x makes no sense.
-  {-1, 0, 1}, // 1x kernel indices.
-  {-1, -1, 2}, // 2x kernel indices.
-  {-1, -1, 3}, // 3x kernel indices.
+  { -1, -1, -1 }, // 0x makes no sense.
+  { -1, 0, 1 }, // 1x kernel indices.
+  { -1, -1, 2 }, // 2x kernel indices.
+  { -1, -1, 3 } // 3x kernel indices.
 };
 
 // For use in kernel tables.
@@ -153,10 +153,10 @@ kernel_dg_gyrokinetic_passive_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, con
 
 // Volume kernel list.
 GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_vol_kern_list ser_passive_vol_kernels[] = {
-  {kernel_dg_gyrokinetic_passive_vol_1x1v_ser_p1, NULL},
-  {kernel_dg_gyrokinetic_passive_vol_1x2v_ser_p1, NULL},
-  {kernel_dg_gyrokinetic_passive_vol_2x2v_ser_p1, NULL},
-  {kernel_dg_gyrokinetic_passive_vol_3x2v_ser_p1, NULL},
+  { kernel_dg_gyrokinetic_passive_vol_1x1v_ser_p1, NULL },
+  { kernel_dg_gyrokinetic_passive_vol_1x2v_ser_p1, NULL },
+  { kernel_dg_gyrokinetic_passive_vol_2x2v_ser_p1, NULL },
+  { kernel_dg_gyrokinetic_passive_vol_3x2v_ser_p1, NULL }
 };
 
 //
@@ -165,26 +165,21 @@ GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_vol_kern_list ser_passive_vol
 
 // x-direction
 GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_surf_kern_list ser_passive_surf_x_kernels[] = {
-  {dg_gyrokinetic_passive_surfx_1x1v_ser_p1, NULL},
-  {dg_gyrokinetic_passive_surfx_1x2v_ser_p1, NULL},
-  {dg_gyrokinetic_passive_surfx_2x2v_ser_p1, NULL},
-  {dg_gyrokinetic_passive_surfx_3x2v_ser_p1, NULL},
+  { dg_gyrokinetic_passive_surfx_1x1v_ser_p1, NULL },
+  { dg_gyrokinetic_passive_surfx_1x2v_ser_p1, NULL },
+  { dg_gyrokinetic_passive_surfx_2x2v_ser_p1, NULL },
+  { dg_gyrokinetic_passive_surfx_3x2v_ser_p1, NULL }
 };
 
 // y-direction
 GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_surf_kern_list ser_passive_surf_y_kernels[] = {
-  {NULL, NULL},
-  {NULL, NULL},
-  {dg_gyrokinetic_passive_surfy_2x2v_ser_p1, NULL},
-  {dg_gyrokinetic_passive_surfy_3x2v_ser_p1, NULL},
+  { NULL, NULL }, { NULL, NULL }, { dg_gyrokinetic_passive_surfy_2x2v_ser_p1, NULL },
+  { dg_gyrokinetic_passive_surfy_3x2v_ser_p1, NULL }
 };
 
 // z-direction
 GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_surf_kern_list ser_passive_surf_z_kernels[] = {
-  {NULL, NULL},
-  {NULL, NULL},
-  {NULL, NULL},
-  {dg_gyrokinetic_passive_surfz_3x2v_ser_p1, NULL},
+  { NULL, NULL }, { NULL, NULL }, { NULL, NULL }, { dg_gyrokinetic_passive_surfz_3x2v_ser_p1, NULL }
 };
 
 //
@@ -193,30 +188,22 @@ GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_surf_kern_list ser_passive_su
 
 // x-direction
 GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_boundary_surf_kern_list
-  ser_passive_boundary_surf_x_kernels[] = {
-    {dg_gyrokinetic_passive_boundary_surfx_1x1v_ser_p1, NULL},
-    {dg_gyrokinetic_passive_boundary_surfx_1x2v_ser_p1, NULL},
-    {dg_gyrokinetic_passive_boundary_surfx_2x2v_ser_p1, NULL},
-    {dg_gyrokinetic_passive_boundary_surfx_3x2v_ser_p1, NULL},
-};
+  ser_passive_boundary_surf_x_kernels[] = { { dg_gyrokinetic_passive_boundary_surfx_1x1v_ser_p1,
+                                              NULL },
+    { dg_gyrokinetic_passive_boundary_surfx_1x2v_ser_p1, NULL },
+    { dg_gyrokinetic_passive_boundary_surfx_2x2v_ser_p1, NULL },
+    { dg_gyrokinetic_passive_boundary_surfx_3x2v_ser_p1, NULL } };
 
 // y-direction
 GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_boundary_surf_kern_list
-  ser_passive_boundary_surf_y_kernels[] = {
-    {NULL, NULL},
-    {NULL, NULL},
-    {dg_gyrokinetic_passive_boundary_surfy_2x2v_ser_p1, NULL},
-    {dg_gyrokinetic_passive_boundary_surfy_3x2v_ser_p1, NULL},
-};
+  ser_passive_boundary_surf_y_kernels[] = { { NULL, NULL }, { NULL, NULL },
+    { dg_gyrokinetic_passive_boundary_surfy_2x2v_ser_p1, NULL },
+    { dg_gyrokinetic_passive_boundary_surfy_3x2v_ser_p1, NULL } };
 
 // z-direction
 GKYL_CU_D static const gkyl_dg_gyrokinetic_passive_boundary_surf_kern_list
-  ser_passive_boundary_surf_z_kernels[] = {
-    {NULL, NULL},
-    {NULL, NULL},
-    {NULL, NULL},
-    {dg_gyrokinetic_passive_boundary_surfz_3x2v_ser_p1, NULL},
-};
+  ser_passive_boundary_surf_z_kernels[] = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL },
+    { dg_gyrokinetic_passive_boundary_surfz_3x2v_ser_p1, NULL } };
 
 // Macro to select a kernel from a list.
 #define CK_PASSIVE(lst, cdim, vd, poly_order) \

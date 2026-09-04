@@ -44,7 +44,7 @@ gkyl_mom_calc_advance(const struct gkyl_mom_calc *calc, const struct gkyl_range 
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = {0};
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < conf_rng->ndim; ++d)
     rem_dir[d] = 1;
 

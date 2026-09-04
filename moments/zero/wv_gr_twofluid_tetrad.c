@@ -10,7 +10,7 @@ void
 gkyl_gr_twofluid_tetrad_flux(double gas_gamma_elc, double gas_gamma_ion, double light_speed,
   double e_fact, double b_fact, const double q[84], double flux[84])
 {
-  double v[84] = {0.0};
+  double v[84] = { 0.0 };
   gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_elc = v[0];
   double vx_elc = v[1];
@@ -86,7 +86,7 @@ gkyl_gr_twofluid_tetrad_flux_correction(double gas_gamma_elc, double gas_gamma_i
   double light_speed, double e_fact, double b_fact, const double q[84], const double flux_sr[84],
   double flux_gr[84])
 {
-  double v[84] = {0.0};
+  double v[84] = { 0.0 };
   gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_elc = v[0];
   double vx_elc = v[1];
@@ -664,7 +664,7 @@ void
 gkyl_gr_twofluid_tetrad_stress_energy_tensor_elc(
   double gas_gamma_elc, double gas_gamma_ion, const double q[84], double ***stress_energy_elc)
 {
-  double v[84] = {0.0};
+  double v[84] = { 0.0 };
   gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_elc = v[0];
   double vx_elc = v[1];
@@ -769,7 +769,7 @@ void
 gkyl_gr_twofluid_tetrad_stress_energy_tensor_ion(
   double gas_gamma_elc, double gas_gamma_ion, const double q[84], double ***stress_energy_ion)
 {
-  double v[84] = {0.0};
+  double v[84] = { 0.0 };
   gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_ion = v[5];
   double vx_ion = v[6];
@@ -874,7 +874,7 @@ static inline double
 gkyl_gr_twofluid_tetrad_max_abs_speed(
   double gas_gamma_elc, double gas_gamma_ion, double light_speed, const double q[84])
 {
-  double v[84] = {0.0};
+  double v[84] = { 0.0 };
   gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
   double rho_elc = v[0];
   double vx_elc = v[1];
@@ -2413,7 +2413,7 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   double gas_gamma_elc = gr_twofluid_tetrad->gas_gamma_elc;
   double gas_gamma_ion = gr_twofluid_tetrad->gas_gamma_ion;
 
-  double v[84] = {0.0};
+  double v[84] = { 0.0 };
   gkyl_gr_twofluid_tetrad_prim_vars(gas_gamma_elc, gas_gamma_ion, q, v);
 
   if (v[0] < 0.0 || v[4] < 0.0 || v[5] < 0.0 || v[9] < 0.0) {
@@ -2474,22 +2474,21 @@ gkyl_wv_gr_twofluid_tetrad_new(double mass_elc, double mass_ion, double charge_e
   double b_fact, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
   struct gkyl_gr_spacetime *spacetime, bool use_gpu)
 {
-  return gkyl_wv_gr_twofluid_tetrad_inew(&(struct gkyl_wv_gr_twofluid_tetrad_inp){
-    .mass_elc = mass_elc,
-    .mass_ion = mass_ion,
-    .charge_elc = charge_elc,
-    .charge_ion = charge_ion,
-    .gas_gamma_elc = gas_gamma_elc,
-    .gas_gamma_ion = gas_gamma_ion,
-    .light_speed = light_speed,
-    .e_fact = e_fact,
-    .b_fact = b_fact,
-    .spacetime_gauge = spacetime_gauge,
-    .reinit_freq = reinit_freq,
-    .spacetime = spacetime,
-    .rp_type = WV_GR_TWOFLUID_TETRAD_RP_HLL,
-    .use_gpu = use_gpu,
-  });
+  return gkyl_wv_gr_twofluid_tetrad_inew(
+    &(struct gkyl_wv_gr_twofluid_tetrad_inp){ .mass_elc = mass_elc,
+      .mass_ion = mass_ion,
+      .charge_elc = charge_elc,
+      .charge_ion = charge_ion,
+      .gas_gamma_elc = gas_gamma_elc,
+      .gas_gamma_ion = gas_gamma_ion,
+      .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime_gauge = spacetime_gauge,
+      .reinit_freq = reinit_freq,
+      .spacetime = spacetime,
+      .rp_type = WV_GR_TWOFLUID_TETRAD_RP_HLL,
+      .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

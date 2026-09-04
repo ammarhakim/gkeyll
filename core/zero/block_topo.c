@@ -13,10 +13,10 @@ static const enum gkyl_oriented_edge complimentary_edges[] = {
   [GKYL_LOWER_NEGATIVE] = GKYL_UPPER_NEGATIVE,
   [GKYL_UPPER_POSITIVE] = GKYL_LOWER_POSITIVE,
   [GKYL_UPPER_NEGATIVE] = GKYL_LOWER_NEGATIVE,
-  [GKYL_PHYSICAL] = GKYL_PHYSICAL,
+  [GKYL_PHYSICAL] = GKYL_PHYSICAL
 };
 
-static const char *block_edge_names[] = {"lower", "upper"};
+static const char *block_edge_names[] = { "lower", "upper" };
 
 static void
 block_topo_free(const struct gkyl_ref_count *ref)
@@ -144,9 +144,10 @@ gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
     struct gkyl_msgpack_data *amet = btopo_create_mpack(btopo);
     if (amet) {
       status = gkyl_header_meta_write_fp(
-        &(struct gkyl_array_header_info){.file_type = gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
+        &(struct gkyl_array_header_info){
+          .file_type = gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
           .meta_size = amet->meta_sz,
-          .meta = amet->meta},
+          .meta = amet->meta },
         fp);
       btopo_array_meta_release(amet);
     } else {

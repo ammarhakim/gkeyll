@@ -84,28 +84,27 @@ write_geometry(
 void
 test_mirror_load_geometry_ho()
 {
-  struct gkyl_efit_inp inp = {
-    // psiRZ and related inputs
+  struct gkyl_efit_inp inp = { // psiRZ and related inputs
     .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true,
+    .reflect = true
   };
 
   clock_t start, end;
   double cpu_time_used;
   start = clock();
 
-  double clower[] = {1e-10, -0.01, -2.0};
-  double cupper[] = {3e-3, 0.01, 2.0};
+  double clower[] = { 1e-10, -0.01, -2.0 };
+  double cupper[] = { 3e-3, 0.01, 2.0 };
 
-  int ccells[] = {4, 4, 8};
+  int ccells[] = { 4, 4, 8 };
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
 
   struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
 
   int cpoly_order = 1;
@@ -118,13 +117,12 @@ test_mirror_load_geometry_ho()
     .zmin = -2.0, // Z of lower boundary
     .zmax = 2.0, // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z // coordinate system for psi grid
   };
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id = GKYL_GEOMETRY_MIRROR,
+  struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
     .position_map = pmap,
     .grid = cgrid,
@@ -138,8 +136,7 @@ test_mirror_load_geometry_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis,
-  };
+    .geo_basis = cbasis };
 
   struct gk_geometry *up = gkyl_gk_geometry_mirror_new(&geometry_inp);
   //write_geometry(up, cgrid, clocal, "whamlores");
@@ -248,15 +245,15 @@ test_mirror_3x_p1_straight_cylinder_ho()
   double psiMin = 0.1;
   int Nz = 10;
 
-  double lower[3] = {psiMin, -1.0, -1.0};
-  double upper[3] = {psiMax, 1.0, 1.0};
+  double lower[3] = { psiMin, -1.0, -1.0 };
+  double upper[3] = { psiMax, 1.0, 1.0 };
   // int cells[3] = { 18, 18, Nz };
-  int cells[3] = {2, 2, 2};
+  int cells[3] = { 2, 2, 2 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
 
   struct gkyl_range ext_range, range;
-  int nghost[3] = {1, 1, 1};
+  int nghost[3] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_mirror_geo_grid_inp ginp = {
@@ -265,14 +262,13 @@ test_mirror_3x_p1_straight_cylinder_ho()
     .zmin = -1.0, // Z of lower boundary
     .zmax = 1.0, // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z // coordinate system for psi grid
   };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MIRROR,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
     .position_map = pos_map,
     .grid = grid,
@@ -286,8 +282,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
     .geo_local_ext = ext_range,
     .geo_global = range,
     .geo_global_ext = ext_range,
-    .geo_basis = basis,
-  };
+    .geo_basis = basis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
 
@@ -296,13 +291,13 @@ test_mirror_3x_p1_straight_cylinder_ho()
   // Define nodal operations
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   int cidx[3];
-  int nodes[] = {1, 1, 1};
+  int nodes[] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] + 1;
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
 
-  int nodes_quad_interior[] = {1, 1, 1};
+  int nodes_quad_interior[] = { 1, 1, 1 };
   int num_quad_points = poly_order + 1;
   for (int d = 0; d < grid.ndim; ++d)
     nodes_quad_interior[d] = grid.cells[d] * num_quad_points;
@@ -333,7 +328,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
         // geo_corn.mapc2p_nodal
         double *mapc2p_n =
           gkyl_array_fetch(gk_geom->geo_corn.mc2p_nodal, gkyl_range_idx(&nrange, cidx));
-        double xn[3] = {psi, -alpha, theta};
+        double xn[3] = { psi, -alpha, theta };
         double fout[3];
         mapc2p(0.0, xn, fout, 0);
         for (int i = 0; i < 3; ++i)
@@ -365,7 +360,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
           grid.lower[AL_IDX] + ia * (grid.upper[AL_IDX] - grid.lower[AL_IDX]) / grid.cells[AL_IDX];
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
 
         // geo_corn.mc2nu_pos
         double *mc2nu_pos_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(&nrange, cidx));
@@ -399,7 +394,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
           grid.lower[AL_IDX] + ia * (grid.upper[AL_IDX] - grid.lower[AL_IDX]) / grid.cells[AL_IDX];
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
-        double xn[3] = {psi, -alpha, theta};
+        double xn[3] = { psi, -alpha, theta };
 
         // geo_corn.bmag
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nrange, cidx));
@@ -418,7 +413,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
   // Second let's validate geo_int. Many coponents still need to be added
 
   // Plus 3 away from axis to avoid errors
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   double theta_lo = grid.lower[TH_IDX] + dels[1] * grid.dx[TH_IDX] / 2.0;
   double psi_lo = grid.lower[PSI_IDX] + dels[1] * grid.dx[PSI_IDX] / 2.0;
   double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
@@ -447,7 +442,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
           calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
         double theta =
           calc_running_coord(theta_lo, it - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
-        double xn[3] = {psi, -alpha, theta};
+        double xn[3] = { psi, -alpha, theta };
         double fout[3];
         mapc2p(0.0, xn, fout, 0);
         for (int i = 0; i < 3; ++i) {
@@ -506,7 +501,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
         double *mapc2p_n =
           gkyl_array_fetch(mc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
         double r = mapc2p_n[0];
-        double xn[3] = {r, 0.0, 0.0};
+        double xn[3] = { r, 0.0, 0.0 };
         double fout[6];
         exact_gij(0.0, xn, fout, 0);
         for (int i = 0; i < 6; ++i)
@@ -539,7 +534,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
         double *mapc2p_n =
           gkyl_array_fetch(mc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
         double r = mapc2p_n[0];
-        double xn[3] = {r, 0.0, 0.0};
+        double xn[3] = { r, 0.0, 0.0 };
         double fout[6];
         exact_g_contra_ij(0.0, xn, fout, 0);
         for (int i = 0; i < 6; ++i)
@@ -597,7 +592,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
           gkyl_array_fetch(dualmag_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double *mapc2p_n =
           gkyl_array_fetch(mc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double xn[3] = {mapc2p_n[0], mapc2p_n[1], mapc2p_n[2]};
+        double xn[3] = { mapc2p_n[0], mapc2p_n[1], mapc2p_n[2] };
         double dualmag_anal[3];
         exact_dual_magnitude(0, xn, dualmag_anal, 0);
         TEST_CHECK(gkyl_compare(dualmag_n[0], dualmag_anal[0], 1e-6));
@@ -760,7 +755,7 @@ test_mirror_3x_p1_straight_cylinder_ho()
           calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
         double theta =
           calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double fout[9];
         exact_normals(0.0, xn, fout, 0);
         for (int i = 0; i < 9; ++i) {
@@ -785,26 +780,25 @@ test_mirror_3x_p1_straight_cylinder_ho()
   // create mirror geometry for surfaces
   struct gkyl_mirror_grid_gen *mirror_grid_surf[3];
   for (int dir = 0; dir < cdim; dir++) {
-    mirror_grid_surf[dir] = gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp){
-      .comp_grid = &grid,
-      .nrange = gk_geom->nrange_surf[dir],
-      .local = gk_geom->local,
-      .global = gk_geom->global,
-      .dir = dir,
-      .position_map = pos_map,
+    mirror_grid_surf[dir] =
+      gkyl_mirror_grid_gen_surf_inew(&(struct gkyl_mirror_grid_gen_inp){ .comp_grid = &grid,
+        .nrange = gk_geom->nrange_surf[dir],
+        .local = gk_geom->local,
+        .global = gk_geom->global,
+        .dir = dir,
+        .position_map = pos_map,
 
-      .R = {psi_grid.lower[0], psi_grid.upper[0]},
-      .Z = {psi_grid.lower[1], psi_grid.upper[1]},
+        .R = { psi_grid.lower[0], psi_grid.upper[0] },
+        .Z = { psi_grid.lower[1], psi_grid.upper[1] },
 
-      // psi(R,Z) grid size
-      .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
-      .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
+        // psi(R,Z) grid size
+        .nrcells = psi_grid.cells[0] - 1, // cells and not nodes
+        .nzcells = psi_grid.cells[1] - 1, // cells and not nodes
 
-      .psiRZ = psi,
-      .fl_coord = ginp.fl_coord,
-      .include_axis = ginp.include_axis,
-      .write_psi_cubic = false,
-    });
+        .psiRZ = psi,
+        .fl_coord = ginp.fl_coord,
+        .include_axis = ginp.include_axis,
+        .write_psi_cubic = false });
   }
 
   for (int dir = 0; dir < cdim; dir++) {
@@ -867,18 +861,18 @@ test_mirror_3x_p1_straight_cylinder_ho()
 
           // Check mapc2p
           double fout[8];
-          mapc2p(0.0, (double[]){psi, -alpha, theta}, fout, 0);
+          mapc2p(0.0, (double[]){ psi, -alpha, theta }, fout, 0);
           for (int i = 0; i < 3; ++i)
             TEST_CHECK(gkyl_compare(fout[i], mc2p_n[i], 1e-8));
 
           // Check Jacobian
           double jgeo;
-          exact_jacobian(0, (double[]){psi, -alpha, theta}, &jgeo, 0);
+          exact_jacobian(0, (double[]){ psi, -alpha, theta }, &jgeo, 0);
           TEST_CHECK(gkyl_compare(jgeo, jFld_n[0], 1e-6));
 
           // Check bmag
           double bmag_anal[1];
-          bmag_func(0, (double[]){psi, -alpha, theta}, bmag_anal, 0);
+          bmag_func(0, (double[]){ psi, -alpha, theta }, bmag_anal, 0);
           TEST_CHECK(gkyl_compare(bmag_n[0], bmag_anal[0], 1e-7));
 
           // Check b_i (magnetic unit vector should have magnitude 1)
@@ -1016,22 +1010,19 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
   double psiMin = 0.1;
   int Nz = 10;
 
-  double lower[3] = {psiMin, -M_PI, -2.0};
-  double upper[3] = {psiMax, M_PI, 2.0};
+  double lower[3] = { psiMin, -M_PI, -2.0 };
+  double upper[3] = { psiMax, M_PI, 2.0 };
 
   // int cells[3] = { 18, 18, Nz };
-  int cells[3] = {8, 1, 8};
+  int cells[3] = { 8, 1, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
 
   struct gkyl_range ext_range, range;
-  int nghost[3] = {1, 1, 1};
+  int nghost[3] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {0, 0, mapz},
-    .ctxs = {0, 0, 0},
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .maps = { 0, 0, mapz }, .ctxs = { 0, 0, 0 } };
 
   // Configuration space geometry initialization
   struct gkyl_position_map *pos_map =
@@ -1043,12 +1034,11 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
     .zmin = -2.0, // Z of lower boundary
     .zmax = 2.0, // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z // coordinate system for psi grid
   };
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MIRROR,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MIRROR,
     .mirror_grid_info = ginp,
     .position_map = pos_map,
     .grid = grid,
@@ -1062,8 +1052,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
     .geo_local_ext = ext_range,
     .geo_global = range,
     .geo_global_ext = ext_range,
-    .geo_basis = basis,
-  };
+    .geo_basis = basis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mirror_new(&geometry_input);
 
@@ -1079,13 +1068,13 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
   // Define nodal operations
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   int cidx[3];
-  int nodes[] = {1, 1, 1};
+  int nodes[] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] + 1;
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
 
-  int nodes_quad_interior[] = {1, 1, 1};
+  int nodes_quad_interior[] = { 1, 1, 1 };
   int num_quad_points = poly_order + 1;
   for (int d = 0; d < grid.ndim; ++d)
     nodes_quad_interior[d] = grid.cells[d] * num_quad_points;
@@ -1094,7 +1083,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   double theta_lo = grid.lower[TH_IDX] + dels[1] * grid.dx[TH_IDX] / 2.0;
   double psi_lo = grid.lower[PSI_IDX] + dels[1] * grid.dx[PSI_IDX] / 2.0;
   double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
@@ -1150,7 +1139,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
           calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
         double theta =
           calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double *dualmag_n =
           gkyl_array_fetch(dualmag_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double dualmag_anal[3];
@@ -1178,7 +1167,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
           grid.lower[AL_IDX] + ia * (grid.upper[AL_IDX] - grid.lower[AL_IDX]) / grid.cells[AL_IDX];
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nrange, cidx));
         double bmag_anal[1];
         bmag_func(0, xn, bmag_anal, 0);
@@ -1226,7 +1215,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
         double theta =
           calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
         double *gij_n = gkyl_array_fetch(gij_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double fout[6];
         exact_gij_pmap(0.0, xn, fout, 0);
         for (int i = 0; i < 6; ++i) {
@@ -1257,7 +1246,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
           calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
         double theta =
           calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double fout[6];
         exact_g_contra_ij_pmap(0.0, xn, fout, 0);
         for (int i = 0; i < 6; ++i)
@@ -1284,7 +1273,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
           gkyl_array_fetch(jacobgeo_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
-        double xn[1] = {theta};
+        double xn[1] = { theta };
         double fout[1];
         dmapz_dz(0.0, xn, fout, 0);
         double jacobian_analytic = 2 / M_PI * fout[0];
@@ -1311,7 +1300,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
           gkyl_array_fetch(jacobgeo_inv_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
-        double xn[1] = {theta};
+        double xn[1] = { theta };
         double fout[1];
         dmapz_dz(0.0, xn, fout, 0);
         double jacobian_analytic = 2 / M_PI * fout[0];
@@ -1338,7 +1327,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
           gkyl_array_fetch(jacobtot_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
-        double xn[1] = {theta};
+        double xn[1] = { theta };
         double fout[1];
         dmapz_dz(0.0, xn, fout, 0);
         double jacobian_analytic = 2 / M_PI * fout[0];
@@ -1367,7 +1356,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
           gkyl_array_fetch(jacobtot_inv_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
-        double xn[1] = {theta};
+        double xn[1] = { theta };
         double fout[1];
         dmapz_dz(0.0, xn, fout, 0);
         double jacobian_analytic = 2 / M_PI * fout[0];
@@ -1394,7 +1383,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
         // mapc2p_n[0] = R, mapc2p_n[1] = Theta, mapc2p_n[2] = Z_cylindrical
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
         mapz(0.0, &theta, &theta, 0);
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double fout[3];
         mapc2p(0.0, xn, fout, 0);
         for (int i = 0; i < 3; ++i)
@@ -1420,7 +1409,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
         double theta =
           calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
         mapz(0.0, &theta, &theta, 0);
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double *mc2nu_pos_n = gkyl_array_fetch(mc2nu_pos_nodal, gkyl_range_idx(&nrange, cidx));
         for (int i = 0; i < 3; ++i)
           TEST_CHECK(gkyl_compare(mc2nu_pos_n[i], xn[i], 1e-8));
@@ -1451,7 +1440,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
           calc_running_coord(alpha_lo, ia - nrange_quad_interior.lower[AL_IDX], grid.dx[AL_IDX]);
         double theta =
           calc_running_coord(theta_lo, ia - nrange_quad_interior.lower[TH_IDX], grid.dx[TH_IDX]);
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double fout[9];
         exact_normals_pmap(0.0, xn, fout, 0);
         for (int i = 0; i < 9; ++i) {
@@ -1480,9 +1469,7 @@ test_mirror_3x_p1_pmap_straight_cylinder_ho()
   gkyl_gk_geometry_release(gk_geom);
 }
 
-TEST_LIST = {
-  {"test_mirror_load_geometry_ho", test_mirror_load_geometry_ho},
-  {"test_mirror_3x_p1_straight_cylinder_ho", test_mirror_3x_p1_straight_cylinder_ho},
+TEST_LIST = { { "test_mirror_load_geometry_ho", test_mirror_load_geometry_ho },
+  { "test_mirror_3x_p1_straight_cylinder_ho", test_mirror_3x_p1_straight_cylinder_ho },
   // { "test_mirror_3x_p1_pmap_straight_cylinder_ho", test_mirror_3x_p1_pmap_straight_cylinder_ho },
-  {NULL, NULL},
-};
+  { NULL, NULL } };

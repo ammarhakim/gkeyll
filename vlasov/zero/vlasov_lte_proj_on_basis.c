@@ -37,7 +37,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type q
   int vdim = ndim - cdim;
   int num_quad_v = num_quad;
   // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[] = {false, false, false}; // 3 is the max vdim.
+  bool is_vdim_p2[] = { false, false, false }; // 3 is the max vdim.
   if (basis->b_type == GKYL_BASIS_MODAL_HYBRID) {
     num_quad_v = num_quad + 1;
     for (int d = 0; d < vdim; d++) {
@@ -238,7 +238,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   // create a map between phase-space and conf-space ordinates.
   int num_quad_v = num_quad; // Hybrid basis have p=2 in velocity space.
   // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[] = {false, false, false}; // 3 is the max vdim.
+  bool is_vdim_p2[] = { false, false, false }; // 3 is the max vdim.
   if (up->phase_basis.b_type == GKYL_BASIS_MODAL_HYBRID) {
     num_quad_v = num_quad + 1;
     for (int d = 0; d < vdim; d++) {
@@ -351,8 +351,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   }
 
   // Store a LTE moment calculation updater to compute and correct the density
-  struct gkyl_vlasov_lte_moments_inp inp_mom = {
-    .phase_grid = inp->phase_grid,
+  struct gkyl_vlasov_lte_moments_inp inp_mom = { .phase_grid = inp->phase_grid,
     .vel_grid = inp->vel_grid,
     .conf_basis = inp->conf_basis,
     .vel_basis = inp->vel_basis,
@@ -368,8 +367,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .det_h = inp->det_h,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
-    .use_gpu = inp->use_gpu,
-  };
+    .use_gpu = inp->use_gpu };
   up->moments_up = gkyl_vlasov_lte_moments_inew(&inp_mom);
 
   return up;
@@ -419,7 +417,7 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = {0};
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < conf_range->ndim; ++d)
     rem_dir[d] = 1;
 

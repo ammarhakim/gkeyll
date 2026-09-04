@@ -44,15 +44,15 @@ void
 test_1x1v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
-  double lower[] = {0.0, -5.0}, upper[] = {1.0, 5.0};
-  int cells[] = {4, 4};
+  double lower[] = { 0.0, -5.0 }, upper[] = { 1.0, 5.0 };
+  int cells[] = { 4, 4 };
   int vdim = 1, cdim = 1;
   int pdim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
-  int confCells[] = {cells[0]};
-  int velCells[] = {cells[1]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  double velLower[] = { lower[1] }, velUpper[] = { upper[1] };
+  int confCells[] = { cells[0] };
+  int velCells[] = { cells[1] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -63,7 +63,7 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = { 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -79,11 +79,11 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0};
+  int ghost[] = { confGhost[0], 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -136,8 +136,8 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
     calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
-  double w_edge_not_used[2] = {0.0, 0.0};
-  double dxv[2] = {confGrid.dx[0], vel_grid.dx[0]};
+  double w_edge_not_used[2] = { 0.0, 0.0 };
+  double dxv[2] = { confGrid.dx[0], vel_grid.dx[0] };
   struct gkyl_array *alpha_surf_comp_L = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *alpha_surf_comp_R = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *sgn_alpha_surf_comp_not_used =
@@ -233,7 +233,7 @@ info_h_ij_inv_1x2v(double t, const double *xn, double *fout, void *ctx)
   // [h^{xx},h^{xy},h^{yy}]
   double R = 1.0;
   double q_theta = xn[0];
-  const double q[1] = {q_theta};
+  const double q[1] = { q_theta };
 
   // [h^{thetatheta},h^{thetaphi},h^{phiphi}]
   fout[0] = 1.0 / pow(R, 2);
@@ -247,7 +247,7 @@ info_det_h_1x2v(double t, const double *xn, double *fout, void *ctx)
   // determinant of the metric tensor: J = det(h_{ij})
   double R = 1.0;
   double q_theta = xn[0];
-  const double q[1] = {q_theta};
+  const double q[1] = { q_theta };
   fout[0] = pow(R, 2) * sin(q[0]);
 }
 
@@ -256,7 +256,7 @@ info_hamil_1x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double w0 = xn[1], w1 = xn[2];
-  const double w[2] = {w0, w1};
+  const double w[2] = { w0, w1 };
   struct kh_2d_ctx *app = (struct kh_2d_ctx *)ctx;
   double *h_inv = malloc(3 * sizeof(double));
   info_h_ij_inv_1x2v(t, xn, h_inv, ctx);
@@ -269,15 +269,15 @@ void
 test_1x2v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
-  double lower[] = {pi / 4, -5.0, -5.0}, upper[] = {pi / 2, 5.0, 5.0};
-  int cells[] = {4, 4, 4};
+  double lower[] = { pi / 4, -5.0, -5.0 }, upper[] = { pi / 2, 5.0, 5.0 };
+  int cells[] = { 4, 4, 4 };
   int vdim = 2, cdim = 1;
   int pdim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1], lower[2]}, velUpper[] = {upper[1], upper[2]};
-  int confCells[] = {cells[0]};
-  int velCells[] = {cells[1], cells[2]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  double velLower[] = { lower[1], lower[2] }, velUpper[] = { upper[1], upper[2] };
+  int confCells[] = { cells[0] };
+  int velCells[] = { cells[1], cells[2] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -288,7 +288,7 @@ test_1x2v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0, 0};
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -304,11 +304,11 @@ test_1x2v(int poly_order, enum gkyl_basis_type b_type)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0, 0};
+  int ghost[] = { confGhost[0], 0, 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -361,8 +361,8 @@ test_1x2v(int poly_order, enum gkyl_basis_type b_type)
     calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
-  double w_edge_not_used[3] = {0.0, 0.0, 0.0};
-  double dxv[3] = {confGrid.dx[0], vel_grid.dx[0], vel_grid.dx[1]};
+  double w_edge_not_used[3] = { 0.0, 0.0, 0.0 };
+  double dxv[3] = { confGrid.dx[0], vel_grid.dx[0], vel_grid.dx[1] };
   struct gkyl_array *alpha_surf_comp_L = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *alpha_surf_comp_R = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *sgn_alpha_surf_comp_not_used =
@@ -479,7 +479,7 @@ info_hamil_1x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double q_R = xn[0], p_R_dot = xn[1], p_theta_dot = xn[2], p_phi_dot = xn[3];
-  const double w[3] = {p_R_dot, p_theta_dot, p_phi_dot};
+  const double w[3] = { p_R_dot, p_theta_dot, p_phi_dot };
   double *h_inv = malloc(6 * sizeof(double));
   info_h_ij_inv_1x3v(t, xn, h_inv, ctx);
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 0.5 * (2.0 * h_inv[1] * w[1] * w[0]) +
@@ -492,15 +492,16 @@ void
 test_1x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
-  double lower[] = {0.5, -5.0, -5.0, -5.0}, upper[] = {1.5, 5.0, 5.0, 5.0};
-  int cells[] = {4, 4, 4, 4};
+  double lower[] = { 0.5, -5.0, -5.0, -5.0 }, upper[] = { 1.5, 5.0, 5.0, 5.0 };
+  int cells[] = { 4, 4, 4, 4 };
   int vdim = 3, cdim = 1;
   int pdim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1], lower[2], lower[3]}, velUpper[] = {upper[1], upper[2], upper[3]};
-  int confCells[] = {cells[0]};
-  int velCells[] = {cells[1], cells[2], cells[3]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  double velLower[] = { lower[1], lower[2], lower[3] },
+         velUpper[] = { upper[1], upper[2], upper[3] };
+  int confCells[] = { cells[0] };
+  int velCells[] = { cells[1], cells[2], cells[3] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -511,7 +512,7 @@ test_1x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0, 0, 0};
+  int velGhost[] = { 0, 0, 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -527,11 +528,11 @@ test_1x3v(int poly_order, enum gkyl_basis_type b_type)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0, 0, 0};
+  int ghost[] = { confGhost[0], 0, 0, 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -584,8 +585,8 @@ test_1x3v(int poly_order, enum gkyl_basis_type b_type)
     calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
-  double w_edge_not_used[4] = {0.0, 0.0, 0.0, 0.0};
-  double dxv[4] = {confGrid.dx[0], vel_grid.dx[0], vel_grid.dx[1], vel_grid.dx[2]};
+  double w_edge_not_used[4] = { 0.0, 0.0, 0.0, 0.0 };
+  double dxv[4] = { confGrid.dx[0], vel_grid.dx[0], vel_grid.dx[1], vel_grid.dx[2] };
   struct gkyl_array *alpha_surf_comp_L = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *alpha_surf_comp_R = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *sgn_alpha_surf_comp_not_used =
@@ -681,7 +682,7 @@ info_h_ij_inv_2x2v(double t, const double *xn, double *fout, void *ctx)
   // [h^{xx},h^{xy},h^{yy}]
   double R = 1.0;
   double q_theta = xn[0], q_phi = xn[1];
-  const double q[2] = {q_theta, q_phi};
+  const double q[2] = { q_theta, q_phi };
 
   // [h^{thetatheta},h^{thetaphi},h^{phiphi}]
   fout[0] = 1.0 / pow(R, 2);
@@ -695,7 +696,7 @@ info_det_h_2x2v(double t, const double *xn, double *fout, void *ctx)
   // determinant of the metric tensor: J = det(h_{ij})
   double R = 1.0;
   double q_theta = xn[0], q_phi = xn[1];
-  const double q[2] = {q_theta, q_phi};
+  const double q[2] = { q_theta, q_phi };
   fout[0] = pow(R, 2) * sin(q[0]);
 }
 
@@ -704,7 +705,7 @@ info_hamil_2x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double w0 = xn[2], w1 = xn[3];
-  const double w[2] = {w0, w1};
+  const double w[2] = { w0, w1 };
   struct kh_2d_ctx *app = (struct kh_2d_ctx *)ctx;
   double *h_inv = malloc(3 * sizeof(double));
   info_h_ij_inv_2x2v(t, xn, h_inv, ctx);
@@ -717,16 +718,16 @@ void
 test_2x2v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
-  double lower[] = {pi / 4, pi / 4, -5.0, -5.0},
-         upper[] = {(1.01) * pi / 4, (1.01) * pi / 4, 5.0, 5.0};
-  int cells[] = {4, 4, 4, 4};
+  double lower[] = { pi / 4, pi / 4, -5.0, -5.0 },
+         upper[] = { (1.01) * pi / 4, (1.01) * pi / 4, 5.0, 5.0 };
+  int cells[] = { 4, 4, 4, 4 };
   int vdim = 2, cdim = 2;
   int pdim = cdim + vdim;
 
-  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
-  double velLower[] = {lower[2], lower[3]}, velUpper[] = {upper[2], upper[3]};
-  int confCells[] = {cells[0], cells[1]};
-  int velCells[] = {cells[2], cells[3]};
+  double confLower[] = { lower[0], lower[1] }, confUpper[] = { upper[0], upper[1] };
+  double velLower[] = { lower[2], lower[3] }, velUpper[] = { upper[2], upper[3] };
+  int confCells[] = { cells[0], cells[1] };
+  int velCells[] = { cells[2], cells[3] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -737,7 +738,7 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0, 0};
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -752,11 +753,11 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {1, 1};
+  int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
+  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -810,8 +811,8 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
     calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
-  double w_edge_not_used[4] = {0.0, 0.0, 0.0, 0.0};
-  double dxv[4] = {confGrid.dx[0], confGrid.dx[1], vel_grid.dx[0], vel_grid.dx[1]};
+  double w_edge_not_used[4] = { 0.0, 0.0, 0.0, 0.0 };
+  double dxv[4] = { confGrid.dx[0], confGrid.dx[1], vel_grid.dx[0], vel_grid.dx[1] };
   struct gkyl_array *alpha_surf_comp_L = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *alpha_surf_comp_R = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *sgn_alpha_surf_comp_not_used =
@@ -936,7 +937,7 @@ info_hamil_2x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double q_R = xn[0], q_theta = xn[1], p_R_dot = xn[2], p_theta_dot = xn[3], p_phi_dot = xn[4];
-  const double w[3] = {p_R_dot, p_theta_dot, p_phi_dot};
+  const double w[3] = { p_R_dot, p_theta_dot, p_phi_dot };
   double *h_inv = malloc(6 * sizeof(double));
   info_h_ij_inv_2x3v(t, xn, h_inv, ctx);
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 0.5 * (2.0 * h_inv[1] * w[1] * w[0]) +
@@ -949,15 +950,16 @@ void
 test_2x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
-  double lower[] = {0.5, 0.0, -5.0, -5.0, -5.0}, upper[] = {1.5, 2.0 * pi, 5.0, 5.0, 5.0};
-  int cells[] = {4, 4, 4, 4, 4};
+  double lower[] = { 0.5, 0.0, -5.0, -5.0, -5.0 }, upper[] = { 1.5, 2.0 * pi, 5.0, 5.0, 5.0 };
+  int cells[] = { 4, 4, 4, 4, 4 };
   int vdim = 3, cdim = 2;
   int pdim = cdim + vdim;
 
-  double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
-  double velLower[] = {lower[2], lower[3], lower[4]}, velUpper[] = {upper[2], upper[3], upper[4]};
-  int confCells[] = {cells[0], cells[1]};
-  int velCells[] = {cells[2], cells[3], cells[4]};
+  double confLower[] = { lower[0], lower[1] }, confUpper[] = { upper[0], upper[1] };
+  double velLower[] = { lower[2], lower[3], lower[4] },
+         velUpper[] = { upper[2], upper[3], upper[4] };
+  int confCells[] = { cells[0], cells[1] };
+  int velCells[] = { cells[2], cells[3], cells[4] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -968,7 +970,7 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0, 0, 0};
+  int velGhost[] = { 0, 0, 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -983,11 +985,11 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {1, 1};
+  int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], confGhost[1], 0, 0, 0};
+  int ghost[] = { confGhost[0], confGhost[1], 0, 0, 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1042,8 +1044,9 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
     calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
-  double w_edge_not_used[5] = {0.0, 0.0, 0.0, 0.0, 0.0};
-  double dxv[5] = {confGrid.dx[0], confGrid.dx[1], vel_grid.dx[0], vel_grid.dx[1], vel_grid.dx[2]};
+  double w_edge_not_used[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double dxv[5] = { confGrid.dx[0], confGrid.dx[1], vel_grid.dx[0], vel_grid.dx[1],
+    vel_grid.dx[2] };
   struct gkyl_array *alpha_surf_comp_L = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *alpha_surf_comp_R = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *sgn_alpha_surf_comp_not_used =
@@ -1161,7 +1164,7 @@ info_hamil_3x3v(double t, const double *xn, double *fout, void *ctx)
   // Canonical coordinates:
   double q_R = xn[0], q_theta = xn[1], q_phi = xn[2], p_R_dot = xn[3], p_theta_dot = xn[4],
          p_phi_dot = xn[5];
-  const double w[3] = {p_R_dot, p_theta_dot, p_phi_dot};
+  const double w[3] = { p_R_dot, p_theta_dot, p_phi_dot };
   double *h_inv = malloc(6 * sizeof(double));
   info_h_ij_inv_3x3v(t, xn, h_inv, ctx);
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 0.5 * (2.0 * h_inv[1] * w[1] * w[0]) +
@@ -1174,16 +1177,18 @@ void
 test_3x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
-  double lower[] = {0.5, 0.0, 0.0, -5.0, -5.0, -5.0},
-         upper[] = {1.5, 2.0 * pi, 2.0 * pi, 5.0, 5.0, 5.0};
-  int cells[] = {4, 4, 4, 4, 4, 4};
+  double lower[] = { 0.5, 0.0, 0.0, -5.0, -5.0, -5.0 },
+         upper[] = { 1.5, 2.0 * pi, 2.0 * pi, 5.0, 5.0, 5.0 };
+  int cells[] = { 4, 4, 4, 4, 4, 4 };
   int vdim = 3, cdim = 3;
   int pdim = cdim + vdim;
 
-  double confLower[] = {lower[0], lower[1], lower[2]}, confUpper[] = {upper[0], upper[1], upper[2]};
-  double velLower[] = {lower[3], lower[4], lower[5]}, velUpper[] = {upper[3], upper[4], upper[5]};
-  int confCells[] = {cells[0], cells[1], cells[2]};
-  int velCells[] = {cells[3], cells[4], cells[5]};
+  double confLower[] = { lower[0], lower[1], lower[2] },
+         confUpper[] = { upper[0], upper[1], upper[2] };
+  double velLower[] = { lower[3], lower[4], lower[5] },
+         velUpper[] = { upper[3], upper[4], upper[5] };
+  int confCells[] = { cells[0], cells[1], cells[2] };
+  int velCells[] = { cells[3], cells[4], cells[5] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -1194,7 +1199,7 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0, 0, 0};
+  int velGhost[] = { 0, 0, 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -1211,11 +1216,11 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
   // (NOTE!) Need to change to tensor for 3x3v p1 to work:
   gkyl_cart_modal_tensor(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {1, 1, 1};
+  int confGhost[] = { 1, 1, 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], confGhost[1], confGhost[2], 0, 0, 0};
+  int ghost[] = { confGhost[0], confGhost[1], confGhost[2], 0, 0, 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1268,9 +1273,9 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
     calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
-  double w_edge_not_used[6] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double dxv[6] = {
-    confGrid.dx[0], confGrid.dx[1], confGrid.dx[2], vel_grid.dx[0], vel_grid.dx[1], vel_grid.dx[2]};
+  double w_edge_not_used[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double dxv[6] = { confGrid.dx[0], confGrid.dx[1], confGrid.dx[2], vel_grid.dx[0], vel_grid.dx[1],
+    vel_grid.dx[2] };
   struct gkyl_array *alpha_surf_comp_L = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *alpha_surf_comp_R = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *sgn_alpha_surf_comp_not_used =
@@ -1458,36 +1463,34 @@ test_canonical_pb_3x3v_p1_continuity_tensor_ho()
   test_3x3v(1, GKYL_BASIS_MODAL_TENSOR);
 }
 
-TEST_LIST = {
-  {"test_canonical_pb_1x1v_p1_continuity_tensor_ho",
-    test_canonical_pb_1x1v_p1_continuity_tensor_ho},
-  {"test_canonical_pb_1x1v_p1_continuity_ser_ho", test_canonical_pb_1x1v_p1_continuity_ser_ho},
-  {"test_canonical_pb_1x1v_p2_continuity_tensor_ho",
-    test_canonical_pb_1x1v_p2_continuity_tensor_ho},
-  {"test_canonical_pb_1x1v_p2_continuity_ser_ho", test_canonical_pb_1x1v_p2_continuity_ser_ho},
-  {"test_canonical_pb_1x2v_p1_continuity_tensor_ho",
-    test_canonical_pb_1x2v_p1_continuity_tensor_ho},
-  {"test_canonical_pb_1x2v_p1_continuity_ser_ho", test_canonical_pb_1x2v_p1_continuity_ser_ho},
-  {"test_canonical_pb_1x2v_p2_continuity_tensor_ho",
-    test_canonical_pb_1x2v_p2_continuity_tensor_ho},
-  {"test_canonical_pb_1x2v_p2_continuity_ser_ho", test_canonical_pb_1x2v_p2_continuity_ser_ho},
-  {"test_canonical_pb_1x3v_p1_continuity_tensor_ho",
-    test_canonical_pb_1x3v_p1_continuity_tensor_ho},
-  {"test_canonical_pb_1x3v_p1_continuity_ser_ho", test_canonical_pb_1x3v_p1_continuity_ser_ho},
-  {"test_canonical_pb_1x3v_p2_continuity_tensor_ho",
-    test_canonical_pb_1x3v_p2_continuity_tensor_ho},
-  {"test_canonical_pb_1x3v_p2_continuity_ser_ho", test_canonical_pb_1x3v_p2_continuity_ser_ho},
-  {"test_canonical_pb_2x2v_p1_continuity_tensor_ho",
-    test_canonical_pb_2x2v_p1_continuity_tensor_ho},
-  {"test_canonical_pb_2x2v_p1_continuity_ser_ho", test_canonical_pb_2x2v_p1_continuity_ser_ho},
-  {"test_canonical_pb_2x2v_p2_continuity_tensor_ho",
-    test_canonical_pb_2x2v_p2_continuity_tensor_ho},
-  {"test_canonical_pb_2x2v_p2_continuity_ser_ho", test_canonical_pb_2x2v_p2_continuity_ser_ho},
-  {"test_canonical_pb_2x3v_p1_continuity_tensor_ho",
-    test_canonical_pb_2x3v_p1_continuity_tensor_ho},
-  {"test_canonical_pb_2x3v_p1_continuity_ser_ho", test_canonical_pb_2x3v_p1_continuity_ser_ho},
-  {"test_canonical_pb_2x3v_p2_continuity_ser_ho", test_canonical_pb_2x3v_p2_continuity_ser_ho},
-  {"test_canonical_pb_3x3v_p1_continuity_tensor_ho",
-    test_canonical_pb_3x3v_p1_continuity_tensor_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_canonical_pb_1x1v_p1_continuity_tensor_ho",
+                test_canonical_pb_1x1v_p1_continuity_tensor_ho },
+  { "test_canonical_pb_1x1v_p1_continuity_ser_ho", test_canonical_pb_1x1v_p1_continuity_ser_ho },
+  { "test_canonical_pb_1x1v_p2_continuity_tensor_ho",
+    test_canonical_pb_1x1v_p2_continuity_tensor_ho },
+  { "test_canonical_pb_1x1v_p2_continuity_ser_ho", test_canonical_pb_1x1v_p2_continuity_ser_ho },
+  { "test_canonical_pb_1x2v_p1_continuity_tensor_ho",
+    test_canonical_pb_1x2v_p1_continuity_tensor_ho },
+  { "test_canonical_pb_1x2v_p1_continuity_ser_ho", test_canonical_pb_1x2v_p1_continuity_ser_ho },
+  { "test_canonical_pb_1x2v_p2_continuity_tensor_ho",
+    test_canonical_pb_1x2v_p2_continuity_tensor_ho },
+  { "test_canonical_pb_1x2v_p2_continuity_ser_ho", test_canonical_pb_1x2v_p2_continuity_ser_ho },
+  { "test_canonical_pb_1x3v_p1_continuity_tensor_ho",
+    test_canonical_pb_1x3v_p1_continuity_tensor_ho },
+  { "test_canonical_pb_1x3v_p1_continuity_ser_ho", test_canonical_pb_1x3v_p1_continuity_ser_ho },
+  { "test_canonical_pb_1x3v_p2_continuity_tensor_ho",
+    test_canonical_pb_1x3v_p2_continuity_tensor_ho },
+  { "test_canonical_pb_1x3v_p2_continuity_ser_ho", test_canonical_pb_1x3v_p2_continuity_ser_ho },
+  { "test_canonical_pb_2x2v_p1_continuity_tensor_ho",
+    test_canonical_pb_2x2v_p1_continuity_tensor_ho },
+  { "test_canonical_pb_2x2v_p1_continuity_ser_ho", test_canonical_pb_2x2v_p1_continuity_ser_ho },
+  { "test_canonical_pb_2x2v_p2_continuity_tensor_ho",
+    test_canonical_pb_2x2v_p2_continuity_tensor_ho },
+  { "test_canonical_pb_2x2v_p2_continuity_ser_ho", test_canonical_pb_2x2v_p2_continuity_ser_ho },
+  { "test_canonical_pb_2x3v_p1_continuity_tensor_ho",
+    test_canonical_pb_2x3v_p1_continuity_tensor_ho },
+  { "test_canonical_pb_2x3v_p1_continuity_ser_ho", test_canonical_pb_2x3v_p1_continuity_ser_ho },
+  { "test_canonical_pb_2x3v_p2_continuity_ser_ho", test_canonical_pb_2x3v_p2_continuity_ser_ho },
+  { "test_canonical_pb_3x3v_p1_continuity_tensor_ho",
+    test_canonical_pb_3x3v_p1_continuity_tensor_ho },
+  { NULL, NULL } };

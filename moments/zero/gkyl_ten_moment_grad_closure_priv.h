@@ -55,7 +55,7 @@ enum loc_3d { LLL_3D, LLU_3D, LUL_3D, LUU_3D, ULL_3D, ULU_3D, UUL_3D, UUU_3D };
 static void
 create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 {
-  int arr1[3] = {-1, -1, -1}, arr2[3] = {0, 0, 0};
+  int arr1[3] = { -1, -1, -1 }, arr2[3] = { 0, 0, 0 };
   // box spanning stencil
   struct gkyl_range box3;
   gkyl_range_init(&box3, range->ndim, arr1, arr2);
@@ -72,7 +72,7 @@ create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 static void
 create_offsets_centers(const struct gkyl_range *range, long offsets[])
 {
-  int arr1[3] = {0, 0, 0}, arr2[3] = {1, 1, 1};
+  int arr1[3] = { 0, 0, 0 }, arr2[3] = { 1, 1, 1 };
   // box spanning stencil
   struct gkyl_range box3;
   gkyl_range_init(&box3, range->ndim, arr1, arr2);
@@ -150,12 +150,12 @@ calc_unmag_heat_flux_1d(const gkyl_ten_moment_grad_closure *gces, const double *
   double p_avg = 0.0;
 
   const double dx = gces->grid.dx[0];
-  double dTdx[6] = {0.0};
-  double dTdy[6] = {0.0};
-  double dTdz[6] = {0.0};
-  double Tij[2][6] = {0.0};
-  double rho[2] = {0.0};
-  double p[2] = {0.0};
+  double dTdx[6] = { 0.0 };
+  double dTdy[6] = { 0.0 };
+  double dTdz[6] = { 0.0 };
+  double Tij[2][6] = { 0.0 };
+  double rho[2] = { 0.0 };
+  double p[2] = { 0.0 };
   var_setup(gces, L_1D, U_1D, fluid_d, rho, p, Tij);
 
   rho_avg = calc_harmonic_avg_1D(rho[L_1D], rho[U_1D]);
@@ -189,7 +189,7 @@ calc_unmag_heat_flux_1d(const gkyl_ten_moment_grad_closure *gces, const double *
 GKYL_CU_D static void
 grad_closure_update_1d(const gkyl_ten_moment_grad_closure *gces, const double *q[], double *rhs)
 {
-  double div_qx[6] = {0.0};
+  double div_qx[6] = { 0.0 };
 
   const double dx = gces->grid.dx[0];
 
@@ -223,13 +223,13 @@ calc_unmag_heat_flux_2d(const gkyl_ten_moment_grad_closure *gces, const double *
 
   const double dx = gces->grid.dx[0];
   const double dy = gces->grid.dx[1];
-  double dTx[2][6] = {0.0};
-  double dTy[2][6] = {0.0};
-  double dTdx[2][6] = {0.0};
-  double dTdy[2][6] = {0.0};
-  double Tij[4][6] = {0.0};
-  double rho[4] = {0.0};
-  double p[4] = {0.0};
+  double dTx[2][6] = { 0.0 };
+  double dTy[2][6] = { 0.0 };
+  double dTdx[2][6] = { 0.0 };
+  double dTdy[2][6] = { 0.0 };
+  double Tij[4][6] = { 0.0 };
+  double rho[4] = { 0.0 };
+  double p[4] = { 0.0 };
   var_setup(gces, LL_2D, UU_2D, fluid_d, rho, p, Tij);
 
   rho_avg = calc_harmonic_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
@@ -298,8 +298,8 @@ calc_unmag_heat_flux_2d(const gkyl_ten_moment_grad_closure *gces, const double *
   // Thus, the mass density rho is used instead of number density n.
   double chi = alpha * vth_avg * rho_avg;
 
-  int compx[4] = {L_1D, U_1D, L_1D, U_1D};
-  int compy[4] = {L_1D, L_1D, U_1D, U_1D};
+  int compx[4] = { L_1D, U_1D, L_1D, U_1D };
+  int compy[4] = { L_1D, L_1D, U_1D, U_1D };
 
   q[LL_2D * 10 + Q111] = chi * dTdx[compx[LL_2D]][T11];
   q[LL_2D * 10 + Q112] = chi * (2.0 * dTdx[compx[LL_2D]][T12] + dTdy[compy[LL_2D]][T11]) / 3.0;
@@ -349,8 +349,8 @@ calc_unmag_heat_flux_2d(const gkyl_ten_moment_grad_closure *gces, const double *
 GKYL_CU_D static void
 grad_closure_update_2d(const gkyl_ten_moment_grad_closure *gces, const double *q[], double *rhs)
 {
-  double div_qx[6] = {0.0};
-  double div_qy[6] = {0.0};
+  double div_qx[6] = { 0.0 };
+  double div_qy[6] = { 0.0 };
 
   const double dx = gces->grid.dx[0];
   const double dy = gces->grid.dx[1];
@@ -406,15 +406,15 @@ calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure *gces, const double *
   const double dy = gces->grid.dx[1];
   const double dz = gces->grid.dx[2];
 
-  double dTx[4][6] = {0.0};
-  double dTy[4][6] = {0.0};
-  double dTz[4][6] = {0.0};
-  double dTdx[4][6] = {0.0};
-  double dTdy[4][6] = {0.0};
-  double dTdz[4][6] = {0.0};
-  double Tij[8][6] = {0.0};
-  double rho[8] = {0.0};
-  double p[8] = {0.0};
+  double dTx[4][6] = { 0.0 };
+  double dTy[4][6] = { 0.0 };
+  double dTz[4][6] = { 0.0 };
+  double dTdx[4][6] = { 0.0 };
+  double dTdy[4][6] = { 0.0 };
+  double dTdz[4][6] = { 0.0 };
+  double Tij[8][6] = { 0.0 };
+  double rho[8] = { 0.0 };
+  double p[8] = { 0.0 };
   var_setup(gces, LLL_3D, UUU_3D, fluid_d, rho, p, Tij);
 
   rho_avg = calc_harmonic_avg_3D(rho[LLL_3D], rho[LLU_3D], rho[LUL_3D], rho[LUU_3D], rho[ULL_3D],
@@ -669,9 +669,9 @@ calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure *gces, const double *
   // Thus, the mass density rho is used instead of number density n.
   double chi = alpha * vth_avg * rho_avg;
 
-  int compx[8] = {LL_2D, UL_2D, LU_2D, UU_2D, LL_2D, UL_2D, LU_2D, UU_2D};
-  int compy[8] = {LL_2D, UL_2D, LL_2D, UL_2D, LU_2D, UU_2D, LU_2D, UU_2D};
-  int compz[8] = {LL_2D, LL_2D, UL_2D, UL_2D, LU_2D, LU_2D, UU_2D, UU_2D};
+  int compx[8] = { LL_2D, UL_2D, LU_2D, UU_2D, LL_2D, UL_2D, LU_2D, UU_2D };
+  int compy[8] = { LL_2D, UL_2D, LL_2D, UL_2D, LU_2D, UU_2D, LU_2D, UU_2D };
+  int compz[8] = { LL_2D, LL_2D, UL_2D, UL_2D, LU_2D, LU_2D, UU_2D, UU_2D };
 
   q[LLL_3D * 10 + Q111] = chi * dTdx[compx[LLL_3D]][T11];
   q[LLL_3D * 10 + Q112] = chi * (2.0 * dTdx[compx[LLL_3D]][T12] + dTdy[compy[LLL_3D]][T11]) / 3.0;
@@ -777,9 +777,9 @@ calc_unmag_heat_flux_3d(const gkyl_ten_moment_grad_closure *gces, const double *
 GKYL_CU_D static void
 grad_closure_update_3d(const gkyl_ten_moment_grad_closure *gces, const double *q[], double *rhs)
 {
-  double div_qx[6] = {0.0};
-  double div_qy[6] = {0.0};
-  double div_qz[6] = {0.0};
+  double div_qx[6] = { 0.0 };
+  double div_qy[6] = { 0.0 };
+  double div_qz[6] = { 0.0 };
 
   const double dx = gces->grid.dx[0];
   const double dy = gces->grid.dx[1];
@@ -854,11 +854,11 @@ grad_closure_update_3d(const gkyl_ten_moment_grad_closure *gces, const double *q
   rhs[P33] = div_qx[5] + div_qy[5] + div_qz[5];
 }
 
-GKYL_CU_D static const heat_flux_calc_t grad_closure_unmag_funcs[3] = {
-  calc_unmag_heat_flux_1d, calc_unmag_heat_flux_2d, calc_unmag_heat_flux_3d};
+GKYL_CU_D static const heat_flux_calc_t grad_closure_unmag_funcs[3] = { calc_unmag_heat_flux_1d,
+  calc_unmag_heat_flux_2d, calc_unmag_heat_flux_3d };
 
-GKYL_CU_D static const heat_flux_update_t grad_closure_update_funcs[3] = {
-  grad_closure_update_1d, grad_closure_update_2d, grad_closure_update_3d};
+GKYL_CU_D static const heat_flux_update_t grad_closure_update_funcs[3] = { grad_closure_update_1d,
+  grad_closure_update_2d, grad_closure_update_3d };
 
 GKYL_CU_D static void
 grad_closure_calc_q_choose(gkyl_ten_moment_grad_closure *gces)

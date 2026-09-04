@@ -295,8 +295,8 @@ struct gkyl_mat *gkyl_mat_copy(struct gkyl_mat *dest, const struct gkyl_mat *src
 GKYL_CU_DH static inline struct gkyl_mat
 gkyl_nmat_get(struct gkyl_nmat *mat, size_t num)
 {
-  return (struct gkyl_mat){
-    .nr = mat->nr, .nc = mat->nc, .data = mat->data + num * mat->nr * mat->nc};
+  return (
+    struct gkyl_mat){ .nr = mat->nr, .nc = mat->nc, .data = mat->data + num * mat->nr * mat->nc };
 }
 
 /**

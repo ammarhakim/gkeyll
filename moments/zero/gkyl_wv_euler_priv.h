@@ -61,7 +61,7 @@ gkyl_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
 GKYL_CU_DH static inline double
 gkyl_euler_max_abs_speed(double gas_gamma, const double q[5])
 {
-  double v[5] = {0.0};
+  double v[5] = { 0.0 };
   gkyl_euler_prim_vars(gas_gamma, q, v);
   double u2 = sqrt(v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
   double pr = v[4];
@@ -181,12 +181,12 @@ wave_embedded(const struct gkyl_wv_eqn *eqn, const double *delta, const double *
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double gas_gamma = euler->gas_gamma;
 
-  double qphi[5] = {0.0};
-  double deltaphi[5] = {0.0};
+  double qphi[5] = { 0.0 };
+  double deltaphi[5] = { 0.0 };
 
   double amax = 0.0;
 
-  double fl[5], fr[5] = {0.0};
+  double fl[5], fr[5] = { 0.0 };
   if ((phil < 0.0) && (phir > 0.0)) {
     double rhor = qr[0];
     double ur = qr[1] / qr[0];

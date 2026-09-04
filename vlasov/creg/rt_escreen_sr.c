@@ -90,8 +90,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  return (struct escreen_ctx){
-    .pi = pi,
+  return (struct escreen_ctx){ .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
@@ -114,8 +113,7 @@ create_ctx(void)
     .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 }
 
 void
@@ -264,7 +262,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = {NX};
+  int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -287,22 +285,18 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -324,67 +318,29 @@ main(int argc, char **argv)
   }
 
   // electrons
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_species elc = { .name = "elc",
     .model_id = GKYL_MODEL_SR,
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
-    .lower = {-ctx.px_max},
-    .upper = {ctx.px_max},
-    .cells = {NPX},
+    .lower = { -ctx.px_max },
+    .upper = { ctx.px_max },
+    .cells = { NPX },
 
     .num_init = 1,
-    .projection[0] =
-      {
-        .proj_id = GKYL_PROJ_VLASOV_LTE,
-        .density = evalDensityPerturbInit,
-        .ctx_density = &ctx,
-        .temp = evalTempInit,
-        .ctx_temp = &ctx,
-        .V_drift = evalVDriftInit,
-        .ctx_V_drift = &ctx,
-        .correct_all_moms = true,
-        .use_last_converged = true,
-      },
+    .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityPerturbInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true,
+      .use_last_converged = true },
 
     // Source is the same as initial condition without perturbation.
-    .source =
-      {
-        .source_id = GKYL_PROJ_SOURCE,
-        .num_sources = 1,
-        .projection[0] =
-          {
-            .proj_id = GKYL_PROJ_VLASOV_LTE,
-            .density = evalDensityInit,
-            .ctx_density = &ctx,
-            .temp = evalTempInit,
-            .ctx_temp = &ctx,
-            .V_drift = evalVDriftInit,
-            .ctx_V_drift = &ctx,
-            .correct_all_moms = true,
-            .use_last_converged = true,
-          },
-      },
-
-    .num_diag_moments = 2,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1},
-  };
-
-  // positrons
-  struct gkyl_vlasov_species pos = {
-    .name = "pos",
-    .model_id = GKYL_MODEL_SR,
-    .charge = ctx.charge_ion,
-    .mass = ctx.mass_ion,
-    .lower = {-ctx.px_max},
-    .upper = {ctx.px_max},
-    .cells = {NPX},
-
-    .num_init = 1,
-    // No perturbation in positron initial conditions.
-    .projection[0] =
-      {
-        .proj_id = GKYL_PROJ_VLASOV_LTE,
+    .source = { .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
         .density = evalDensityInit,
         .ctx_density = &ctx,
         .temp = evalTempInit,
@@ -392,67 +348,76 @@ main(int argc, char **argv)
         .V_drift = evalVDriftInit,
         .ctx_V_drift = &ctx,
         .correct_all_moms = true,
-      },
-
-    .source =
-      {
-        .source_id = GKYL_PROJ_SOURCE,
-        .num_sources = 1,
-        .projection[0] =
-          {
-            .proj_id = GKYL_PROJ_VLASOV_LTE,
-            .density = evalDensityInit,
-            .ctx_density = &ctx,
-            .temp = evalTempInit,
-            .ctx_temp = &ctx,
-            .V_drift = evalVDriftInit,
-            .ctx_V_drift = &ctx,
-            .correct_all_moms = true,
-          },
-      },
+        .use_last_converged = true } },
 
     .num_diag_moments = 2,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1},
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 } };
+
+  // positrons
+  struct gkyl_vlasov_species pos = { .name = "pos",
+    .model_id = GKYL_MODEL_SR,
+    .charge = ctx.charge_ion,
+    .mass = ctx.mass_ion,
+    .lower = { -ctx.px_max },
+    .upper = { ctx.px_max },
+    .cells = { NPX },
+
+    .num_init = 1,
+    // No perturbation in positron initial conditions.
+    .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true },
+
+    .source = { .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
+        .density = evalDensityInit,
+        .ctx_density = &ctx,
+        .temp = evalTempInit,
+        .ctx_temp = &ctx,
+        .V_drift = evalVDriftInit,
+        .ctx_V_drift = &ctx,
+        .correct_all_moms = true } },
+
+    .num_diag_moments = 2,
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1 } };
 
   // field
-  struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0,
+  struct gkyl_vlasov_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc,
-  };
+    .init = evalFieldFunc };
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
     .vdim = 1,
-    .lower = {-0.5 * ctx.Lx},
-    .upper = {0.5 * ctx.Lx},
-    .cells = {NX},
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
+    .cells = { NX },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = {0},
+    .periodic_dirs = { 0 },
 
     .num_species = 2,
-    .species = {elc, pos},
+    .species = { elc, pos },
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
   };
 
   // create app object
@@ -486,9 +451,11 @@ main(int argc, char **argv)
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write = {
-    .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr
+  };
   struct gkyl_tm_trigger trig_calc_intdiag = {
-    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr
+  };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);

@@ -12,13 +12,13 @@ vm_fluid_species_source_init(
   if (app->use_gpu)
     src->source_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
 
-  src->source_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){.grid = &app->grid,
+  src->source_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &app->grid,
     .basis = &app->confBasis,
     .qtype = GKYL_GAUSS_QUAD,
     .num_quad = app->basis.poly_order + 1,
     .num_ret_vals = 1,
     .eval = fluid_species->info.source.profile,
-    .ctx = fluid_species->info.source.ctx});
+    .ctx = fluid_species->info.source.ctx });
 }
 
 void

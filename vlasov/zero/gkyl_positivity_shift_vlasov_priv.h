@@ -12,7 +12,7 @@
 
 enum gkyl_positivity_shift_type {
   GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY = 0,
-  GKYL_POSITIVITY_SHIFT_TYPE_MRS_LIMITER, // Moe-Rossmanith-Seal limiter.
+  GKYL_POSITIVITY_SHIFT_TYPE_MRS_LIMITER // Moe-Rossmanith-Seal limiter.
 };
 
 // Function pointer type for sheath reflection kernels.
@@ -34,38 +34,34 @@ typedef struct {
 // Serendipity  kernels.
 GKYL_CU_D static const pos_shift_vlasov_kern_list_m0_pos_check
   pos_shift_vlasov_kern_list_m0_pos_check_tensor[] = {
-    {positivity_shift_vlasov_conf_pos_check_1x_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_conf_pos_check_2x_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_conf_pos_check_3x_tensor_p1, NULL, NULL},
-};
+    { positivity_shift_vlasov_conf_pos_check_1x_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_conf_pos_check_2x_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_conf_pos_check_3x_tensor_p1, NULL, NULL }
+  };
 
-GKYL_CU_D static const pos_shift_vlasov_kern_list_shift pos_shift_vlasov_kern_list_shift_tensor[] =
-  {
-    {positivity_shift_vlasov_shift_only_1x1v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_shift_only_1x2v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_shift_only_1x3v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_shift_only_2x2v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_shift_only_2x3v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_shift_only_3x3v_tensor_p1, NULL, NULL},
-};
+GKYL_CU_D static const pos_shift_vlasov_kern_list_shift
+  pos_shift_vlasov_kern_list_shift_tensor[] = { { positivity_shift_vlasov_shift_only_1x1v_tensor_p1,
+                                                  NULL, NULL },
+    { positivity_shift_vlasov_shift_only_1x2v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_shift_only_1x3v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_shift_only_2x2v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_shift_only_2x3v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_shift_only_3x3v_tensor_p1, NULL, NULL } };
 
 GKYL_CU_D static const pos_shift_vlasov_kern_list_shift
   pos_shift_vlasov_kern_list_MRSlimiter_tensor[] = {
-    {positivity_shift_vlasov_MRS_limiter_1x1v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_MRS_limiter_1x2v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_MRS_limiter_1x3v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_MRS_limiter_2x2v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_MRS_limiter_2x3v_tensor_p1, NULL, NULL},
-    {positivity_shift_vlasov_MRS_limiter_3x3v_tensor_p1, NULL, NULL},
-};
+    { positivity_shift_vlasov_MRS_limiter_1x1v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_MRS_limiter_1x2v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_MRS_limiter_1x3v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_MRS_limiter_2x2v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_MRS_limiter_2x3v_tensor_p1, NULL, NULL },
+    { positivity_shift_vlasov_MRS_limiter_3x3v_tensor_p1, NULL, NULL }
+  };
 
 GKYL_CU_D static const pos_shift_vlasov_kern_list_m0 pos_shift_vlasov_kern_list_m0_tensor[] = {
-  {vlasov_M0_1x1v_tensor_p1, NULL, NULL},
-  {vlasov_M0_1x2v_tensor_p1, NULL, NULL},
-  {vlasov_M0_1x3v_tensor_p1, NULL, NULL},
-  {vlasov_M0_2x2v_tensor_p1, NULL, NULL},
-  {vlasov_M0_2x3v_tensor_p1, NULL, NULL},
-  {vlasov_M0_3x3v_tensor_p1, NULL, NULL},
+  { vlasov_M0_1x1v_tensor_p1, NULL, NULL }, { vlasov_M0_1x2v_tensor_p1, NULL, NULL },
+  { vlasov_M0_1x3v_tensor_p1, NULL, NULL }, { vlasov_M0_2x2v_tensor_p1, NULL, NULL },
+  { vlasov_M0_2x3v_tensor_p1, NULL, NULL }, { vlasov_M0_3x3v_tensor_p1, NULL, NULL }
 };
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -73,10 +69,10 @@ GKYL_CU_D static const pos_shift_vlasov_kern_list_m0 pos_shift_vlasov_kern_list_
 GKYL_CU_D static struct {
   int vdim[4];
 } pos_shift_vlasov_cv_index[] = {
-  {-1, -1, -1, -1}, // 0x makes no sense
-  {-1, 0, 1, 2}, // 1x kernel indices
-  {-1, -1, 3, 4}, // 2x kernel indices
-  {-1, -1, -1, 5}, // 3x kernel indices
+  { -1, -1, -1, -1 }, // 0x makes no sense
+  { -1, 0, 1, 2 }, // 1x kernel indices
+  { -1, -1, 3, 4 }, // 2x kernel indices
+  { -1, -1, -1, 5 } // 3x kernel indices
 };
 
 struct gkyl_positivity_shift_vlasov_kernels {

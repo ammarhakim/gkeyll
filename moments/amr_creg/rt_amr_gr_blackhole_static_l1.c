@@ -105,8 +105,7 @@ create_ctx(void)
   double r_inner = 1.2; // Ring inner radius.
   double r_outer = 2.4; // Ring outer radius.
 
-  struct amr_gr_blackhole_static_ctx ctx = {
-    .pi = pi,
+  struct amr_gr_blackhole_static_ctx ctx = { .pi = pi,
     .gas_gamma = gas_gamma,
     .rhob = rhob,
     .ub = ub,
@@ -136,8 +135,7 @@ create_ctx(void)
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
     .r_inner = r_inner,
-    .r_outer = r_outer,
-  };
+    .r_outer = r_outer };
 
   return ctx;
 }
@@ -302,8 +300,7 @@ main(int argc, char **argv)
 {
   struct amr_gr_blackhole_static_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct gr_euler2d_single_init init = {
-    .base_Nx = ctx.Nx,
+  struct gr_euler2d_single_init init = { .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor = ctx.ref_factor,
 
@@ -335,8 +332,7 @@ main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
-  };
+    .num_failures_max = ctx.num_failures_max };
 
   gr_euler2d_run_single(argc, argv, &init);
 }

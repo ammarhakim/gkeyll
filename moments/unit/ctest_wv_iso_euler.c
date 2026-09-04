@@ -22,20 +22,18 @@ test_iso_euler_basic_ho()
   TEST_CHECK(iso_euler->num_waves == 3);
 
   double rho = 1.0, u = 0.1, v = 0.2, w = 0.3;
-  double q[4], q_local[4], pv[4] = {rho, u, v, w};
+  double q[4], q_local[4], pv[4] = { rho, u, v, w };
   calcq(pv, q);
 
-  double fluxes[3][4] = {
-    {rho * u, rho * (u * u + vt * vt), rho * u * v, rho * u * w},
-    {rho * v, rho * u * v, rho * (v * v + vt * vt), rho * v * w},
-    {rho * w, rho * u * w, rho * v * w, rho * (w * w + vt * vt)},
-  };
+  double fluxes[3][4] = { { rho * u, rho * (u * u + vt * vt), rho * u * v, rho * u * w },
+    { rho * v, rho * u * v, rho * (v * v + vt * vt), rho * v * w },
+    { rho * w, rho * u * w, rho * v * w, rho * (w * w + vt * vt) } };
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
   double flux[4], flux_local[4];
   for (int d = 1; d < 2; ++d) {
@@ -91,19 +89,19 @@ test_iso_euler_waves_ho()
   double vt = 1.0;
   struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
 
-  double vl[4] = {1.0, 0.1, 0.2, 0.3};
-  double vr[4] = {0.1, 1.0, 2.0, 3.0};
+  double vl[4] = { 1.0, 0.1, 0.2, 0.3 };
+  double vr[4] = { 0.1, 1.0, 2.0, 3.0 };
 
   double ql[4], qr[4];
   double ql_local[4], qr_local[4];
   calcq(vl, ql);
   calcq(vr, qr);
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
   for (int d = 0; d < 3; ++d) {
     double speeds[3], waves[3 * 4], waves_local[3 * 4];
@@ -149,19 +147,19 @@ test_iso_euler_waves_2_ho()
   double vt = 10.0;
   struct gkyl_wv_eqn *iso_euler = gkyl_wv_iso_euler_new(vt, false);
 
-  double vl[4] = {1.0, 0.1, 0.2, 0.3};
-  double vr[4] = {0.01, 1.0, 2.0, 3.0};
+  double vl[4] = { 1.0, 0.1, 0.2, 0.3 };
+  double vr[4] = { 0.01, 1.0, 2.0, 3.0 };
 
   double ql[4], qr[4];
   double ql_local[4], qr_local[4];
   calcq(vl, ql);
   calcq(vr, qr);
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
   for (int d = 0; d < 3; ++d) {
     double speeds[3], waves[3 * 4], waves_local[3 * 4];
@@ -201,9 +199,6 @@ test_iso_euler_waves_2_ho()
   gkyl_wv_eqn_release(iso_euler);
 }
 
-TEST_LIST = {
-  {"iso_euler_basic_ho", test_iso_euler_basic_ho},
-  {"iso_euler_waves_ho", test_iso_euler_waves_ho},
-  {"iso_euler_waves_2_ho", test_iso_euler_waves_2_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "iso_euler_basic_ho", test_iso_euler_basic_ho },
+  { "iso_euler_waves_ho", test_iso_euler_waves_ho },
+  { "iso_euler_waves_2_ho", test_iso_euler_waves_2_ho }, { NULL, NULL } };

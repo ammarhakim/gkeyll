@@ -95,8 +95,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct friction_ctx ctx = {
-    .vt = vt,
+  struct friction_ctx ctx = { .vt = vt,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
@@ -120,8 +119,7 @@ create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -211,8 +209,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *elc_iso_euler = gkyl_wv_iso_euler_new(ctx.vt, false);
   struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vt, false);
 
-  struct gkyl_moment_species elc = {
-    .name = "elc",
+  struct gkyl_moment_species elc = { .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .equation = elc_iso_euler,
@@ -224,11 +221,9 @@ main(int argc, char **argv)
     .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
-    .friction_Lambda_ee = ctx.friction_Lambda_ee,
-  };
+    .friction_Lambda_ee = ctx.friction_Lambda_ee };
 
-  struct gkyl_moment_species ion = {
-    .name = "ion",
+  struct gkyl_moment_species ion = { .name = "ion",
     .charge = ctx.charge_ion,
     .mass = ctx.mass_ion,
     .equation = ion_iso_euler,
@@ -240,19 +235,16 @@ main(int argc, char **argv)
     .use_explicit_friction = true,
     .friction_Z = ctx.friction_Z,
     .friction_T_elc = ctx.friction_T_elc,
-    .friction_Lambda_ee = ctx.friction_Lambda_ee,
-  };
+    .friction_Lambda_ee = ctx.friction_Lambda_ee };
 
   // Field.
-  struct gkyl_moment_field field = {
-    .epsilon0 = ctx.epsilon0,
+  struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .mag_error_speed_fact = 1.0,
 
     .is_static = true,
     .init = evalFieldInit,
-    .ctx = &ctx,
-  };
+    .ctx = &ctx };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -262,7 +254,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = {NX};
+  int cells[] = { NX };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -289,15 +281,15 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm =
-      gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp});
+    comm = gkyl_mpi_comm_new(
+      &(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD, .decomp = decomp });
   } else {
     comm = gkyl_null_comm_inew(
-      &(struct gkyl_null_comm_inp){.decomp = decomp, .use_gpu = app_args.use_gpu});
+      &(struct gkyl_null_comm_inp){ .decomp = decomp, .use_gpu = app_args.use_gpu });
   }
 #else
   comm = gkyl_null_comm_inew(
-    &(struct gkyl_null_comm_inp){.decomp = decomp, .use_gpu = app_args.use_gpu});
+    &(struct gkyl_null_comm_inp){ .decomp = decomp, .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -322,25 +314,20 @@ main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 1,
-    .lower = {-0.5 * ctx.Lx},
-    .upper = {0.5 * ctx.Lx},
-    .cells = {NX},
+    .lower = { -0.5 * ctx.Lx },
+    .upper = { 0.5 * ctx.Lx },
+    .cells = { NX },
 
     .num_periodic_dir = 1,
-    .periodic_dirs = {0},
+    .periodic_dirs = { 0 },
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 2,
-    .species = {elc, ion},
+    .species = { elc, ion },
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
   };
 
   // Create app object.
@@ -353,7 +340,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);

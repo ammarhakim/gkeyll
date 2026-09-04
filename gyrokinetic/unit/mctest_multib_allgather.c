@@ -35,22 +35,18 @@ comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
   if (use_gpu && use_mpi) {
 #ifdef GKYL_HAVE_NCCL
     printf("using NCCL\n");
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
 #else
     fprintf(iostream, " Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = use_gpu });
 #endif
 
   return comm;
@@ -256,7 +252,7 @@ test_L_domain_send_connections_dir0_cuts1_ho()
   int cuts_flat1[] = {
     1, 1, // Block 0.
     1, 1, // Block 1.
-    1, 1, // Block 2.
+    1, 1 // Block 2.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
   struct gkyl_block_geom *geom = create_L_domain_block_geom(cuts1);
@@ -264,12 +260,12 @@ test_L_domain_send_connections_dir0_cuts1_ho()
   cuts_array_release(num_blocks, cuts1);
 
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // Setup for a gather along x
-  int block_list[3][2] = {{0}, {1, 2}, {1, 2}};
+  int block_list[3][2] = { { 0 }, { 1, 2 }, { 1, 2 } };
   int dir = 0;
-  int nconnected[3] = {1, 2, 2};
+  int nconnected[3] = { 1, 2, 2 };
 
   // construct decomp objects
   struct gkyl_rect_decomp **decomp = gkyl_malloc(sizeof(struct gkyl_rect_decomp *[num_blocks]));
@@ -286,30 +282,22 @@ test_L_domain_send_connections_dir0_cuts1_ho()
   }
 
   // for testing
-  int num_send_neigh[] = {1, 2, 2};
+  int num_send_neigh[] = { 1, 2, 2 };
 
   // for testing (these hard-coded values depend on how the algorithm
   // is implemented)
-  struct gkyl_comm_conn conn_0[] = {
-    {.block_id = 0, .rank = 0},
-  };
-  gkyl_range_init(&conn_0[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
+  struct gkyl_comm_conn conn_0[] = { { .block_id = 0, .rank = 0 } };
+  gkyl_range_init(&conn_0[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
 
-  struct gkyl_comm_conn conn_1[] = {
-    {.block_id = 1, .rank = 0},
-    {.block_id = 2, .rank = 0},
-  };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_1[1].range, 2, (int[]){1, 1}, (int[]){300, 300});
+  struct gkyl_comm_conn conn_1[] = { { .block_id = 1, .rank = 0 }, { .block_id = 2, .rank = 0 } };
+  gkyl_range_init(&conn_1[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
 
-  struct gkyl_comm_conn conn_2[] = {
-    {.block_id = 1, .rank = 0},
-    {.block_id = 2, .rank = 0},
-  };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]){301, 1}, (int[]){600, 300});
-  gkyl_range_init(&conn_2[1].range, 2, (int[]){301, 1}, (int[]){600, 300});
+  struct gkyl_comm_conn conn_2[] = { { .block_id = 1, .rank = 0 }, { .block_id = 2, .rank = 0 } };
+  gkyl_range_init(&conn_2[0].range, 2, (int[]){ 301, 1 }, (int[]){ 600, 300 });
+  gkyl_range_init(&conn_2[1].range, 2, (int[]){ 301, 1 }, (int[]){ 600, 300 });
 
-  struct gkyl_comm_conn *block_conn[] = {conn_0, conn_1, conn_2};
+  struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
 
   for (int bid = 0; bid < num_blocks; ++bid) {
     for (int brank = 0; brank < num_cuts[bid]; ++brank) {
@@ -345,7 +333,7 @@ test_L_domain_recv_connections_dir0_cuts1_ho()
   int cuts_flat1[] = {
     1, 1, // Block 0.
     1, 1, // Block 1.
-    1, 1, // Block 2.
+    1, 1 // Block 2.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
   struct gkyl_block_geom *geom = create_L_domain_block_geom(cuts1);
@@ -353,12 +341,12 @@ test_L_domain_recv_connections_dir0_cuts1_ho()
   cuts_array_release(num_blocks, cuts1);
 
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // Setup for a gather along x
-  int block_list[3][2] = {{0}, {1, 2}, {1, 2}};
+  int block_list[3][2] = { { 0 }, { 1, 2 }, { 1, 2 } };
   int dir = 0;
-  int nconnected[3] = {1, 2, 2};
+  int nconnected[3] = { 1, 2, 2 };
 
   // construct decomp objects
   struct gkyl_rect_decomp **decomp = gkyl_malloc(sizeof(struct gkyl_rect_decomp *[num_blocks]));
@@ -375,30 +363,22 @@ test_L_domain_recv_connections_dir0_cuts1_ho()
   }
 
   // for testing
-  int num_recv_neigh[] = {1, 2, 2};
+  int num_recv_neigh[] = { 1, 2, 2 };
 
   // for testing (these hard-coded values depend on how the algorithm
   // is implemented)
-  struct gkyl_comm_conn conn_0[] = {
-    {.block_id = 0, .rank = 0},
-  };
-  gkyl_range_init(&conn_0[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
+  struct gkyl_comm_conn conn_0[] = { { .block_id = 0, .rank = 0 } };
+  gkyl_range_init(&conn_0[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
 
-  struct gkyl_comm_conn conn_1[] = {
-    {.block_id = 1, .rank = 0},
-    {.block_id = 2, .rank = 0},
-  };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_1[1].range, 2, (int[]){301, 1}, (int[]){600, 300});
+  struct gkyl_comm_conn conn_1[] = { { .block_id = 1, .rank = 0 }, { .block_id = 2, .rank = 0 } };
+  gkyl_range_init(&conn_1[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]){ 301, 1 }, (int[]){ 600, 300 });
 
-  struct gkyl_comm_conn conn_2[] = {
-    {.block_id = 1, .rank = 0},
-    {.block_id = 2, .rank = 0},
-  };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_2[1].range, 2, (int[]){301, 1}, (int[]){600, 300});
+  struct gkyl_comm_conn conn_2[] = { { .block_id = 1, .rank = 0 }, { .block_id = 2, .rank = 0 } };
+  gkyl_range_init(&conn_2[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_2[1].range, 2, (int[]){ 301, 1 }, (int[]){ 600, 300 });
 
-  struct gkyl_comm_conn *block_conn[] = {conn_0, conn_1, conn_2};
+  struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
 
   for (int bid = 0; bid < num_blocks; ++bid) {
     for (int brank = 0; brank < num_cuts[bid]; ++brank) {
@@ -434,7 +414,7 @@ test_L_domain_send_connections_dir0_cuts2_ho()
   int cuts_flat1[] = {
     1, 1, // Block 0.
     1, 1, // Block 1.
-    2, 1, // Block 2.
+    2, 1 // Block 2.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
   struct gkyl_block_geom *geom = create_L_domain_block_geom(cuts1);
@@ -451,12 +431,12 @@ test_L_domain_send_connections_dir0_cuts2_ho()
     gkyl_rrobin_decomp_new(num_ranks, num_blocks, branks);
 
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // Setup for a gather along x
-  int block_list[3][2] = {{0}, {1, 2}, {1, 2}};
+  int block_list[3][2] = { { 0 }, { 1, 2 }, { 1, 2 } };
   int dir = 0;
-  int nconnected[3] = {1, 2, 2};
+  int nconnected[3] = { 1, 2, 2 };
 
   // construct decomp objects
   struct gkyl_rect_decomp **decomp = gkyl_malloc(sizeof(struct gkyl_rect_decomp *[num_blocks]));
@@ -473,40 +453,38 @@ test_L_domain_send_connections_dir0_cuts2_ho()
   }
 
   // for testing
-  int num_send_neigh[] = {1, 3, 3};
+  int num_send_neigh[] = { 1, 3, 3 };
 
   // for testing (these hard-coded values depend on how the algorithm
   // is implemented)
-  struct gkyl_comm_conn conn_0[] = {
-    {.block_id = 0, .rank = 0},
-  };
-  gkyl_range_init(&conn_0[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
+  struct gkyl_comm_conn conn_0[] = { { .block_id = 0, .rank = 0 } };
+  gkyl_range_init(&conn_0[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
 
   struct gkyl_comm_conn conn_1[] = {
-    {.block_id = 1, .rank = 0}, // from 0th cut
-    {.block_id = 2, .rank = 0}, // from 0th cut
-    {.block_id = 2, .rank = 0}, // from 0th cut
+    { .block_id = 1, .rank = 0 }, // from 0th cut
+    { .block_id = 2, .rank = 0 }, // from 0th cut
+    { .block_id = 2, .rank = 0 } // from 0th cut
   };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_1[1].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_1[2].range, 2, (int[]){1, 1}, (int[]){300, 300});
+  gkyl_range_init(&conn_1[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_1[2].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
 
   struct gkyl_comm_conn conn_2[] = {
-    {.block_id = 1, .rank = 0}, // from 0th cut
-    {.block_id = 2, .rank = 0}, // from 0th cut
-    {.block_id = 2, .rank = 0}, // from 0th cut
-    {.block_id = 1, .rank = 0}, // from 1st cut
-    {.block_id = 2, .rank = 0}, // from 1st cut
-    {.block_id = 2, .rank = 0}, // from 1st cut
+    { .block_id = 1, .rank = 0 }, // from 0th cut
+    { .block_id = 2, .rank = 0 }, // from 0th cut
+    { .block_id = 2, .rank = 0 }, // from 0th cut
+    { .block_id = 1, .rank = 0 }, // from 1st cut
+    { .block_id = 2, .rank = 0 }, // from 1st cut
+    { .block_id = 2, .rank = 0 } // from 1st cut
   };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_2[1].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_2[2].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_2[3].range, 2, (int[]){451, 1}, (int[]){600, 300});
-  gkyl_range_init(&conn_2[4].range, 2, (int[]){451, 1}, (int[]){600, 300});
-  gkyl_range_init(&conn_2[5].range, 2, (int[]){451, 1}, (int[]){600, 300});
+  gkyl_range_init(&conn_2[0].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_2[1].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_2[2].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_2[3].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
+  gkyl_range_init(&conn_2[4].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
+  gkyl_range_init(&conn_2[5].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
 
-  struct gkyl_comm_conn *block_conn[] = {conn_0, conn_1, conn_2};
+  struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
 
   for (int bid = 0; bid < num_blocks; ++bid) {
     int start_ns = 0;
@@ -562,7 +540,7 @@ test_L_domain_send_connections_dir0_cuts2_par_ho()
   int cuts_flat[] = {
     1, 1, // Block 0.
     1, 1, // Block 1.
-    2, 1, // Block 2.
+    2, 1 // Block 2.
   };
   int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
   struct gkyl_block_geom *geom = create_L_domain_block_geom(cuts);
@@ -602,12 +580,12 @@ test_L_domain_send_connections_dir0_cuts2_par_ho()
   //printf("\n");
 
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // Setup for a gather along x
-  int block_list[3][2] = {{0}, {1, 2}, {1, 2}};
+  int block_list[3][2] = { { 0 }, { 1, 2 }, { 1, 2 } };
   int dir = 0;
-  int nconnected[3] = {1, 2, 2};
+  int nconnected[3] = { 1, 2, 2 };
 
   // construct decomp objects
   struct gkyl_rect_decomp **decomp = gkyl_malloc(sizeof(struct gkyl_rect_decomp *[num_blocks]));
@@ -624,40 +602,38 @@ test_L_domain_send_connections_dir0_cuts2_par_ho()
   }
 
   // for testing
-  int num_send_neigh[] = {1, 3, 3};
+  int num_send_neigh[] = { 1, 3, 3 };
 
   // for testing (these hard-coded values depend on how the algorithm
   // is implemented)
-  struct gkyl_comm_conn conn_0[] = {
-    {.block_id = 0, .rank = 0},
-  };
-  gkyl_range_init(&conn_0[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
+  struct gkyl_comm_conn conn_0[] = { { .block_id = 0, .rank = 0 } };
+  gkyl_range_init(&conn_0[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
 
   struct gkyl_comm_conn conn_1[] = {
-    {.block_id = 1, .rank = 1}, // from 0th cut
-    {.block_id = 2, .rank = 0}, // from 0th cut to 0th cut
-    {.block_id = 2, .rank = 1}, // from 0th cut to 1st cut
+    { .block_id = 1, .rank = 1 }, // from 0th cut
+    { .block_id = 2, .rank = 0 }, // from 0th cut to 0th cut
+    { .block_id = 2, .rank = 1 } // from 0th cut to 1st cut
   };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_1[1].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_1[2].range, 2, (int[]){1, 1}, (int[]){300, 300});
+  gkyl_range_init(&conn_1[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_1[2].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
 
   struct gkyl_comm_conn conn_2[] = {
-    {.block_id = 1, .rank = 1}, // from 0th cut
-    {.block_id = 2, .rank = 0}, // from 0th cut to 0th cut
-    {.block_id = 2, .rank = 1}, // from 0th cut to 1st cut
-    {.block_id = 1, .rank = 1}, // from 1st cut to 0th cut
-    {.block_id = 2, .rank = 0}, // from 1st cut to 0th cut
-    {.block_id = 2, .rank = 1}, // from 1st cut to 1st cut
+    { .block_id = 1, .rank = 1 }, // from 0th cut
+    { .block_id = 2, .rank = 0 }, // from 0th cut to 0th cut
+    { .block_id = 2, .rank = 1 }, // from 0th cut to 1st cut
+    { .block_id = 1, .rank = 1 }, // from 1st cut to 0th cut
+    { .block_id = 2, .rank = 0 }, // from 1st cut to 0th cut
+    { .block_id = 2, .rank = 1 } // from 1st cut to 1st cut
   };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_2[1].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_2[2].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_2[3].range, 2, (int[]){451, 1}, (int[]){600, 300});
-  gkyl_range_init(&conn_2[4].range, 2, (int[]){451, 1}, (int[]){600, 300});
-  gkyl_range_init(&conn_2[5].range, 2, (int[]){451, 1}, (int[]){600, 300});
+  gkyl_range_init(&conn_2[0].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_2[1].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_2[2].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_2[3].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
+  gkyl_range_init(&conn_2[4].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
+  gkyl_range_init(&conn_2[5].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
 
-  struct gkyl_comm_conn *block_conn[] = {conn_0, conn_1, conn_2};
+  struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
 
   for (int bid = 0; bid < num_blocks; ++bid) {
     int start_ns = 0;
@@ -712,7 +688,7 @@ test_L_domain_recv_connections_dir0_cuts2_par_ho()
   int cuts_flat[] = {
     1, 1, // Block 0.
     1, 1, // Block 1.
-    2, 1, // Block 2.
+    2, 1 // Block 2.
   };
   int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
   struct gkyl_block_geom *geom = create_L_domain_block_geom(cuts);
@@ -752,12 +728,12 @@ test_L_domain_recv_connections_dir0_cuts2_par_ho()
   //printf("\n");
 
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // Setup for a gather along x
-  int block_list[3][2] = {{0}, {1, 2}, {1, 2}};
+  int block_list[3][2] = { { 0 }, { 1, 2 }, { 1, 2 } };
   int dir = 0;
-  int nconnected[3] = {1, 2, 2};
+  int nconnected[3] = { 1, 2, 2 };
 
   // construct decomp objects
   struct gkyl_rect_decomp **decomp = gkyl_malloc(sizeof(struct gkyl_rect_decomp *[num_blocks]));
@@ -774,40 +750,38 @@ test_L_domain_recv_connections_dir0_cuts2_par_ho()
   }
 
   // for testing
-  int num_recv_neigh[] = {1, 3, 3};
+  int num_recv_neigh[] = { 1, 3, 3 };
 
   // for testing (these hard-coded values depend on how the algorithm
   // is implemented)
-  struct gkyl_comm_conn conn_0[] = {
-    {.block_id = 0, .rank = 0},
-  };
-  gkyl_range_init(&conn_0[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
+  struct gkyl_comm_conn conn_0[] = { { .block_id = 0, .rank = 0 } };
+  gkyl_range_init(&conn_0[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
 
   struct gkyl_comm_conn conn_1[] = {
-    {.block_id = 1, .rank = 1}, // into 0th from 0th cut
-    {.block_id = 2, .rank = 0}, // into 0th cut from 0th cut
-    {.block_id = 2, .rank = 1}, // into 0th cut from 1st cut
+    { .block_id = 1, .rank = 1 }, // into 0th from 0th cut
+    { .block_id = 2, .rank = 0 }, // into 0th cut from 0th cut
+    { .block_id = 2, .rank = 1 } // into 0th cut from 1st cut
   };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_1[1].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_1[2].range, 2, (int[]){451, 1}, (int[]){600, 300});
+  gkyl_range_init(&conn_1[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_1[2].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
 
   struct gkyl_comm_conn conn_2[] = {
-    {.block_id = 1, .rank = 1}, // into 0th cut from 0th cut
-    {.block_id = 2, .rank = 0}, // into 0th cut from 0th cut
-    {.block_id = 2, .rank = 1}, // into 0th cut from 1st cut
-    {.block_id = 1, .rank = 1}, // into 1st cut from 0th cut
-    {.block_id = 2, .rank = 0}, // into 1st cut from 0th cut
-    {.block_id = 2, .rank = 1}, // into 1st cut from 1st cut
+    { .block_id = 1, .rank = 1 }, // into 0th cut from 0th cut
+    { .block_id = 2, .rank = 0 }, // into 0th cut from 0th cut
+    { .block_id = 2, .rank = 1 }, // into 0th cut from 1st cut
+    { .block_id = 1, .rank = 1 }, // into 1st cut from 0th cut
+    { .block_id = 2, .rank = 0 }, // into 1st cut from 0th cut
+    { .block_id = 2, .rank = 1 } // into 1st cut from 1st cut
   };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_2[1].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_2[2].range, 2, (int[]){451, 1}, (int[]){600, 300});
-  gkyl_range_init(&conn_2[3].range, 2, (int[]){1, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_2[4].range, 2, (int[]){301, 1}, (int[]){450, 300});
-  gkyl_range_init(&conn_2[5].range, 2, (int[]){451, 1}, (int[]){600, 300});
+  gkyl_range_init(&conn_2[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_2[1].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_2[2].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
+  gkyl_range_init(&conn_2[3].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_2[4].range, 2, (int[]){ 301, 1 }, (int[]){ 450, 300 });
+  gkyl_range_init(&conn_2[5].range, 2, (int[]){ 451, 1 }, (int[]){ 600, 300 });
 
-  struct gkyl_comm_conn *block_conn[] = {conn_0, conn_1, conn_2};
+  struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
 
   for (int bid = 0; bid < num_blocks; ++bid) {
     int start_ns = 0;
@@ -862,7 +836,7 @@ test_L_domain_allgather_dir0_cuts2_par_ho()
   int cuts_flat[] = {
     1, 1, // Block 0.
     1, 1, // Block 1.
-    ncuts_block2, 1, // Block 2.
+    ncuts_block2, 1 // Block 2.
   };
   int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
   struct gkyl_block_geom *geom = create_L_domain_block_geom(cuts);
@@ -880,7 +854,7 @@ test_L_domain_allgather_dir0_cuts2_par_ho()
   int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // Allocate enough space.
 
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // Setup for a gather along x
   int dir = 0;
@@ -1015,10 +989,10 @@ test_L_domain_allgather_dir0_cuts2_par_ho()
     int cells[2];
     cells[0] = gkyl_range_shape(global_ranges[bI], 0);
     cells[1] = gkyl_range_shape(global_ranges[bI], 1);
-    double gridlo[2] = {0.0, 0.0};
+    double gridlo[2] = { 0.0, 0.0 };
     double l0 = ((double)cells[0]) / 300.0;
     double l1 = ((double)cells[1]) / 300.0;
-    double gridup[2] = {l0, l1};
+    double gridup[2] = { l0, l1 };
     gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
     char str[50];
     sprintf(str, "lb%d_r%d.gkyl", bI, my_rank);
@@ -1071,7 +1045,7 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   int cuts_flat[] = {
     1, 1, // Block 0.
     1, ncuts_block1, // Block 1.
-    1, 1, // Block 2.
+    1, 1 // Block 2.
   };
   int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
   struct gkyl_block_geom *geom = create_SOL_domain_block_geom(cuts);
@@ -1113,7 +1087,7 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   int *rank_list = gkyl_malloc(sizeof(int[num_ranks])); // Allocate enough space.
 
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // Setup for a gather along x
   int dir = 1;
@@ -1262,10 +1236,10 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     int cells[2];
     cells[0] = gkyl_range_shape(global_ranges[bI], 0);
     cells[1] = gkyl_range_shape(global_ranges[bI], 1);
-    double gridlo[2] = {0.0, 0.0};
+    double gridlo[2] = { 0.0, 0.0 };
     double l0 = ((double)cells[0]) / 4.0;
     double l1 = ((double)cells[1]) / 8.0;
-    double gridup[2] = {l0, l1};
+    double gridup[2] = { l0, l1 };
     gkyl_rect_grid_init(&grid, 2, gridlo, gridup, cells);
     char str[50];
     sprintf(str, "lb%d_r%d.gkyl", bI, my_rank);
@@ -1276,7 +1250,7 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   for (int bI = 0; bI < num_local_blocks; ++bI) {
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, global_ranges[bI]);
-    double fcheck[4] = {0.0};
+    double fcheck[4] = { 0.0 };
     while (gkyl_range_iter_next(&iter)) {
       if (iter.idx[1] <= 8) {
         fcheck[0] = 0.0;
@@ -1355,9 +1329,9 @@ TEST_LIST = {
   //{ "test_L_domain_send_connections_dir0_cuts2_par_ho", test_L_domain_send_connections_dir0_cuts2_par_ho},
   //{ "test_L_domain_recv_connections_dir0_cuts2_par_ho", test_L_domain_recv_connections_dir0_cuts2_par_ho},
   //{ "test_L_domain_allgather_dir0_cuts2_par_ho", test_L_domain_allgather_dir0_cuts2_par_ho},
-  {"test_SOL_domain_allgather_dir1_cuts2_par_ho", test_SOL_domain_allgather_dir1_cuts2_par_ho},
+  { "test_SOL_domain_allgather_dir1_cuts2_par_ho", test_SOL_domain_allgather_dir1_cuts2_par_ho },
 #ifdef GKYL_HAVE_NCCL
-  {"test_SOL_domain_allgather_dir1_cuts2_par_dev", test_SOL_domain_allgather_dir1_cuts2_par_dev},
+  { "test_SOL_domain_allgather_dir1_cuts2_par_dev", test_SOL_domain_allgather_dir1_cuts2_par_dev },
 #endif
-  {NULL, NULL},
+  { NULL, NULL }
 };

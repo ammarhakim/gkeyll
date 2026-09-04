@@ -19,7 +19,7 @@ ufunc(float t, float x)
 
 enum arch_type { ARCH_MLP, ARCH_GRU, ARCH_GRU_NORM };
 
-static const char *arch_name[] = {"MLP", "GRU", "GRU+Norm"};
+static const char *arch_name[] = { "MLP", "GRU", "GRU+Norm" };
 
 static kad_node_t *
 build_net(enum arch_type arch, int nwidth, int ndepth)
@@ -82,13 +82,11 @@ bench_train(enum arch_type arch, int ntrain_t, int ntrain_x, int nwidth, int nde
     out_t = out_cu;
   }
 
-  struct gkyl_kann_train_params params = {
-    .learning_rate = 1e-3f,
+  struct gkyl_kann_train_params params = { .learning_rate = 1e-3f,
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f,
-  };
+    .frac_val = 0.1f };
 
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
@@ -211,12 +209,12 @@ main(int argc, char *argv[])
   int ntrain_t = 51, ntrain_x = 51;
   int ninfer = 101;
 
-  int widths[] = {32, 64, 128};
-  int depths[] = {2, 4};
+  int widths[] = { 32, 64, 128 };
+  int depths[] = { 2, 4 };
   int nw = sizeof(widths) / sizeof(widths[0]);
   int nd = sizeof(depths) / sizeof(depths[0]);
 
-  enum arch_type archs[] = {ARCH_MLP, ARCH_GRU, ARCH_GRU_NORM};
+  enum arch_type archs[] = { ARCH_MLP, ARCH_GRU, ARCH_GRU_NORM };
   int na = sizeof(archs) / sizeof(archs[0]);
 
   // ---- Training benchmark ----
@@ -269,7 +267,7 @@ main(int argc, char *argv[])
   fprintf(stdout, "%10s %6s %6s %10s %10s %10s\n", "arch", "width", "depth", "CPU (ms)", "GPU (ms)",
     "speedup");
 
-  enum arch_type rnn_archs[] = {ARCH_GRU, ARCH_GRU_NORM};
+  enum arch_type rnn_archs[] = { ARCH_GRU, ARCH_GRU_NORM };
   int nra = sizeof(rnn_archs) / sizeof(rnn_archs[0]);
 
   for (int ai = 0; ai < nra; ++ai) {

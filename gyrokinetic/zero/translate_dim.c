@@ -59,7 +59,7 @@ gkyl_translate_dim_advance(gkyl_translate_dim *up, const struct gkyl_range *rng_
   }
 #endif
 
-  int idx_do[GKYL_MAX_DIM] = {0};
+  int idx_do[GKYL_MAX_DIM] = { 0 };
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, rng_tar);

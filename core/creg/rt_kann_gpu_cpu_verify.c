@@ -47,13 +47,11 @@ train_and_save(int ntrain, int nwidth, int ndepth, bool use_gpu, const char *fil
     out_t = out_cu;
   }
 
-  struct gkyl_kann_train_params params = {
-    .learning_rate = 1e-3f,
+  struct gkyl_kann_train_params params = { .learning_rate = 1e-3f,
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f,
-  };
+    .frac_val = 0.1f };
 
   gkyl_kann_net_train_fnn1(net, &params, inp_t, out_t);
   gkyl_kann_net_save(net, filename);
@@ -95,8 +93,8 @@ main(int argc, char *argv[])
   int ntrain = 1001;
   int ninfer = 21;
 
-  int widths[] = {64, 128, 256, 512};
-  int depths[] = {2, 4};
+  int widths[] = { 64, 128, 256, 512 };
+  int depths[] = { 2, 4 };
   int nw = sizeof(widths) / sizeof(widths[0]);
   int nd = sizeof(depths) / sizeof(depths[0]);
 

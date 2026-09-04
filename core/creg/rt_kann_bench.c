@@ -46,13 +46,11 @@ bench_train(int ntrain, int nwidth, int ndepth, bool use_gpu)
     out_t = out_cu;
   }
 
-  struct gkyl_kann_train_params params = {
-    .learning_rate = 1e-3f,
+  struct gkyl_kann_train_params params = { .learning_rate = 1e-3f,
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f,
-  };
+    .frac_val = 0.1f };
 
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
@@ -123,8 +121,8 @@ main(int argc, char *argv[])
   int ntrain = 1001;
   int ninfer = 1001;
 
-  int widths[] = {64, 128, 256, 512};
-  int depths[] = {2, 4};
+  int widths[] = { 64, 128, 256, 512 };
+  int depths[] = { 2, 4 };
   int nw = sizeof(widths) / sizeof(widths[0]);
   int nd = sizeof(depths) / sizeof(depths[0]);
 
@@ -165,13 +163,11 @@ main(int argc, char *argv[])
         inp->vals[i][0] = -1.0f + dx * i;
         out->vals[i][0] = ufunc(inp->vals[i][0]);
       }
-      struct gkyl_kann_train_params params = {
-        .learning_rate = 1e-3f,
+      struct gkyl_kann_train_params params = { .learning_rate = 1e-3f,
         .mini_size = 64,
         .max_epoch = 5,
         .max_drop_streak = 5,
-        .frac_val = 0.1f,
-      };
+        .frac_val = 0.1f };
       gkyl_kann_net_train_fnn1(net, &params, inp, out);
       gkyl_kann_net_save(net, "bench_tmp.kann");
       gkyl_kn_vec_release(inp);

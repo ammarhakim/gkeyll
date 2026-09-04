@@ -214,8 +214,8 @@ planar_quad_area_norm(const struct gkyl_vec3 p1, const struct gkyl_vec3 p2,
 static inline struct gkyl_vec3
 gkyl_vec3_add_coeff(const double ca, struct gkyl_vec3 a, const double cb, struct gkyl_vec3 b)
 {
-  return (struct gkyl_vec3){
-    .x = {ca * a.x[0] + cb * b.x[0], ca * a.x[1] + cb * b.x[1], ca * a.x[2] + cb * b.x[2]}};
+  return (struct gkyl_vec3){ .x = { ca * a.x[0] + cb * b.x[0], ca * a.x[1] + cb * b.x[1],
+                               ca * a.x[2] + cb * b.x[2] } };
 }
 
 static double
@@ -275,13 +275,14 @@ calc_geom_3d_form_nodes(const double *dx, struct gkyl_vec3 verts[8], evalf_t map
 
   // for each of the thee lower quad faces 'owned' by the present cell, compute
   // area, norm, tan1, tan2, and lenr
-  int pt_idx[3][4] = {// indices of verices of each face in verts; see vol_hexa
+  int pt_idx[3][4] = { // indices of verices of each face in verts; see vol_hexa
     // lower-x face, lll, lul, luu, llu; v(p1->p2)=ey
-    {0, 3, 7, 4},
+    { 0, 3, 7, 4 },
     // lower-y face, lll, llu, ulu, ull; v(p1->p2)=ez
-    {0, 4, 5, 1},
+    { 0, 4, 5, 1 },
     // lower-z face, lll, ull, uul, lul; v(p1->p2)=ex
-    {0, 1, 2, 3}};
+    { 0, 1, 2, 3 }
+  };
   for (int face_idx = 0; face_idx < 3; ++face_idx) {
     int ip1 = pt_idx[face_idx][0];
     int ip2 = pt_idx[face_idx][1];
@@ -306,15 +307,15 @@ calc_geom_3d(
   const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
 {
   // get all vertices of the hexahedron; see vol_hexa for their order
-  struct gkyl_vec3 verts_c[8] = {
-    gkyl_vec3_new(xc[0] - 0.5 * dx[0], xc[1] - 0.5 * dx[1], xc[2] - 0.5 * dx[2]),
+  struct gkyl_vec3 verts_c[8] = { gkyl_vec3_new(
+                                    xc[0] - 0.5 * dx[0], xc[1] - 0.5 * dx[1], xc[2] - 0.5 * dx[2]),
     gkyl_vec3_new(xc[0] + 0.5 * dx[0], xc[1] - 0.5 * dx[1], xc[2] - 0.5 * dx[2]),
     gkyl_vec3_new(xc[0] + 0.5 * dx[0], xc[1] + 0.5 * dx[1], xc[2] - 0.5 * dx[2]),
     gkyl_vec3_new(xc[0] - 0.5 * dx[0], xc[1] + 0.5 * dx[1], xc[2] - 0.5 * dx[2]),
     gkyl_vec3_new(xc[0] - 0.5 * dx[0], xc[1] - 0.5 * dx[1], xc[2] + 0.5 * dx[2]),
     gkyl_vec3_new(xc[0] + 0.5 * dx[0], xc[1] - 0.5 * dx[1], xc[2] + 0.5 * dx[2]),
     gkyl_vec3_new(xc[0] + 0.5 * dx[0], xc[1] + 0.5 * dx[1], xc[2] + 0.5 * dx[2]),
-    gkyl_vec3_new(xc[0] - 0.5 * dx[0], xc[1] + 0.5 * dx[1], xc[2] + 0.5 * dx[2])};
+    gkyl_vec3_new(xc[0] - 0.5 * dx[0], xc[1] + 0.5 * dx[1], xc[2] + 0.5 * dx[2]) };
 
   struct gkyl_vec3 verts[8]; // physical coordinate nodes
   for (int i = 0; i < 8; ++i)

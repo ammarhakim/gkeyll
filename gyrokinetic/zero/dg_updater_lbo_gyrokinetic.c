@@ -33,11 +33,11 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
   int vdim = pdim - cdim;
   int num_up_dirs = vdim;
-  int up_dirs[GKYL_MAX_DIM] = {0};
+  int up_dirs[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < vdim; ++d)
     up_dirs[d] = d + phase_basis->ndim - vdim;
 
-  int zero_flux_flags[2 * GKYL_MAX_DIM] = {0};
+  int zero_flux_flags[2 * GKYL_MAX_DIM] = { 0 };
   for (int d = cdim; d < pdim; ++d)
     zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1;
 
@@ -69,8 +69,8 @@ gkyl_dg_updater_lbo_gyrokinetic_advance(struct gkyl_dg_updater_collisions *lbo,
 struct gkyl_dg_updater_lbo_gyrokinetic_tm
 gkyl_dg_updater_lbo_gyrokinetic_get_tm(const gkyl_dg_updater_collisions *coll)
 {
-  return (struct gkyl_dg_updater_lbo_gyrokinetic_tm){
-    .drag_tm = coll->drag_tm, .diff_tm = coll->diff_tm};
+  return (struct gkyl_dg_updater_lbo_gyrokinetic_tm){ .drag_tm = coll->drag_tm,
+    .diff_tm = coll->diff_tm };
 }
 
 void

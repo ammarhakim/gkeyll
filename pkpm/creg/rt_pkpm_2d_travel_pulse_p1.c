@@ -141,8 +141,7 @@ create_ctx(void)
     "pkpm_2d_travel_pulse_p1_moms_nn_1"; // File path of neural network to test.
   int num_tests = 1; // Number of times to test neural network.
 
-  struct travel_pulse_ctx ctx = {
-    .pi = pi,
+  struct travel_pulse_ctx ctx = { .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass = mass,
@@ -182,8 +181,7 @@ create_ctx(void)
     .output_moms = output_moms,
     .test_nn = test_nn,
     .test_nn_file = test_nn_file,
-    .num_tests = num_tests,
-  };
+    .num_tests = num_tests };
 
   return ctx;
 }
@@ -391,7 +389,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = {NX, NY};
+  int ccells[] = { NX, NY };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -414,22 +412,18 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -451,30 +445,22 @@ main(int argc, char **argv)
   }
 
   // Neutral species.
-  struct gkyl_pkpm_species neut = {
-    .name = "neut",
+  struct gkyl_pkpm_species neut = { .name = "neut",
     .charge = ctx.charge,
     .mass = ctx.mass,
-    .lower = {-ctx.vx_max},
-    .upper = {ctx.vx_max},
-    .cells = {NVX},
+    .lower = { -ctx.vx_max },
+    .upper = { ctx.vx_max },
+    .cells = { NVX },
 
     .init_dist = evalDistInit,
     .ctx_dist = &ctx,
     .init_fluid = evalFluidInit,
     .ctx_fluid = &ctx,
 
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNu,
-        .ctx = &ctx,
-      },
-  };
+    .collisions = { .collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNu, .ctx = &ctx } };
 
   // Field.
-  struct gkyl_pkpm_field field = {
-    .epsilon0 = ctx.epsilon0,
+  struct gkyl_pkpm_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -482,36 +468,32 @@ main(int argc, char **argv)
     .init = evalFieldInit,
     .ctx = &ctx,
 
-    .is_static = true,
-  };
+    .is_static = true };
 
   // PKPM app.
   struct gkyl_pkpm app_inp = {
 
     .cdim = 2,
     .vdim = 1,
-    .lower = {0.0, 0.0},
-    .upper = {ctx.Lx, ctx.Ly},
-    .cells = {NX, NY},
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 2,
-    .periodic_dirs = {0, 1},
+    .periodic_dirs = { 0, 1 },
 
     .num_species = 1,
-    .species = {neut},
+    .species = { neut },
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -546,34 +528,40 @@ main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 
   // Create trigger for neural network training.
   int num_trains = ctx.num_trains;
-  struct gkyl_tm_trigger nn_trig = {.dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr};
+  struct gkyl_tm_trigger nn_trig = {
+    .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr
+  };
 
   kad_node_t **t = gkyl_malloc(sizeof(kad_node_t *) * app_inp.num_species);
   struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);
@@ -650,7 +638,8 @@ main(int argc, char **argv)
   // Create trigger for neural network writing.
   int num_nn_writes = ctx.num_nn_writes;
   struct gkyl_tm_trigger nnw_trig = {
-    .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr
+  };
 
   if (ctx.train_nn) {
     write_nn(&nnw_trig, app, t_curr, false, ann);
@@ -658,7 +647,9 @@ main(int argc, char **argv)
 
   // Create trigger for neural network testing.
   int num_tests = ctx.num_tests;
-  struct gkyl_tm_trigger nnt_trig = {.dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr};
+  struct gkyl_tm_trigger nnt_trig = {
+    .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr
+  };
 
   struct gkyl_kann_net **ann_test =
     gkyl_malloc(sizeof(struct gkyl_kann_net *) * app_inp.num_species);

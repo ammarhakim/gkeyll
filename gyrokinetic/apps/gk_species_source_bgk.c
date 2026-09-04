@@ -213,12 +213,12 @@ gk_species_source_bgk_write_diags_heating_enabled(gkyl_gyrokinetic_app *app, str
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
 
     if (src->is_first_diag_dynvec_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{.key = "Description",
+      struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
         .elem_type = GKYL_MP_STRING,
-        .cval = "Squared thermal speed amplitude."}};
-      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-      const struct gkyl_msgpack_map_elem *io_meta[] = {
-        gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+        .cval = "Squared thermal speed amplitude." } };
+      int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
+      const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
+        app->gk_geom->io_meta_basic, io_meta_phi };
       struct gkyl_msgpack_data *mt =
         gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -242,12 +242,12 @@ gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app *app,
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
-  struct gkyl_msgpack_map_elem desc_bgk_moms[] = {{.key = "Description",
+  struct gkyl_msgpack_map_elem desc_bgk_moms[] = { { .key = "Description",
     .elem_type = GKYL_MP_STRING,
-    .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate."}};
-  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_bgk_moms};
+    .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate." } };
+  int io_meta_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_conf, app->gk_geom->io_meta_basic,
+    desc_bgk_moms };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -351,12 +351,12 @@ gk_species_source_bgk_write_integrated_diags_enabled(
       gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2]);
 
     if (src->is_first_diag_dynvec_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{.key = "Description",
+      struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
         .elem_type = GKYL_MP_STRING,
-        .cval = "Volume integrated moment of the BGK source."}};
-      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-      const struct gkyl_msgpack_map_elem *io_meta[] = {
-        gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+        .cval = "Volume integrated moment of the BGK source." } };
+      int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
+      const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
+        app->gk_geom->io_meta_basic, io_meta_phi };
       struct gkyl_msgpack_data *mt =
         gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -385,11 +385,11 @@ gk_species_source_bgk_write_array(gkyl_gyrokinetic_app *app, struct gk_species *
   gkyl_msgpack_map_elem_set_double(iom_len, iom, "time", stime);
   gkyl_msgpack_map_elem_set_uint(iom_len, iom, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_f[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = description},
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description }
   };
   int io_meta_f_len = sizeof(io_meta_f) / sizeof(io_meta_f[0]);
-  int io_meta_len[] = {iom_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {iom, app->gk_geom->io_meta_basic, io_meta_f};
+  int io_meta_len[] = { iom_len, app->gk_geom->io_meta_basic_len, io_meta_f_len };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { iom, app->gk_geom->io_meta_basic, io_meta_f };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -477,23 +477,20 @@ gk_species_source_bgk_init(
       struct gkyl_array *Jrate_fmax_host = app->use_gpu
         ? mkarr(false, src->Jrate_df->ncomp, src->Jrate_df->size)
         : gkyl_array_acquire(src->Jrate_df);
-      struct gk_proj_on_basis_c2p_func_ctx proj_feq_shape_c2p_ctx = {
-        .cdim = app->cdim,
+      struct gk_proj_on_basis_c2p_func_ctx proj_feq_shape_c2p_ctx = { .cdim = app->cdim,
         .vdim = gks->local_vel.ndim,
         .vel_map = gks->vel_map,
-        .pos_map = app->position_map,
-      };
-      gkyl_proj_on_basis *proj_feq_shape = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-        .grid = &gks->grid,
-        .basis = &gks->basis,
-        .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = gks->basis.poly_order + 1,
-        .num_ret_vals = 1,
-        .eval = gks->info.source_bgk.feq_shape,
-        .ctx = gks->info.source_bgk.feq_shape_ctx,
-        .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &proj_feq_shape_c2p_ctx,
-      });
+        .pos_map = app->position_map };
+      gkyl_proj_on_basis *proj_feq_shape =
+        gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &gks->grid,
+          .basis = &gks->basis,
+          .qtype = GKYL_GAUSS_QUAD,
+          .num_quad = gks->basis.poly_order + 1,
+          .num_ret_vals = 1,
+          .eval = gks->info.source_bgk.feq_shape,
+          .ctx = gks->info.source_bgk.feq_shape_ctx,
+          .c2p_func = proj_on_basis_c2p_phase_func,
+          .c2p_func_ctx = &proj_feq_shape_c2p_ctx });
       gkyl_proj_on_basis_advance(proj_feq_shape, 0.0, &gks->local, Jrate_fmax_host);
       gkyl_array_copy(src->Jrate_df, Jrate_fmax_host);
       gkyl_proj_on_basis_release(proj_feq_shape);

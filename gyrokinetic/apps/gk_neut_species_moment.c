@@ -69,7 +69,7 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
   // Initialize kinetic neutral species moment object.
   if (sm->is_integrated) {
     // Create moment operator.
-    struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
+    struct gkyl_mom_canonical_pb_auxfields can_pb_inp = { .hamil = s->hamil };
     sm->mcalc =
       gkyl_dg_updater_moment_new(&s->grid, &app->basis, &s->basis, &app->local, &s->local_vel,
         &s->local, s->model_id, &can_pb_inp, mom_type, sm->is_integrated, app->use_gpu);
@@ -85,8 +85,7 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
   } else {
     // Create moment operator.
     if (sm->is_maxwellian_moms) {
-      struct gkyl_vlasov_lte_moments_inp inp_mom = {
-        .phase_grid = &s->grid,
+      struct gkyl_vlasov_lte_moments_inp inp_mom = { .phase_grid = &s->grid,
         .vel_grid = &s->grid_vel,
         .conf_basis = &app->basis,
         .phase_basis = &s->basis,
@@ -99,13 +98,12 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
         .det_h = app->gk_geom->geo_int.jacobgeo,
         .hamil = s->hamil,
         .model_id = s->model_id,
-        .use_gpu = app->use_gpu,
-      };
+        .use_gpu = app->use_gpu };
       sm->vlasov_lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
       sm->num_mom = 5; // (n, ux, uy, uz, T/m).
       sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_enabled_1st_comp;
     } else {
-      struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
+      struct gkyl_mom_canonical_pb_auxfields can_pb_inp = { .hamil = s->hamil };
       sm->mcalc =
         gkyl_dg_updater_moment_new(&s->grid, &app->basis, &s->basis, &app->local, &s->local_vel,
           &s->local, s->model_id, &can_pb_inp, mom_type, sm->is_integrated, app->use_gpu);

@@ -69,10 +69,10 @@ struct dg_canonical_pb {
 static struct {
   int vdim[4];
 } cv_index[] = {
-  {-1, -1, -1, -1}, // 0x makes no sense
-  {-1, 0, 1, 2}, // 1x kernel indices
-  {-1, -1, 3, 4}, // 2x kernel indices
-  {-1, -1, -1, 5}, // 3x kernel indices
+  { -1, -1, -1, -1 }, // 0x makes no sense
+  { -1, 0, 1, 2 }, // 1x kernel indices
+  { -1, -1, 3, 4 }, // 2x kernel indices
+  { -1, -1, -1, 5 } // 3x kernel indices
 };
 
 //
@@ -193,14 +193,14 @@ kernel_canonical_pb_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double 
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_canonical_pb_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  {NULL, kernel_canonical_pb_vol_1x1v_ser_p1, kernel_canonical_pb_vol_1x1v_ser_p2}, // 0
-  {NULL, kernel_canonical_pb_vol_1x2v_ser_p1, kernel_canonical_pb_vol_1x2v_ser_p2}, // 1
-  {NULL, kernel_canonical_pb_vol_1x3v_ser_p1, kernel_canonical_pb_vol_1x3v_ser_p2}, // 2
+  { NULL, kernel_canonical_pb_vol_1x1v_ser_p1, kernel_canonical_pb_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_canonical_pb_vol_1x2v_ser_p1, kernel_canonical_pb_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_canonical_pb_vol_1x3v_ser_p1, kernel_canonical_pb_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, kernel_canonical_pb_vol_2x2v_ser_p1, kernel_canonical_pb_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_canonical_pb_vol_2x3v_ser_p1, kernel_canonical_pb_vol_2x3v_ser_p2}, // 4
+  { NULL, kernel_canonical_pb_vol_2x2v_ser_p1, kernel_canonical_pb_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_canonical_pb_vol_2x3v_ser_p1, kernel_canonical_pb_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 //
@@ -210,164 +210,175 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_vol_kern_list ser_vol_kernels[] = {
 // Streaming surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list ser_stream_surf_x_kernels[] = {
   // 1x kernels
-  {NULL, canonical_pb_surfx_1x1v_ser_p1, canonical_pb_surfx_1x1v_ser_p2}, // 0
-  {NULL, canonical_pb_surfx_1x2v_ser_p1, canonical_pb_surfx_1x2v_ser_p2}, // 1
-  {NULL, canonical_pb_surfx_1x3v_ser_p1, canonical_pb_surfx_1x3v_ser_p2}, // 2
+  { NULL, canonical_pb_surfx_1x1v_ser_p1, canonical_pb_surfx_1x1v_ser_p2 }, // 0
+  { NULL, canonical_pb_surfx_1x2v_ser_p1, canonical_pb_surfx_1x2v_ser_p2 }, // 1
+  { NULL, canonical_pb_surfx_1x3v_ser_p1, canonical_pb_surfx_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, canonical_pb_surfx_2x2v_ser_p1, canonical_pb_surfx_2x2v_ser_p2}, // 3
-  {NULL, canonical_pb_surfx_2x3v_ser_p1, canonical_pb_surfx_2x3v_ser_p2}, // 4
+  { NULL, canonical_pb_surfx_2x2v_ser_p1, canonical_pb_surfx_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_surfx_2x3v_ser_p1, canonical_pb_surfx_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Streaming surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list ser_stream_surf_y_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
   // 2x kernels
-  {NULL, canonical_pb_surfy_2x2v_ser_p1, canonical_pb_surfy_2x2v_ser_p2}, // 3
-  {NULL, canonical_pb_surfy_2x3v_ser_p1, canonical_pb_surfy_2x3v_ser_p2}, // 4
+  { NULL, canonical_pb_surfy_2x2v_ser_p1, canonical_pb_surfy_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_surfy_2x3v_ser_p1, canonical_pb_surfy_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Streaming surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list ser_stream_surf_z_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
   // 2x kernels
-  {NULL, NULL, NULL}, // 3
-  {NULL, NULL, NULL}, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Acceleration surface kernel list: vx-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list ser_accel_surf_vx_kernels[] = {
   // 1x kernels
-  {NULL, canonical_pb_surfvx_1x1v_ser_p1, canonical_pb_surfvx_1x1v_ser_p2}, // 0
-  {NULL, canonical_pb_surfvx_1x2v_ser_p1, canonical_pb_surfvx_1x2v_ser_p2}, // 1
-  {NULL, canonical_pb_surfvx_1x3v_ser_p1, canonical_pb_surfvx_1x3v_ser_p2}, // 2
+  { NULL, canonical_pb_surfvx_1x1v_ser_p1, canonical_pb_surfvx_1x1v_ser_p2 }, // 0
+  { NULL, canonical_pb_surfvx_1x2v_ser_p1, canonical_pb_surfvx_1x2v_ser_p2 }, // 1
+  { NULL, canonical_pb_surfvx_1x3v_ser_p1, canonical_pb_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, canonical_pb_surfvx_2x2v_ser_p1, canonical_pb_surfvx_2x2v_ser_p2}, // 3
-  {NULL, canonical_pb_surfvx_2x3v_ser_p1, canonical_pb_surfvx_2x3v_ser_p2}, // 4
+  { NULL, canonical_pb_surfvx_2x2v_ser_p1, canonical_pb_surfvx_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_surfvx_2x3v_ser_p1, canonical_pb_surfvx_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Acceleration surface kernel list: vy-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list ser_accel_surf_vy_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, canonical_pb_surfvy_1x2v_ser_p1, canonical_pb_surfvy_1x2v_ser_p2}, // 1
-  {NULL, canonical_pb_surfvy_1x3v_ser_p1, canonical_pb_surfvy_1x3v_ser_p2}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, canonical_pb_surfvy_1x2v_ser_p1, canonical_pb_surfvy_1x2v_ser_p2 }, // 1
+  { NULL, canonical_pb_surfvy_1x3v_ser_p1, canonical_pb_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, canonical_pb_surfvy_2x2v_ser_p1, canonical_pb_surfvy_2x2v_ser_p2}, // 3
-  {NULL, canonical_pb_surfvy_2x3v_ser_p1, canonical_pb_surfvy_2x3v_ser_p2}, // 4
+  { NULL, canonical_pb_surfvy_2x2v_ser_p1, canonical_pb_surfvy_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_surfvy_2x3v_ser_p1, canonical_pb_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Acceleration surface kernel list: vz-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list ser_accel_surf_vz_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, canonical_pb_surfvz_1x3v_ser_p1, canonical_pb_surfvz_1x3v_ser_p2}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, canonical_pb_surfvz_1x3v_ser_p1, canonical_pb_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, NULL, NULL}, // 3
-  {NULL, canonical_pb_surfvz_2x3v_ser_p1, canonical_pb_surfvz_2x3v_ser_p2}, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, canonical_pb_surfvz_2x3v_ser_p1, canonical_pb_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, NULL, NULL}, // 5
+  { NULL, NULL, NULL } // 5
 };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
   ser_accel_boundary_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, canonical_pb_boundary_surfvx_1x1v_ser_p1, canonical_pb_boundary_surfvx_1x1v_ser_p2}, // 0
-    {NULL, canonical_pb_boundary_surfvx_1x2v_ser_p1, canonical_pb_boundary_surfvx_1x2v_ser_p2}, // 1
-    {NULL, canonical_pb_boundary_surfvx_1x3v_ser_p1, canonical_pb_boundary_surfvx_1x3v_ser_p2}, // 2
+    { NULL, canonical_pb_boundary_surfvx_1x1v_ser_p1,
+      canonical_pb_boundary_surfvx_1x1v_ser_p2 }, // 0
+    { NULL, canonical_pb_boundary_surfvx_1x2v_ser_p1,
+      canonical_pb_boundary_surfvx_1x2v_ser_p2 }, // 1
+    { NULL, canonical_pb_boundary_surfvx_1x3v_ser_p1,
+      canonical_pb_boundary_surfvx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, canonical_pb_boundary_surfvx_2x2v_ser_p1, canonical_pb_boundary_surfvx_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_boundary_surfvx_2x3v_ser_p1, canonical_pb_boundary_surfvx_2x3v_ser_p2}, // 4
+    { NULL, canonical_pb_boundary_surfvx_2x2v_ser_p1,
+      canonical_pb_boundary_surfvx_2x2v_ser_p2 }, // 3
+    { NULL, canonical_pb_boundary_surfvx_2x3v_ser_p1,
+      canonical_pb_boundary_surfvx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
   ser_accel_boundary_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, canonical_pb_boundary_surfvy_1x2v_ser_p1, canonical_pb_boundary_surfvy_1x2v_ser_p2}, // 1
-    {NULL, canonical_pb_boundary_surfvy_1x3v_ser_p1, canonical_pb_boundary_surfvy_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, canonical_pb_boundary_surfvy_1x2v_ser_p1,
+      canonical_pb_boundary_surfvy_1x2v_ser_p2 }, // 1
+    { NULL, canonical_pb_boundary_surfvy_1x3v_ser_p1,
+      canonical_pb_boundary_surfvy_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, canonical_pb_boundary_surfvy_2x2v_ser_p1, canonical_pb_boundary_surfvy_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_boundary_surfvy_2x3v_ser_p1, canonical_pb_boundary_surfvy_2x3v_ser_p2}, // 4
+    { NULL, canonical_pb_boundary_surfvy_2x2v_ser_p1,
+      canonical_pb_boundary_surfvy_2x2v_ser_p2 }, // 3
+    { NULL, canonical_pb_boundary_surfvy_2x3v_ser_p1,
+      canonical_pb_boundary_surfvy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
   ser_accel_boundary_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, canonical_pb_boundary_surfvz_1x3v_ser_p1, canonical_pb_boundary_surfvz_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, canonical_pb_boundary_surfvz_1x3v_ser_p1,
+      canonical_pb_boundary_surfvz_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, canonical_pb_boundary_surfvz_2x3v_ser_p1, canonical_pb_boundary_surfvz_2x3v_ser_p2}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, canonical_pb_boundary_surfvz_2x3v_ser_p1,
+      canonical_pb_boundary_surfvz_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Stream boundary surface kernel (zero-flux BCs) list: x-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
   ser_stream_boundary_surf_x_kernels[] = {
     // 1x kernels
-    {NULL, canonical_pb_boundary_surfx_1x1v_ser_p1, canonical_pb_boundary_surfx_1x1v_ser_p2}, // 0
-    {NULL, canonical_pb_boundary_surfx_1x2v_ser_p1, canonical_pb_boundary_surfx_1x2v_ser_p2}, // 1
-    {NULL, canonical_pb_boundary_surfx_1x3v_ser_p1, canonical_pb_boundary_surfx_1x3v_ser_p2}, // 2
+    { NULL, canonical_pb_boundary_surfx_1x1v_ser_p1, canonical_pb_boundary_surfx_1x1v_ser_p2 }, // 0
+    { NULL, canonical_pb_boundary_surfx_1x2v_ser_p1, canonical_pb_boundary_surfx_1x2v_ser_p2 }, // 1
+    { NULL, canonical_pb_boundary_surfx_1x3v_ser_p1, canonical_pb_boundary_surfx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, canonical_pb_boundary_surfx_2x2v_ser_p1, canonical_pb_boundary_surfx_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_boundary_surfx_2x3v_ser_p1, canonical_pb_boundary_surfx_2x3v_ser_p2}, // 4
+    { NULL, canonical_pb_boundary_surfx_2x2v_ser_p1, canonical_pb_boundary_surfx_2x2v_ser_p2 }, // 3
+    { NULL, canonical_pb_boundary_surfx_2x3v_ser_p1, canonical_pb_boundary_surfx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Stream boundary surface kernel (zero-flux BCs) list: y-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
   ser_stream_boundary_surf_y_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
     // 2x kernels
-    {NULL, canonical_pb_boundary_surfy_2x2v_ser_p1, canonical_pb_boundary_surfy_2x2v_ser_p2}, // 3
-    {NULL, canonical_pb_boundary_surfy_2x3v_ser_p1, canonical_pb_boundary_surfy_2x3v_ser_p2}, // 4
+    { NULL, canonical_pb_boundary_surfy_2x2v_ser_p1, canonical_pb_boundary_surfy_2x2v_ser_p2 }, // 3
+    { NULL, canonical_pb_boundary_surfy_2x3v_ser_p1, canonical_pb_boundary_surfy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 // Stream boundary surface kernel (zero-flux BCs) list: z-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
   ser_stream_boundary_surf_z_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, NULL, NULL}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, NULL, NULL }, // 4
     // 3x kernels
-    {NULL, NULL, NULL}, // 5
-};
+    { NULL, NULL, NULL } // 5
+  };
 
 //
 // Tensor volume kernels
@@ -487,14 +498,14 @@ kernel_canonical_pb_vol_3x3v_tensor_p1(const struct gkyl_dg_eqn *eqn, const doub
 // Volume kernel list for relativistic streaming + EM
 GKYL_CU_D static const gkyl_dg_canonical_pb_vol_kern_list tensor_vol_kernels[] = {
   // 1x kernels
-  {NULL, kernel_canonical_pb_vol_1x1v_tensor_p1, kernel_canonical_pb_vol_1x1v_tensor_p2}, // 0
-  {NULL, kernel_canonical_pb_vol_1x2v_tensor_p1, kernel_canonical_pb_vol_1x2v_tensor_p2}, // 1
-  {NULL, kernel_canonical_pb_vol_1x3v_tensor_p1, kernel_canonical_pb_vol_1x3v_tensor_p2}, // 2
+  { NULL, kernel_canonical_pb_vol_1x1v_tensor_p1, kernel_canonical_pb_vol_1x1v_tensor_p2 }, // 0
+  { NULL, kernel_canonical_pb_vol_1x2v_tensor_p1, kernel_canonical_pb_vol_1x2v_tensor_p2 }, // 1
+  { NULL, kernel_canonical_pb_vol_1x3v_tensor_p1, kernel_canonical_pb_vol_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  {NULL, kernel_canonical_pb_vol_2x2v_tensor_p1, kernel_canonical_pb_vol_2x2v_tensor_p2}, // 3
-  {NULL, kernel_canonical_pb_vol_2x3v_tensor_p1, NULL}, // 4
+  { NULL, kernel_canonical_pb_vol_2x2v_tensor_p1, kernel_canonical_pb_vol_2x2v_tensor_p2 }, // 3
+  { NULL, kernel_canonical_pb_vol_2x3v_tensor_p1, NULL }, // 4
   // 3x kernels
-  {NULL, kernel_canonical_pb_vol_3x3v_tensor_p1, NULL}, // 2
+  { NULL, kernel_canonical_pb_vol_3x3v_tensor_p1, NULL } // 2
 };
 
 //
@@ -504,177 +515,177 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_vol_kern_list tensor_vol_kernels[] =
 // Streaming surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list tensor_stream_surf_x_kernels[] = {
   // 1x kernels
-  {NULL, canonical_pb_surfx_1x1v_tensor_p1, canonical_pb_surfx_1x1v_tensor_p2}, // 0
-  {NULL, canonical_pb_surfx_1x2v_tensor_p1, canonical_pb_surfx_1x2v_tensor_p2}, // 1
-  {NULL, canonical_pb_surfx_1x3v_tensor_p1, canonical_pb_surfx_1x3v_tensor_p2}, // 2
+  { NULL, canonical_pb_surfx_1x1v_tensor_p1, canonical_pb_surfx_1x1v_tensor_p2 }, // 0
+  { NULL, canonical_pb_surfx_1x2v_tensor_p1, canonical_pb_surfx_1x2v_tensor_p2 }, // 1
+  { NULL, canonical_pb_surfx_1x3v_tensor_p1, canonical_pb_surfx_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  {NULL, canonical_pb_surfx_2x2v_tensor_p1, canonical_pb_surfx_2x2v_tensor_p2}, // 3
-  {NULL, canonical_pb_surfx_2x3v_tensor_p1, NULL}, // 4
+  { NULL, canonical_pb_surfx_2x2v_tensor_p1, canonical_pb_surfx_2x2v_tensor_p2 }, // 3
+  { NULL, canonical_pb_surfx_2x3v_tensor_p1, NULL }, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfx_3x3v_tensor_p1, NULL}, // 5
+  { NULL, canonical_pb_surfx_3x3v_tensor_p1, NULL } // 5
 };
 
 // Streaming surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list tensor_stream_surf_y_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
   // 2x kernels
-  {NULL, canonical_pb_surfy_2x2v_tensor_p1, canonical_pb_surfy_2x2v_tensor_p2}, // 3
-  {NULL, canonical_pb_surfy_2x3v_tensor_p1, NULL}, // 4
+  { NULL, canonical_pb_surfy_2x2v_tensor_p1, canonical_pb_surfy_2x2v_tensor_p2 }, // 3
+  { NULL, canonical_pb_surfy_2x3v_tensor_p1, NULL }, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfy_3x3v_tensor_p1, NULL}, // 2
+  { NULL, canonical_pb_surfy_3x3v_tensor_p1, NULL } // 2
 };
 
 // Streaming surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_surf_kern_list tensor_stream_surf_z_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL }, // 2
   // 2x kernels
-  {NULL, NULL, NULL}, // 3
-  {NULL, NULL, NULL}, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL }, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfz_3x3v_tensor_p1, NULL}, // 5
+  { NULL, canonical_pb_surfz_3x3v_tensor_p1, NULL } // 5
 };
 
 // Acceleration surface kernel list: vx-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list tensor_accel_surf_vx_kernels[] = {
   // 1x kernels
-  {NULL, canonical_pb_surfvx_1x1v_tensor_p1, canonical_pb_surfvx_1x1v_tensor_p2}, // 0
-  {NULL, canonical_pb_surfvx_1x2v_tensor_p1, canonical_pb_surfvx_1x2v_tensor_p2}, // 1
-  {NULL, canonical_pb_surfvx_1x3v_tensor_p1, canonical_pb_surfvx_1x3v_tensor_p2}, // 2
+  { NULL, canonical_pb_surfvx_1x1v_tensor_p1, canonical_pb_surfvx_1x1v_tensor_p2 }, // 0
+  { NULL, canonical_pb_surfvx_1x2v_tensor_p1, canonical_pb_surfvx_1x2v_tensor_p2 }, // 1
+  { NULL, canonical_pb_surfvx_1x3v_tensor_p1, canonical_pb_surfvx_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  {NULL, canonical_pb_surfvx_2x2v_tensor_p1, canonical_pb_surfvx_2x2v_tensor_p2}, // 3
-  {NULL, canonical_pb_surfvx_2x3v_tensor_p1, NULL}, // 4
+  { NULL, canonical_pb_surfvx_2x2v_tensor_p1, canonical_pb_surfvx_2x2v_tensor_p2 }, // 3
+  { NULL, canonical_pb_surfvx_2x3v_tensor_p1, NULL }, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfvx_3x3v_tensor_p1, NULL}, // 5
+  { NULL, canonical_pb_surfvx_3x3v_tensor_p1, NULL } // 5
 };
 
 // Acceleration surface kernel list: vy-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list tensor_accel_surf_vy_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, canonical_pb_surfvy_1x2v_tensor_p1, canonical_pb_surfvy_1x2v_tensor_p2}, // 1
-  {NULL, canonical_pb_surfvy_1x3v_tensor_p1, canonical_pb_surfvy_1x3v_tensor_p2}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, canonical_pb_surfvy_1x2v_tensor_p1, canonical_pb_surfvy_1x2v_tensor_p2 }, // 1
+  { NULL, canonical_pb_surfvy_1x3v_tensor_p1, canonical_pb_surfvy_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  {NULL, canonical_pb_surfvy_2x2v_tensor_p1, canonical_pb_surfvy_2x2v_tensor_p2}, // 3
-  {NULL, canonical_pb_surfvy_2x3v_tensor_p1, NULL}, // 4
+  { NULL, canonical_pb_surfvy_2x2v_tensor_p1, canonical_pb_surfvy_2x2v_tensor_p2 }, // 3
+  { NULL, canonical_pb_surfvy_2x3v_tensor_p1, NULL }, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfvy_3x3v_tensor_p1, NULL}, // 5
+  { NULL, canonical_pb_surfvy_3x3v_tensor_p1, NULL } // 5
 };
 
 // Acceleration surface kernel list: vz-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_surf_kern_list tensor_accel_surf_vz_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, canonical_pb_surfvz_1x3v_tensor_p1, canonical_pb_surfvz_1x3v_tensor_p2}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, canonical_pb_surfvz_1x3v_tensor_p1, canonical_pb_surfvz_1x3v_tensor_p2 }, // 2
   // 2x kernels
-  {NULL, NULL, NULL}, // 3
-  {NULL, canonical_pb_surfvz_2x3v_tensor_p1, NULL}, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, canonical_pb_surfvz_2x3v_tensor_p1, NULL }, // 4
   // 3x kernels
-  {NULL, canonical_pb_surfvz_3x3v_tensor_p1, NULL}, // 5
+  { NULL, canonical_pb_surfvz_3x3v_tensor_p1, NULL } // 5
 };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
   tensor_accel_boundary_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, canonical_pb_boundary_surfvx_1x1v_tensor_p1,
-      canonical_pb_boundary_surfvx_1x1v_tensor_p2}, // 0
-    {NULL, canonical_pb_boundary_surfvx_1x2v_tensor_p1,
-      canonical_pb_boundary_surfvx_1x2v_tensor_p2}, // 1
-    {NULL, canonical_pb_boundary_surfvx_1x3v_tensor_p1,
-      canonical_pb_boundary_surfvx_1x3v_tensor_p2}, // 2
+    { NULL, canonical_pb_boundary_surfvx_1x1v_tensor_p1,
+      canonical_pb_boundary_surfvx_1x1v_tensor_p2 }, // 0
+    { NULL, canonical_pb_boundary_surfvx_1x2v_tensor_p1,
+      canonical_pb_boundary_surfvx_1x2v_tensor_p2 }, // 1
+    { NULL, canonical_pb_boundary_surfvx_1x3v_tensor_p1,
+      canonical_pb_boundary_surfvx_1x3v_tensor_p2 }, // 2
     // 2x kernels
-    {NULL, canonical_pb_boundary_surfvx_2x2v_tensor_p1,
-      canonical_pb_boundary_surfvx_2x2v_tensor_p2}, // 3
-    {NULL, canonical_pb_boundary_surfvx_2x3v_tensor_p1, NULL}, // 4
+    { NULL, canonical_pb_boundary_surfvx_2x2v_tensor_p1,
+      canonical_pb_boundary_surfvx_2x2v_tensor_p2 }, // 3
+    { NULL, canonical_pb_boundary_surfvx_2x3v_tensor_p1, NULL }, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfvx_3x3v_tensor_p1, NULL}, // 5
-};
+    { NULL, canonical_pb_boundary_surfvx_3x3v_tensor_p1, NULL } // 5
+  };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
   tensor_accel_boundary_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, canonical_pb_boundary_surfvy_1x2v_tensor_p1,
-      canonical_pb_boundary_surfvy_1x2v_tensor_p2}, // 1
-    {NULL, canonical_pb_boundary_surfvy_1x3v_tensor_p1,
-      canonical_pb_boundary_surfvy_1x3v_tensor_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, canonical_pb_boundary_surfvy_1x2v_tensor_p1,
+      canonical_pb_boundary_surfvy_1x2v_tensor_p2 }, // 1
+    { NULL, canonical_pb_boundary_surfvy_1x3v_tensor_p1,
+      canonical_pb_boundary_surfvy_1x3v_tensor_p2 }, // 2
     // 2x kernels
-    {NULL, canonical_pb_boundary_surfvy_2x2v_tensor_p1,
-      canonical_pb_boundary_surfvy_2x2v_tensor_p2}, // 3
-    {NULL, canonical_pb_boundary_surfvy_2x3v_tensor_p1, NULL}, // 4
+    { NULL, canonical_pb_boundary_surfvy_2x2v_tensor_p1,
+      canonical_pb_boundary_surfvy_2x2v_tensor_p2 }, // 3
+    { NULL, canonical_pb_boundary_surfvy_2x3v_tensor_p1, NULL }, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfvy_3x3v_tensor_p1, NULL}, // 5
-};
+    { NULL, canonical_pb_boundary_surfvy_3x3v_tensor_p1, NULL } // 5
+  };
 
 // Acceleration boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list
   tensor_accel_boundary_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, canonical_pb_boundary_surfvz_1x3v_tensor_p1,
-      canonical_pb_boundary_surfvz_1x3v_tensor_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, canonical_pb_boundary_surfvz_1x3v_tensor_p1,
+      canonical_pb_boundary_surfvz_1x3v_tensor_p2 }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, canonical_pb_boundary_surfvz_2x3v_tensor_p1, NULL}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, canonical_pb_boundary_surfvz_2x3v_tensor_p1, NULL }, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfvz_3x3v_tensor_p1, NULL}, // 5
-};
+    { NULL, canonical_pb_boundary_surfvz_3x3v_tensor_p1, NULL } // 5
+  };
 
 // Stream boundary surface kernel (zero-flux BCs) list: x-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
   tensor_stream_boundary_surf_x_kernels[] = {
     // 1x kernels
-    {NULL, canonical_pb_boundary_surfx_1x1v_tensor_p1,
-      canonical_pb_boundary_surfx_1x1v_tensor_p2}, // 0
-    {NULL, canonical_pb_boundary_surfx_1x2v_tensor_p1,
-      canonical_pb_boundary_surfx_1x2v_tensor_p2}, // 1
-    {NULL, canonical_pb_boundary_surfx_1x3v_tensor_p1,
-      canonical_pb_boundary_surfx_1x3v_tensor_p2}, // 2
+    { NULL, canonical_pb_boundary_surfx_1x1v_tensor_p1,
+      canonical_pb_boundary_surfx_1x1v_tensor_p2 }, // 0
+    { NULL, canonical_pb_boundary_surfx_1x2v_tensor_p1,
+      canonical_pb_boundary_surfx_1x2v_tensor_p2 }, // 1
+    { NULL, canonical_pb_boundary_surfx_1x3v_tensor_p1,
+      canonical_pb_boundary_surfx_1x3v_tensor_p2 }, // 2
     // 2x kernels
-    {NULL, canonical_pb_boundary_surfx_2x2v_tensor_p1,
-      canonical_pb_boundary_surfx_2x2v_tensor_p2}, // 3
-    {NULL, canonical_pb_boundary_surfx_2x3v_tensor_p1, NULL}, // 4
+    { NULL, canonical_pb_boundary_surfx_2x2v_tensor_p1,
+      canonical_pb_boundary_surfx_2x2v_tensor_p2 }, // 3
+    { NULL, canonical_pb_boundary_surfx_2x3v_tensor_p1, NULL }, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfx_3x3v_tensor_p1, NULL}, // 5
-};
+    { NULL, canonical_pb_boundary_surfx_3x3v_tensor_p1, NULL } // 5
+  };
 
 // Stream boundary surface kernel (zero-flux BCs) list: y-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
   tensor_stream_boundary_surf_y_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
     // 2x kernels
-    {NULL, canonical_pb_boundary_surfy_2x2v_tensor_p1,
-      canonical_pb_boundary_surfy_2x2v_tensor_p2}, // 3
-    {NULL, canonical_pb_boundary_surfy_2x3v_tensor_p1, NULL}, // 4
+    { NULL, canonical_pb_boundary_surfy_2x2v_tensor_p1,
+      canonical_pb_boundary_surfy_2x2v_tensor_p2 }, // 3
+    { NULL, canonical_pb_boundary_surfy_2x3v_tensor_p1, NULL }, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfy_3x3v_tensor_p1, NULL}, // 5
-};
+    { NULL, canonical_pb_boundary_surfy_3x3v_tensor_p1, NULL } // 5
+  };
 
 // Stream boundary surface kernel (zero-flux BCs) list: z-direction
 GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
   tensor_stream_boundary_surf_z_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, NULL, NULL}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, NULL, NULL }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, NULL, NULL}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, NULL, NULL }, // 4
     // 3x kernels
-    {NULL, canonical_pb_boundary_surfz_3x3v_tensor_p1, NULL}, // 5
-};
+    { NULL, canonical_pb_boundary_surfz_3x3v_tensor_p1, NULL } // 5
+  };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK(lst, cv_index, poly_order) lst[cv_index].kernels[poly_order]

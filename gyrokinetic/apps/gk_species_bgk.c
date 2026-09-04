@@ -169,10 +169,11 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies."}};
-  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies." }
+  };
+  int io_meta_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_conf, app->gk_geom->io_meta_basic,
+    desc };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -347,7 +348,7 @@ gk_species_bgk_cross_init(
       double nu_frac = gks->info.collisions.nu_frac ? gks->info.collisions.nu_frac : 1.0;
 
       // Compute the time-independent part of alpha_E.
-      double alpha_E_norm[GKYL_MAX_SPECIES] = {0.0};
+      double alpha_E_norm[GKYL_MAX_SPECIES] = { 0.0 };
       for (int i = 0; i < bgk->num_cross_collisions; ++i) {
         double eps0 = gks->info.collisions.eps0 ? gks->info.collisions.eps0 : GKYL_EPSILON0;
         double hbar = gks->info.collisions.hbar ? gks->info.collisions.hbar

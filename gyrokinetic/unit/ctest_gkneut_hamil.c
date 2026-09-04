@@ -140,8 +140,8 @@ test_hamil(int cdim, bool use_gpu)
   // test against predicted value
   if (cdim == 3) {
     const double *fv =
-      gkyl_array_cfetch(hamil_ho, gkyl_range_idx(&range_ext, (int[6]){1, 1, 1, 1, 1, 1}));
-    double p1_vals[] = {2.1125000000000000e+01, -2.2204460492503131e-16, 3.3306690738754696e-16,
+      gkyl_array_cfetch(hamil_ho, gkyl_range_idx(&range_ext, (int[6]){ 1, 1, 1, 1, 1, 1 }));
+    double p1_vals[] = { 2.1125000000000000e+01, -2.2204460492503131e-16, 3.3306690738754696e-16,
       2.2204460492503131e-16, -2.7063293868263760e-01, -5.4126587736527476e-01,
       -8.1189881604791214e-01, -8.3266726846886741e-17, -1.6653345369377348e-16,
       -1.3877787807814457e-16, 0.0000000000000000e+00, 2.7755575615628914e-16,
@@ -162,7 +162,7 @@ test_hamil(int cdim, bool use_gpu)
       4.1633363423443370e-17, 5.5511151231257827e-17, -2.7755575615628914e-17,
       -6.9388939039072284e-18, 1.7347234759768071e-17, 2.0816681711721685e-17,
       1.3877787807814457e-17, 2.7755575615628914e-17, -2.0816681711721685e-17,
-      -8.7378663975128048e-18};
+      -8.7378663975128048e-18 };
     for (int i = 0; i < pbasis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i], fv[i], 1e-12));
     }
@@ -200,10 +200,8 @@ test_gkneut_hamil_3x_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_gkneut_hamil_3x_ho", test_gkneut_hamil_3x_ho},
+TEST_LIST = { { "test_gkneut_hamil_3x_ho", test_gkneut_hamil_3x_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_gkneut_hamil_3x_dev", test_gkneut_hamil_3x_dev},
+  { "test_gkneut_hamil_3x_dev", test_gkneut_hamil_3x_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

@@ -52,38 +52,39 @@ struct gkyl_dg_calc_pkpm_em_coupling {
 
 // Set matrices for computing implicit source solve for fluid-em coupling in the PKPM system. (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_set_kern_list ser_pkpm_em_coupling_set_kernels[] = {
-  {NULL, euler_pkpm_em_coupling_set_1x_ser_p1, euler_pkpm_em_coupling_set_1x_ser_p2,
-    euler_pkpm_em_coupling_set_1x_ser_p3}, // 0
-  {NULL, euler_pkpm_em_coupling_set_2x_ser_p1, NULL, NULL}, // 1
-  {NULL, euler_pkpm_em_coupling_set_3x_ser_p1, NULL, NULL}, // 2
+  { NULL, euler_pkpm_em_coupling_set_1x_ser_p1, euler_pkpm_em_coupling_set_1x_ser_p2,
+    euler_pkpm_em_coupling_set_1x_ser_p3 }, // 0
+  { NULL, euler_pkpm_em_coupling_set_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_set_3x_ser_p1, NULL, NULL } // 2
 };
 
 // Set matrices for computing implicit source solve for fluid-em coupling in the PKPM system. (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_set_kern_list ten_pkpm_em_coupling_set_kernels[] = {
-  {NULL, euler_pkpm_em_coupling_set_1x_ser_p1, euler_pkpm_em_coupling_set_1x_ser_p2,
-    euler_pkpm_em_coupling_set_1x_ser_p3}, // 0
-  {NULL, euler_pkpm_em_coupling_set_2x_ser_p1, euler_pkpm_em_coupling_set_2x_tensor_p2, NULL}, // 1
-  {NULL, euler_pkpm_em_coupling_set_3x_ser_p1, NULL, NULL}, // 2
+  { NULL, euler_pkpm_em_coupling_set_1x_ser_p1, euler_pkpm_em_coupling_set_1x_ser_p2,
+    euler_pkpm_em_coupling_set_1x_ser_p3 }, // 0
+  { NULL, euler_pkpm_em_coupling_set_2x_ser_p1, euler_pkpm_em_coupling_set_2x_tensor_p2,
+    NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_set_3x_ser_p1, NULL, NULL } // 2
 };
 
 // Copy solution for implicit source solve for fluid-em coupling in the PKPM system. (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list ser_pkpm_em_coupling_copy_kernels[] =
-  {
-    {NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2,
-      euler_pkpm_em_coupling_copy_1x_ser_p3}, // 0
-    {NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, NULL, NULL}, // 1
-    {NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL}, // 2
-};
+GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list
+  ser_pkpm_em_coupling_copy_kernels[] = {
+    { NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2,
+      euler_pkpm_em_coupling_copy_1x_ser_p3 }, // 0
+    { NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, NULL, NULL }, // 1
+    { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL } // 2
+  };
 
 // Copy solution for implicit source solve for fluid-em coupling in the PKPM system. (Tensor kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list ten_pkpm_em_coupling_copy_kernels[] =
-  {
-    {NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2,
-      euler_pkpm_em_coupling_copy_1x_ser_p3}, // 0
-    {NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, euler_pkpm_em_coupling_copy_2x_tensor_p2,
-      NULL}, // 1
-    {NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL}, // 2
-};
+GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list
+  ten_pkpm_em_coupling_copy_kernels[] = {
+    { NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2,
+      euler_pkpm_em_coupling_copy_1x_ser_p3 }, // 0
+    { NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, euler_pkpm_em_coupling_copy_2x_tensor_p2,
+      NULL }, // 1
+    { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL } // 2
+  };
 
 GKYL_CU_D static pkpm_em_coupling_set_t
 choose_pkpm_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)

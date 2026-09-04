@@ -162,8 +162,7 @@ create_ctx(void)
   const char *nn_closure_file =
     "moments/data/neural_nets/pkpm_ot_p1_moms_nn_1"; // File path of neural network to use.
 
-  struct lhdi_ctx ctx = {
-    .pi = pi,
+  struct lhdi_ctx ctx = { .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
@@ -208,8 +207,7 @@ create_ctx(void)
     .num_failures_max = num_failures_max,
     .use_nn_closure = use_nn_closure,
     .poly_order = poly_order,
-    .nn_closure_file = nn_closure_file,
-  };
+    .nn_closure_file = nn_closure_file };
 
   return ctx;
 }
@@ -486,8 +484,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(
     ctx.k0_ion, false, ctx.use_nn_closure, ctx.poly_order, ann[1], app_args.use_gpu);
 
-  struct gkyl_moment_species elc = {
-    .name = "elc",
+  struct gkyl_moment_species elc = { .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .equation = elc_ten_moment,
@@ -495,11 +492,9 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-  };
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
 
-  struct gkyl_moment_species ion = {
-    .name = "ion",
+  struct gkyl_moment_species ion = { .name = "ion",
     .charge = ctx.charge_ion,
     .mass = ctx.mass_ion,
     .equation = ion_ten_moment,
@@ -507,20 +502,17 @@ main(int argc, char **argv)
     .init = evalIonInit,
     .ctx = &ctx,
 
-    .bcy = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-  };
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
 
   // Field.
-  struct gkyl_moment_field field = {
-    .epsilon0 = ctx.epsilon0,
+  struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .mag_error_speed_fact = 1.0,
 
     .init = evalFieldInit,
     .ctx = &ctx,
 
-    .bcy = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
-  };
+    .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -530,7 +522,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = {NX, NY};
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -552,14 +544,12 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -584,25 +574,22 @@ main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = {-0.5 * ctx.Lx, -0.5 * ctx.Ly},
-    .upper = {0.5 * ctx.Lx, 0.5 * ctx.Ly},
-    .cells = {NX, NY},
+    .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
+    .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly },
+    .cells = { NX, NY },
 
     .num_periodic_dir = 1,
-    .periodic_dirs = {0},
+    .periodic_dirs = { 0 },
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 2,
-    .species = {elc, ion},
+    .species = { elc, ion },
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -637,21 +624,24 @@ main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 

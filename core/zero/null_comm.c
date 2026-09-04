@@ -260,7 +260,7 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, null_comm->decomp);
   struct gkyl_comm *ext_comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-    .decomp = ext_decomp, .use_gpu = null_comm->use_gpu, .sync_corners = null_comm->sync_corners});
+    .decomp = ext_decomp, .use_gpu = null_comm->use_gpu, .sync_corners = null_comm->sync_corners });
   gkyl_rect_decomp_release(ext_decomp);
 
   return ext_comm;
@@ -272,7 +272,7 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);
 
   return gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-    .use_gpu = null_comm->use_gpu, .sync_corners = null_comm->sync_corners, .decomp = new_decomp});
+    .use_gpu = null_comm->use_gpu, .sync_corners = null_comm->sync_corners, .decomp = new_decomp });
 }
 
 static struct gkyl_comm *
@@ -288,7 +288,7 @@ create_comm_from_ranks(const struct gkyl_comm *comm, int nranks, const int *rank
 
   struct null_comm *null_comm = container_of(comm, struct null_comm, priv_comm.pub_comm);
   return gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-    .use_gpu = null_comm->use_gpu, .sync_corners = null_comm->sync_corners, .decomp = new_decomp});
+    .use_gpu = null_comm->use_gpu, .sync_corners = null_comm->sync_corners, .decomp = new_decomp });
 }
 
 struct gkyl_comm *
@@ -302,13 +302,13 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
     comm->priv_comm.pub_comm.has_decomp = false;
 
     // construct a dummy decomposition
-    comm->decomp = gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]){1}, (int[]){1});
+    comm->decomp = gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]){ 1 }, (int[]){ 1 });
   } else {
     comm->decomp = gkyl_rect_decomp_acquire(inp->decomp);
   }
 
   // construct range to hash ghost layout
-  int lower[GKYL_MAX_DIM] = {0};
+  int lower[GKYL_MAX_DIM] = { 0 };
   int upper[GKYL_MAX_DIM];
   for (int d = 0; d < comm->decomp->ndim; ++d)
     upper[d] = GKYL_MAX_NGHOST;

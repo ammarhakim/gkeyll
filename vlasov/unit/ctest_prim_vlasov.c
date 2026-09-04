@@ -139,7 +139,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {0};
+  int confGhost[] = { 0 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
@@ -208,7 +208,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   // Check boundary corrections of momentum and energy.
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *fptr = gkyl_array_fetch(boundary_corrections, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -245,7 +245,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   // Check u
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *uptr = gkyl_array_fetch(u, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -256,7 +256,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   // Check vtSq.
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vth, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -284,7 +284,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *uptr = gkyl_array_fetch(u_out, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -295,7 +295,7 @@ test_func(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_che
   // Check cross vtsq
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vtsq_out, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -370,7 +370,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {0};
+  int confGhost[] = { 0 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
@@ -466,7 +466,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   // Check u
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *uptr = gkyl_array_fetch(u, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -477,7 +477,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   // Check vtSq.
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vth, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -512,7 +512,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   // Check cross u
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *uptr = gkyl_array_fetch(u_out, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -523,7 +523,7 @@ test_func_cu(int cdim, int vdim, int poly_order, evalf_t evalDistFunc, double f_
   // Check cross vtsq
   // 1-indexed for interfacing with G2 Lua layer
   for (unsigned int i = 1; i < cells[0] + 1; ++i) {
-    int cidx[] = {i};
+    int cidx[] = { i };
     long linc = gkyl_range_idx(&confLocal, cidx);
     double *vthptr = gkyl_array_fetch(vtsq_out, linc);
     for (unsigned int k = 0; k < confBasis.num_basis; ++k) {
@@ -570,12 +570,12 @@ test_prim_vlasov_1x1v_p2_ho()
   int poly_order = 2;
   int vdim = 1, cdim = 1;
 
-  double f_check[] = {0.0, 0.0, 0.0};
-  double vf_check[] = {0.30543841971927, 0.0, 0.0};
-  double u_check[] = {0.0, 0.0, 0.0};
-  double vth_check[] = {1.4142398195471544, 0.0, 0.0};
-  double ucross_check[] = {0.0, 0.0, 0.0};
-  double vthcross_check[] = {1.4142398195471544, 0.0, 0.0};
+  double f_check[] = { 0.0, 0.0, 0.0 };
+  double vf_check[] = { 0.30543841971927, 0.0, 0.0 };
+  double u_check[] = { 0.0, 0.0, 0.0 };
+  double vth_check[] = { 1.4142398195471544, 0.0, 0.0 };
+  double ucross_check[] = { 0.0, 0.0, 0.0 };
+  double vthcross_check[] = { 1.4142398195471544, 0.0, 0.0 };
 
   test_func(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check,
     ucross_check, vthcross_check);
@@ -587,12 +587,12 @@ test_prim_vlasov_1x2v_p2_ho()
   int poly_order = 2;
   int vdim = 2, cdim = 1;
 
-  double f_check[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double vf_check[] = {0.583081782023233, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double u_check[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double vth_check[] = {1.4142398195471586, 0.0, 0.0};
-  double ucross_check[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double vthcross_check[] = {1.4142398195471586, 0.0, 0.0};
+  double f_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vf_check[] = { 0.583081782023233, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double u_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vth_check[] = { 1.4142398195471586, 0.0, 0.0 };
+  double ucross_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vthcross_check[] = { 1.4142398195471586, 0.0, 0.0 };
 
   test_func(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check,
     ucross_check, vthcross_check);
@@ -605,12 +605,12 @@ test_prim_vlasov_1x1v_p2_dev()
   int poly_order = 2;
   int vdim = 1, cdim = 1;
 
-  double f_check[] = {0.0, 0.0, 0.0};
-  double vf_check[] = {0.30543841971927, 0.0, 0.0};
-  double u_check[] = {0.0, 0.0, 0.0};
-  double vth_check[] = {1.4142398195471544, 0.0, 0.0};
-  double ucross_check[] = {0.0, 0.0, 0.0};
-  double vthcross_check[] = {1.4142398195471544, 0.0, 0.0};
+  double f_check[] = { 0.0, 0.0, 0.0 };
+  double vf_check[] = { 0.30543841971927, 0.0, 0.0 };
+  double u_check[] = { 0.0, 0.0, 0.0 };
+  double vth_check[] = { 1.4142398195471544, 0.0, 0.0 };
+  double ucross_check[] = { 0.0, 0.0, 0.0 };
+  double vthcross_check[] = { 1.4142398195471544, 0.0, 0.0 };
 
   test_func_cu(cdim, vdim, poly_order, evalDistFunc1x1v, f_check, vf_check, u_check, vth_check,
     ucross_check, vthcross_check);
@@ -622,24 +622,22 @@ test_prim_vlasov_1x2v_p2_dev()
   int poly_order = 2;
   int vdim = 2, cdim = 1;
 
-  double f_check[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double vf_check[] = {0.583081782023233, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double u_check[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double vth_check[] = {1.4142398195471586, 0.0, 0.0};
-  double ucross_check[] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-  double vthcross_check[] = {1.4142398195471586, 0.0, 0.0};
+  double f_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vf_check[] = { 0.583081782023233, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double u_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vth_check[] = { 1.4142398195471586, 0.0, 0.0 };
+  double ucross_check[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double vthcross_check[] = { 1.4142398195471586, 0.0, 0.0 };
 
   test_func_cu(cdim, vdim, poly_order, evalDistFunc1x2v, f_check, vf_check, u_check, vth_check,
     ucross_check, vthcross_check);
 }
 #endif
 
-TEST_LIST = {
-  {"test_prim_vlasov_1x1v_p2_ho", test_prim_vlasov_1x1v_p2_ho},
-  {"test_prim_vlasov_1x2v_p2_ho", test_prim_vlasov_1x2v_p2_ho},
+TEST_LIST = { { "test_prim_vlasov_1x1v_p2_ho", test_prim_vlasov_1x1v_p2_ho },
+  { "test_prim_vlasov_1x2v_p2_ho", test_prim_vlasov_1x2v_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_prim_vlasov_1x1v_p2_dev", test_prim_vlasov_1x1v_p2_dev},
-  {"test_prim_vlasov_1x2v_p2_dev", test_prim_vlasov_1x2v_p2_dev},
+  { "test_prim_vlasov_1x1v_p2_dev", test_prim_vlasov_1x1v_p2_dev },
+  { "test_prim_vlasov_1x2v_p2_dev", test_prim_vlasov_1x2v_p2_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

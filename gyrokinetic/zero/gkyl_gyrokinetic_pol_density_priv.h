@@ -16,9 +16,9 @@ typedef struct {
 
 // Serendipity  kernels.
 GKYL_CU_D static const gk_pol_den_kern_list gk_pol_density_kern_list_ser[] = {
-  {gkyl_gyrokinetic_pol_density_1x_ser_p1, NULL, NULL},
-  {gkyl_gyrokinetic_pol_density_2x_ser_p1, NULL, NULL},
-  {gkyl_gyrokinetic_pol_density_3x_ser_p1, NULL, NULL},
+  { gkyl_gyrokinetic_pol_density_1x_ser_p1, NULL, NULL },
+  { gkyl_gyrokinetic_pol_density_2x_ser_p1, NULL, NULL },
+  { gkyl_gyrokinetic_pol_density_3x_ser_p1, NULL, NULL }
 };
 
 struct gkyl_gyrokinetic_pol_density_kernels {

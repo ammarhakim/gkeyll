@@ -536,10 +536,11 @@ solveRiemannProblem(struct _ProblemState _ps, const char *out_prefix)
   fprintf(stdout, "... done!\n");
 
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 1, (double[]){_ps.lower}, (double[]){_ps.upper}, (int[]){_ps.ncell});
+  gkyl_rect_grid_init(
+    &grid, 1, (double[]){ _ps.lower }, (double[]){ _ps.upper }, (int[]){ _ps.ncell });
 
   struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, 1, (int[]){_ps.ncell});
+  gkyl_range_init_from_shape(&range, 1, (int[]){ _ps.ncell });
 
   char *fname = gkyl_malloc(strlen(out_prefix) + 128);
 

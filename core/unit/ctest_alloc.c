@@ -188,14 +188,11 @@ test_malloc_array_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"aligned_alloc_ho", test_aligned_alloc_ho},
-  {"aligned_realloc_ho", test_aligned_realloc_ho},
-  {"alloc_mem_buff_ho", test_alloc_mem_buff_ho},
+TEST_LIST = { { "aligned_alloc_ho", test_aligned_alloc_ho },
+  { "aligned_realloc_ho", test_aligned_realloc_ho },
+  { "alloc_mem_buff_ho", test_alloc_mem_buff_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"malloc_dev", test_malloc_dev},
-  {"malloc_array_dev", test_malloc_array_dev},
-  {"alloc_mem_buff_dev", test_alloc_mem_buff_dev},
+  { "malloc_dev", test_malloc_dev }, { "malloc_array_dev", test_malloc_array_dev },
+  { "alloc_mem_buff_dev", test_alloc_mem_buff_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

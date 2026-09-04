@@ -18,28 +18,23 @@
 #include <string.h>
 
 // Mapping of Gkeyll type to ncclDataType_t
-static ncclDataType_t g2_nccl_datatype[] = {
-  [GKYL_INT] = ncclInt,
+static ncclDataType_t g2_nccl_datatype[] = { [GKYL_INT] = ncclInt,
   [GKYL_INT_64] = ncclInt64,
   [GKYL_FLOAT] = ncclFloat,
-  [GKYL_DOUBLE] = ncclDouble,
-};
+  [GKYL_DOUBLE] = ncclDouble };
 
 // Mapping of Gkeyll ops to ncclRedOp_t.
-static ncclRedOp_t g2_nccl_op[] = {
-  [GKYL_MIN] = ncclMin,
-  [GKYL_MAX] = ncclMax,
-  [GKYL_SUM] = ncclSum,
-};
+static ncclRedOp_t
+  g2_nccl_op[] = { [GKYL_MIN] = ncclMin, [GKYL_MAX] = ncclMax, [GKYL_SUM] = ncclSum };
 
 // Mapping of Gkeyll type to MPI_Datatype
-static MPI_Datatype g2_mpi_datatype[] = {[GKYL_INT] = MPI_INT,
+static MPI_Datatype g2_mpi_datatype[] = { [GKYL_INT] = MPI_INT,
   [GKYL_INT_64] = MPI_INT64_T,
   [GKYL_FLOAT] = MPI_FLOAT,
-  [GKYL_DOUBLE] = MPI_DOUBLE};
+  [GKYL_DOUBLE] = MPI_DOUBLE };
 
 // Mapping of Gkeyll ops to MPI_Op
-static MPI_Op g2_mpi_op[] = {[GKYL_MIN] = MPI_MIN, [GKYL_MAX] = MPI_MAX, [GKYL_SUM] = MPI_SUM};
+static MPI_Op g2_mpi_op[] = { [GKYL_MIN] = MPI_MIN, [GKYL_MAX] = MPI_MAX, [GKYL_SUM] = MPI_SUM };
 
 struct extra_nccl_comm_inp {
   bool is_comm_allocated; // is MPI_Comm allocated?
@@ -430,7 +425,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   int nridx = 0;
   int nsidx = 0;
 
-  int shift_sign[] = {-1, 1};
+  int shift_sign[] = { -1, 1 };
 
   // Handle self-periodic cases first (local copies, no NCCL communication).
   for (int i = 0; i < nper_dirs; ++i) {
@@ -440,7 +435,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
       if (nccl->is_on_edge[e][dir]) {
         int nid = nccl->per_neigh[dir]->neigh[0];
         if (nid == nccl->rank) {
-          int delta[GKYL_MAX_DIM] = {0};
+          int delta[GKYL_MAX_DIM] = { 0 };
           delta[dir] = shift_sign[e] * gkyl_range_shape(&nccl->decomp->parent_range, dir);
 
           struct gkyl_range neigh_shift, neigh_shift_ext;
@@ -483,7 +478,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
       if (nccl->is_on_edge[e][dir]) {
         int nid = nccl->per_neigh[dir]->neigh[0];
         if (nid != nccl->rank) {
-          int delta[GKYL_MAX_DIM] = {0};
+          int delta[GKYL_MAX_DIM] = { 0 };
           delta[dir] = shift_sign[e] * gkyl_range_shape(&nccl->decomp->parent_range, dir);
 
           if (nccl->per_neigh[dir]->num_neigh == 1) {
@@ -573,13 +568,12 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, nccl->decomp);
-  struct gkyl_comm *ext_comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-    .mpi_comm = nccl->mcomm,
-    .decomp = ext_decomp,
-    .sync_corners = nccl->sync_corners,
-    .device_set = 1,
-    .custream = nccl->custream,
-  });
+  struct gkyl_comm *ext_comm =
+    gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = nccl->mcomm,
+      .decomp = ext_decomp,
+      .sync_corners = nccl->sync_corners,
+      .device_set = 1,
+      .custream = nccl->custream });
   gkyl_rect_decomp_release(ext_decomp);
   return ext_comm;
 }
@@ -593,11 +587,7 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   assert(ret == MPI_SUCCESS);
 
   struct gkyl_comm *newcomm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-    .mpi_comm = new_mcomm,
-    .decomp = new_decomp,
-    .device_set = 1,
-    .custream = nccl->custream,
-  });
+    .mpi_comm = new_mcomm, .decomp = new_decomp, .device_set = 1, .custream = nccl->custream });
   return newcomm;
 }
 
@@ -621,15 +611,12 @@ create_comm_from_ranks(const struct gkyl_comm *comm, int nranks, const int *rank
   if (MPI_COMM_NULL != new_mcomm) {
     *is_valid = true;
 
-    new_comm = nccl_comm_new(
-      &(struct gkyl_nccl_comm_inp){
-        .mpi_comm = new_mcomm,
-        .sync_corners = nccl->sync_corners,
-        .decomp = new_decomp,
-        .device_set = 1,
-        .custream = nccl->custream,
-      },
-      &(struct extra_nccl_comm_inp){.is_comm_allocated = true});
+    new_comm = nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = new_mcomm,
+                               .sync_corners = nccl->sync_corners,
+                               .decomp = new_decomp,
+                               .device_set = 1,
+                               .custream = nccl->custream },
+      &(struct extra_nccl_comm_inp){ .is_comm_allocated = true });
   }
 
   MPI_Group_free(&group);
@@ -648,10 +635,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm
   nccl->mcomm = inp->mpi_comm;
 
   nccl->mpi_comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-    .mpi_comm = nccl->mcomm,
-    .decomp = inp->decomp,
-    .sync_corners = inp->sync_corners,
-  });
+    .mpi_comm = nccl->mcomm, .decomp = inp->decomp, .sync_corners = inp->sync_corners });
   MPI_Comm_rank(nccl->mcomm, &nccl->rank);
   MPI_Comm_size(nccl->mcomm, &nccl->size);
 
@@ -689,7 +673,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm
 
     // Construct a dummy decomposition.
     nccl->decomp =
-      gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]){nccl->size}, (int[]){nccl->size});
+      gkyl_rect_decomp_new_from_cuts_and_cells(1, (int[]){ nccl->size }, (int[]){ nccl->size });
   } else {
     nccl->decomp = gkyl_rect_decomp_acquire(inp->decomp);
   }
@@ -709,7 +693,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm
   nccl->allgather_buff_local.buff = gkyl_mem_buff_cu_new(16);
   nccl->allgather_buff_global.buff = gkyl_mem_buff_cu_new(16);
 
-  gkyl_range_init(&nccl->dir_edge, 2, (int[]){0, 0}, (int[]){GKYL_MAX_DIM, 2});
+  gkyl_range_init(&nccl->dir_edge, 2, (int[]){ 0, 0 }, (int[]){ GKYL_MAX_DIM, 2 });
 
   int num_touches = 0;
   for (int d = 0; d < nccl->decomp->ndim; ++d) {
@@ -758,7 +742,7 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp, const struct extra_nccl_comm
 struct gkyl_comm *
 gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 {
-  return nccl_comm_new(inp, &(struct extra_nccl_comm_inp){.is_comm_allocated = false});
+  return nccl_comm_new(inp, &(struct extra_nccl_comm_inp){ .is_comm_allocated = false });
 }
 
 #endif

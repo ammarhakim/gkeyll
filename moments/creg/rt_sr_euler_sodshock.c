@@ -43,7 +43,7 @@ evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
 struct sr_euler_ctx
 sr_euler_ctx(void)
 {
-  return (struct sr_euler_ctx){.gas_gamma = 5. / 3.};
+  return (struct sr_euler_ctx){ .gas_gamma = 5. / 3. };
 }
 
 int
@@ -62,29 +62,27 @@ main(int argc, char **argv)
   // equation object
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(ctx.gas_gamma);
 
-  struct gkyl_moment_species fluid = {
-    .name = "sr_euler",
+  struct gkyl_moment_species fluid = { .name = "sr_euler",
 
     .equation = sr_euler,
 
     .ctx = &ctx,
     .init = evalSREulerInit,
 
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-  };
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   // VM app
   struct gkyl_moment app_inp = {
 
     .ndim = 1,
-    .lower = {0.0},
-    .upper = {100.0},
-    .cells = {NX},
+    .lower = { 0.0 },
+    .upper = { 100.0 },
+    .cells = { NX },
 
     .cfl_frac = 0.9,
 
     .num_species = 1,
-    .species = {fluid},
+    .species = { fluid }
   };
 
   // create app object

@@ -14,8 +14,8 @@ ker_cu_rect_grid_test(const struct gkyl_rect_grid grid, int *nfail)
 {
   *nfail = 0;
 
-  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
-  int cells[] = {20, 20};
+  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
+  int cells[] = { 20, 20 };
 
   GKYL_CU_CHECK(grid.ndim == 2, nfail);
   for (int i = 0; i < grid.ndim; ++i) {

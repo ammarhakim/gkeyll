@@ -39,7 +39,7 @@ mpi_read(int nrank, int cuts[2])
   if (hdr.meta_size > 0)
     free(hdr.meta);
 
-  int nghost[] = {2, 2};
+  int nghost[] = { 2, 2 };
   struct gkyl_range global, ext_global;
   gkyl_create_grid_ranges(&grid, nghost, &ext_global, &global);
 
@@ -55,7 +55,7 @@ mpi_read(int nrank, int cuts[2])
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(global.ndim, cuts, &global);
 
   struct gkyl_comm *comm =
-    gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD, .decomp = decomp});
+    gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD, .decomp = decomp });
 
   struct gkyl_range local, ext_local;
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &ext_local, &local);
@@ -87,31 +87,25 @@ mpi_read(int nrank, int cuts[2])
 void
 mpi_n1_read_ho()
 {
-  mpi_read(1, (int[]){1, 1});
+  mpi_read(1, (int[]){ 1, 1 });
 }
 void
 mpi_n2_read_ho()
 {
-  mpi_read(2, (int[]){2, 1});
+  mpi_read(2, (int[]){ 2, 1 });
 }
 void
 mpi_n4_read_ho()
 {
-  mpi_read(4, (int[]){2, 2});
+  mpi_read(4, (int[]){ 2, 2 });
 }
 
-TEST_LIST = {
-  {"mpi_n1_read_ho", mpi_n1_read_ho},
-  {"mpi_n2_read_ho", mpi_n2_read_ho},
-  {"mpi_n4_read_ho", mpi_n4_read_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "mpi_n1_read_ho", mpi_n1_read_ho }, { "mpi_n2_read_ho", mpi_n2_read_ho },
+  { "mpi_n4_read_ho", mpi_n4_read_ho }, { NULL, NULL } };
 
 #else
 
 // nothing to test if not building with MPI
-TEST_LIST = {
-  {NULL, NULL},
-};
+TEST_LIST = { { NULL, NULL } };
 
 #endif

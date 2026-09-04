@@ -89,11 +89,11 @@ multib_comm_conn_new_sr(enum multib_send_recv sr, int block_id, int block_rank, 
         struct gkyl_range reset_tar_pr;
         gkyl_range_reset_lower(&reset_tar_pr, tar_pr, new_lower);
 
-        int delta[GKYL_MAX_DIM] = {0};
+        int delta[GKYL_MAX_DIM] = { 0 };
         for (int d = 0; d < ndim; ++d)
           delta[d] = reset_tar_pr.lower[d] - tar_pr->lower[d];
 
-        int minus_delta[GKYL_MAX_DIM] = {0};
+        int minus_delta[GKYL_MAX_DIM] = { 0 };
         for (int d = 0; d < ndim; ++d)
           minus_delta[d] = -delta[d];
 
@@ -106,7 +106,7 @@ multib_comm_conn_new_sr(enum multib_send_recv sr, int block_id, int block_rank, 
             struct gkyl_range sub_range;
             gkyl_range_shift(&sub_range, &tar_decomp->ranges[nn], delta);
 
-            int elo[GKYL_MAX_DIM] = {0}, eup[GKYL_MAX_DIM] = {0};
+            int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
             elo[dir] = eup[dir] = nghost[dir]; // only extend in 1 direction
 
             struct gkyl_range range_ext;
@@ -208,11 +208,11 @@ gkyl_multib_comm_conn_new_send_from_connections(int block_id, int block_rank, co
   struct gkyl_range reset_src_parent_range;
   gkyl_range_reset_lower(&reset_src_parent_range, src_parent_range, new_lower);
 
-  int delta[GKYL_MAX_DIM] = {0};
+  int delta[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < ndim; ++d)
     delta[d] = reset_src_parent_range.lower[d] - src_parent_range->lower[d];
 
-  int minus_delta[GKYL_MAX_DIM] = {0};
+  int minus_delta[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < ndim; ++d)
     minus_delta[d] = -delta[d];
 
@@ -290,11 +290,11 @@ gkyl_multib_comm_conn_new_recv_from_connections(int block_id, int block_rank, co
     struct gkyl_range reset_tar_parent_range;
     gkyl_range_reset_lower(&reset_tar_parent_range, tar_parent_range, new_lower);
 
-    int delta[GKYL_MAX_DIM] = {0};
+    int delta[GKYL_MAX_DIM] = { 0 };
     for (int d = 0; d < ndim; ++d)
       delta[d] = reset_tar_parent_range.lower[d] - tar_parent_range->lower[d];
 
-    int minus_delta[GKYL_MAX_DIM] = {0};
+    int minus_delta[GKYL_MAX_DIM] = { 0 };
     for (int d = 0; d < ndim; ++d)
       minus_delta[d] = -delta[d];
 

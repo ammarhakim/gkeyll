@@ -150,22 +150,21 @@ test_asdex_fixed_z_ho()
   double cpu_time_used;
   start = clock();
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
+  struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .flux_poly_order = 1
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
+  double clower[] = { 0.16, -0.01, -M_PI + 1e-14 };
+  double cupper[] = { 0.17501, 0.01, M_PI - 1e-14 };
 
-  int ccells[] = {2, 1, 2};
+  int ccells[] = { 2, 1, 2 };
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -173,8 +172,7 @@ test_asdex_fixed_z_ho()
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .rmin = 0.0,
+  struct gkyl_tok_geo_grid_inp ginp = { .rmin = 0.0,
     .rmax = 5.0,
     .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
     .rclose = 2.5,
@@ -183,10 +181,8 @@ test_asdex_fixed_z_ho()
     .zmin = -1.3,
     .zmax = 1.0,
     .zmin_left = -1.3,
-    .zmin_right = -1.3,
-  };
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+    .zmin_right = -1.3 };
+  struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .position_map = pmap,
@@ -201,8 +197,7 @@ test_asdex_fixed_z_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis,
-  };
+    .geo_basis = cbasis };
 
   struct gk_geometry *up = gkyl_gk_geometry_tok_new(&geometry_inp);
   gkyl_gk_geometry_release(up);
@@ -219,22 +214,21 @@ test_asdex_shaped_plate_ho()
   double cpu_time_used;
   start = clock();
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
+  struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .flux_poly_order = 1
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
+  double clower[] = { 0.16, -0.01, -M_PI + 1e-14 };
+  double cupper[] = { 0.17501, 0.01, M_PI - 1e-14 };
 
-  int ccells[] = {2, 1, 2};
+  int ccells[] = { 2, 1, 2 };
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -242,8 +236,7 @@ test_asdex_shaped_plate_ho()
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
+  struct gkyl_tok_geo_grid_inp ginp = { .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -252,10 +245,8 @@ test_asdex_shaped_plate_ho()
     .zmin = -1.3,
     .zmax = 1.0,
     .zmin_left = -1.2,
-    .zmin_right = -1.0,
-  };
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+    .zmin_right = -1.0 };
+  struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .position_map = pmap,
@@ -270,8 +261,7 @@ test_asdex_shaped_plate_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis,
-  };
+    .geo_basis = cbasis };
 
   struct gk_geometry *up = gkyl_gk_geometry_tok_new(&geometry_inp);
   //write_geometry(up, cgrid, cbasis, clocal, "asdex");
@@ -289,19 +279,17 @@ test_asdex_lower_ho()
   double cpu_time_used;
   start = clock();
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
+  struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .flux_poly_order = 1
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
-  int ccells[] = {2, 1, 2};
+  double clower[] = { 0.16, -0.01, -M_PI + 1e-14 };
+  double cupper[] = { 0.17501, 0.01, M_PI - 1e-14 };
+  int ccells[] = { 2, 1, 2 };
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
+  struct gkyl_tok_geo_grid_inp ginp = { .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -310,14 +298,13 @@ test_asdex_lower_ho()
     .zmin = -1.3,
     .zmax = 1.0,
     .zmin_left = -1.2,
-    .zmin_right = -1.0,
-  };
+    .zmin_right = -1.0 };
   gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -325,8 +312,7 @@ test_asdex_lower_ho()
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+  struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .position_map = pmap,
@@ -341,8 +327,7 @@ test_asdex_lower_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis,
-  };
+    .geo_basis = cbasis };
 
   struct gk_geometry *up = gkyl_gk_geometry_tok_new(&geometry_inp);
   //write_geometry(up, cgrid, cbasis, clocal, "asdexlo");
@@ -360,19 +345,17 @@ test_asdex_middle_ho()
   double cpu_time_used;
   start = clock();
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
+  struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .flux_poly_order = 1
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
-  int ccells[] = {2, 1, 2};
+  double clower[] = { 0.16, -0.01, -M_PI + 1e-14 };
+  double cupper[] = { 0.17501, 0.01, M_PI - 1e-14 };
+  int ccells[] = { 2, 1, 2 };
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
+  struct gkyl_tok_geo_grid_inp ginp = { .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -381,14 +364,13 @@ test_asdex_middle_ho()
     .zmin = -1.3,
     .zmax = 1.0,
     .zmin_left = -1.2,
-    .zmin_right = -1.0,
-  };
+    .zmin_right = -1.0 };
   gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -396,8 +378,7 @@ test_asdex_middle_ho()
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+  struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .position_map = pmap,
@@ -412,8 +393,7 @@ test_asdex_middle_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis,
-  };
+    .geo_basis = cbasis };
 
   struct gk_geometry *up = gkyl_gk_geometry_tok_new(&geometry_inp);
   //write_geometry(up, cgrid, cbasis, clocal, "asdexmid");
@@ -431,19 +411,17 @@ test_asdex_upper_ho()
   double cpu_time_used;
   start = clock();
 
-  struct gkyl_efit_inp efit_inp = {
-    // psiRZ and related inputs
+  struct gkyl_efit_inp efit_inp = { // psiRZ and related inputs
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
-    .flux_poly_order = 1,
+    .flux_poly_order = 1
   };
 
-  double clower[] = {0.16, -0.01, -M_PI + 1e-14};
-  double cupper[] = {0.17501, 0.01, M_PI - 1e-14};
-  int ccells[] = {2, 1, 2};
+  double clower[] = { 0.16, -0.01, -M_PI + 1e-14 };
+  double cupper[] = { 0.17501, 0.01, M_PI - 1e-14 };
+  int ccells[] = { 2, 1, 2 };
 
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
+  struct gkyl_tok_geo_grid_inp ginp = { .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP,
     .rmin = 0.0,
     .rmax = 5.0,
     .rclose = 2.5,
@@ -452,14 +430,13 @@ test_asdex_upper_ho()
     .zmin = -1.3,
     .zmax = 1.0,
     .zmin_left = -1.2,
-    .zmin_right = -1.0,
-  };
+    .zmin_right = -1.0 };
   gkyl_gk_geometry_tok_set_grid_extents(efit_inp, ginp, &clower[2], &cupper[2]);
 
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -467,8 +444,7 @@ test_asdex_upper_ho()
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
-  struct gkyl_gk_geometry_inp geometry_inp = {
-    .geometry_id = GKYL_GEOMETRY_TOKAMAK,
+  struct gkyl_gk_geometry_inp geometry_inp = { .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
     .position_map = pmap,
@@ -483,8 +459,7 @@ test_asdex_upper_ho()
     .geo_local_ext = clocal_ext,
     .geo_global = clocal,
     .geo_global_ext = clocal_ext,
-    .geo_basis = cbasis,
-  };
+    .geo_basis = cbasis };
 
   struct gk_geometry *up = gkyl_gk_geometry_tok_new(&geometry_inp);
   //write_geometry(up, cgrid, cbasis, clocal, "asdexup");
@@ -497,9 +472,7 @@ test_asdex_upper_ho()
 
 TEST_LIST = {
   //{ "test_asdex_fixed_z_ho", test_asdex_fixed_z_ho},
-  {"test_asdex_shaped_plate_ho", test_asdex_shaped_plate_ho},
-  {"test_asdex_lower_ho", test_asdex_lower_ho},
-  {"test_asdex_middle_ho", test_asdex_middle_ho},
-  {"test_asdex_upper_ho", test_asdex_upper_ho},
-  {NULL, NULL},
+  { "test_asdex_shaped_plate_ho", test_asdex_shaped_plate_ho },
+  { "test_asdex_lower_ho", test_asdex_lower_ho }, { "test_asdex_middle_ho", test_asdex_middle_ho },
+  { "test_asdex_upper_ho", test_asdex_upper_ho }, { NULL, NULL }
 };

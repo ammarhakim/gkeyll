@@ -18,10 +18,10 @@ typedef double (*lbo_vlasov_diff_boundary_surf_t)(const double *w, const double 
 static struct {
   int vdim[4];
 } cv_index[] = {
-  {-1, -1, -1, -1}, // 0x makes no sense
-  {-1, 0, 1, 2}, // 1x kernel indices
-  {-1, -1, 3, 4}, // 2x kernel indices
-  {-1, -1, -1, 5}, // 3x kernel indices
+  { -1, -1, -1, -1 }, // 0x makes no sense
+  { -1, 0, 1, 2 }, // 1x kernel indices
+  { -1, -1, 3, 4 }, // 2x kernel indices
+  { -1, -1, -1, 5 } // 3x kernel indices
 };
 
 // for use in kernel tables
@@ -284,107 +284,107 @@ kernel_lbo_vlasov_diff_vol_3x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
 // Volume kernel list
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  {NULL, kernel_lbo_vlasov_diff_vol_1x1v_ser_p1, kernel_lbo_vlasov_diff_vol_1x1v_ser_p2}, // 0
-  {NULL, kernel_lbo_vlasov_diff_vol_1x2v_ser_p1, kernel_lbo_vlasov_diff_vol_1x2v_ser_p2}, // 1
-  {NULL, kernel_lbo_vlasov_diff_vol_1x3v_ser_p1, kernel_lbo_vlasov_diff_vol_1x3v_ser_p2}, // 2
+  { NULL, kernel_lbo_vlasov_diff_vol_1x1v_ser_p1, kernel_lbo_vlasov_diff_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_lbo_vlasov_diff_vol_1x2v_ser_p1, kernel_lbo_vlasov_diff_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_lbo_vlasov_diff_vol_1x3v_ser_p1, kernel_lbo_vlasov_diff_vol_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, kernel_lbo_vlasov_diff_vol_2x2v_ser_p1, kernel_lbo_vlasov_diff_vol_2x2v_ser_p2}, // 3
-  {NULL, kernel_lbo_vlasov_diff_vol_2x3v_ser_p1, kernel_lbo_vlasov_diff_vol_2x3v_ser_p2}, // 4
+  { NULL, kernel_lbo_vlasov_diff_vol_2x2v_ser_p1, kernel_lbo_vlasov_diff_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_lbo_vlasov_diff_vol_2x3v_ser_p1, kernel_lbo_vlasov_diff_vol_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, kernel_lbo_vlasov_diff_vol_3x3v_ser_p1, NULL}, // 5
+  { NULL, kernel_lbo_vlasov_diff_vol_3x3v_ser_p1, NULL } // 5
 };
 
 // Constant nu surface kernel list: vx-direction
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ser_surf_vx_kernels[] = {
   // 1x kernels
-  {NULL, lbo_vlasov_diff_surfvx_1x1v_ser_p1, lbo_vlasov_diff_surfvx_1x1v_ser_p2}, // 0
-  {NULL, lbo_vlasov_diff_surfvx_1x2v_ser_p1, lbo_vlasov_diff_surfvx_1x2v_ser_p2}, // 1
-  {NULL, lbo_vlasov_diff_surfvx_1x3v_ser_p1, lbo_vlasov_diff_surfvx_1x3v_ser_p2}, // 2
+  { NULL, lbo_vlasov_diff_surfvx_1x1v_ser_p1, lbo_vlasov_diff_surfvx_1x1v_ser_p2 }, // 0
+  { NULL, lbo_vlasov_diff_surfvx_1x2v_ser_p1, lbo_vlasov_diff_surfvx_1x2v_ser_p2 }, // 1
+  { NULL, lbo_vlasov_diff_surfvx_1x3v_ser_p1, lbo_vlasov_diff_surfvx_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, lbo_vlasov_diff_surfvx_2x2v_ser_p1, lbo_vlasov_diff_surfvx_2x2v_ser_p2}, // 3
-  {NULL, lbo_vlasov_diff_surfvx_2x3v_ser_p1, lbo_vlasov_diff_surfvx_2x3v_ser_p2}, //
+  { NULL, lbo_vlasov_diff_surfvx_2x2v_ser_p1, lbo_vlasov_diff_surfvx_2x2v_ser_p2 }, // 3
+  { NULL, lbo_vlasov_diff_surfvx_2x3v_ser_p1, lbo_vlasov_diff_surfvx_2x3v_ser_p2 }, //
   // 3x kernels
-  {NULL, lbo_vlasov_diff_surfvx_3x3v_ser_p1, NULL}, // 5
+  { NULL, lbo_vlasov_diff_surfvx_3x3v_ser_p1, NULL } // 5
 };
 
 // Constant nu surface kernel list: vy-direction
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ser_surf_vy_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, lbo_vlasov_diff_surfvy_1x2v_ser_p1, lbo_vlasov_diff_surfvy_1x2v_ser_p2}, // 1
-  {NULL, lbo_vlasov_diff_surfvy_1x3v_ser_p1, lbo_vlasov_diff_surfvy_1x3v_ser_p2}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, lbo_vlasov_diff_surfvy_1x2v_ser_p1, lbo_vlasov_diff_surfvy_1x2v_ser_p2 }, // 1
+  { NULL, lbo_vlasov_diff_surfvy_1x3v_ser_p1, lbo_vlasov_diff_surfvy_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, lbo_vlasov_diff_surfvy_2x2v_ser_p1, lbo_vlasov_diff_surfvy_2x2v_ser_p2}, // 3
-  {NULL, lbo_vlasov_diff_surfvy_2x3v_ser_p1, lbo_vlasov_diff_surfvy_2x3v_ser_p2}, // 4
+  { NULL, lbo_vlasov_diff_surfvy_2x2v_ser_p1, lbo_vlasov_diff_surfvy_2x2v_ser_p2 }, // 3
+  { NULL, lbo_vlasov_diff_surfvy_2x3v_ser_p1, lbo_vlasov_diff_surfvy_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, lbo_vlasov_diff_surfvy_3x3v_ser_p1, NULL}, // 5
+  { NULL, lbo_vlasov_diff_surfvy_3x3v_ser_p1, NULL } // 5
 };
 
 // Constant nu surface kernel list: vz-direction
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_surf_kern_list ser_surf_vz_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
-  {NULL, NULL, NULL}, // 1
-  {NULL, lbo_vlasov_diff_surfvz_1x3v_ser_p1, lbo_vlasov_diff_surfvz_1x3v_ser_p2}, // 2
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, lbo_vlasov_diff_surfvz_1x3v_ser_p1, lbo_vlasov_diff_surfvz_1x3v_ser_p2 }, // 2
   // 2x kernels
-  {NULL, NULL, NULL}, // 3
-  {NULL, lbo_vlasov_diff_surfvz_2x3v_ser_p1, lbo_vlasov_diff_surfvz_2x3v_ser_p2}, // 4
+  { NULL, NULL, NULL }, // 3
+  { NULL, lbo_vlasov_diff_surfvz_2x3v_ser_p1, lbo_vlasov_diff_surfvz_2x3v_ser_p2 }, // 4
   // 3x kernels
-  {NULL, lbo_vlasov_diff_surfvz_3x3v_ser_p1, NULL}, // 5
+  { NULL, lbo_vlasov_diff_surfvz_3x3v_ser_p1, NULL } // 5
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vx-direction
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
   ser_boundary_surf_vx_kernels[] = {
     // 1x kernels
-    {NULL, lbo_vlasov_diff_boundary_surfvx_1x1v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvx_1x1v_ser_p2}, // 0
-    {NULL, lbo_vlasov_diff_boundary_surfvx_1x2v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvx_1x2v_ser_p2}, // 1
-    {NULL, lbo_vlasov_diff_boundary_surfvx_1x3v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvx_1x3v_ser_p2}, // 2
+    { NULL, lbo_vlasov_diff_boundary_surfvx_1x1v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvx_1x1v_ser_p2 }, // 0
+    { NULL, lbo_vlasov_diff_boundary_surfvx_1x2v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvx_1x2v_ser_p2 }, // 1
+    { NULL, lbo_vlasov_diff_boundary_surfvx_1x3v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvx_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, lbo_vlasov_diff_boundary_surfvx_2x2v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvx_2x2v_ser_p2}, // 3
-    {NULL, lbo_vlasov_diff_boundary_surfvx_2x3v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvx_2x3v_ser_p2}, // 4
+    { NULL, lbo_vlasov_diff_boundary_surfvx_2x2v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvx_2x2v_ser_p2 }, // 3
+    { NULL, lbo_vlasov_diff_boundary_surfvx_2x3v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvx_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, lbo_vlasov_diff_boundary_surfvx_3x3v_ser_p1, NULL}, // 5
-};
+    { NULL, lbo_vlasov_diff_boundary_surfvx_3x3v_ser_p1, NULL } // 5
+  };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vy-direction
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
   ser_boundary_surf_vy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, lbo_vlasov_diff_boundary_surfvy_1x2v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvy_1x2v_ser_p2}, // 1
-    {NULL, lbo_vlasov_diff_boundary_surfvy_1x3v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvy_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, lbo_vlasov_diff_boundary_surfvy_1x2v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvy_1x2v_ser_p2 }, // 1
+    { NULL, lbo_vlasov_diff_boundary_surfvy_1x3v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvy_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, lbo_vlasov_diff_boundary_surfvy_2x2v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvy_2x2v_ser_p2}, // 3
-    {NULL, lbo_vlasov_diff_boundary_surfvy_2x3v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvy_2x3v_ser_p2}, // 4
+    { NULL, lbo_vlasov_diff_boundary_surfvy_2x2v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvy_2x2v_ser_p2 }, // 3
+    { NULL, lbo_vlasov_diff_boundary_surfvy_2x3v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvy_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, lbo_vlasov_diff_boundary_surfvy_3x3v_ser_p1, NULL}, // 5
-};
+    { NULL, lbo_vlasov_diff_boundary_surfvy_3x3v_ser_p1, NULL } // 5
+  };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: vz-direction
 GKYL_CU_D static const gkyl_dg_lbo_vlasov_diff_boundary_surf_kern_list
   ser_boundary_surf_vz_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
-    {NULL, NULL, NULL}, // 1
-    {NULL, lbo_vlasov_diff_boundary_surfvz_1x3v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvz_1x3v_ser_p2}, // 2
+    { NULL, NULL, NULL }, // 0
+    { NULL, NULL, NULL }, // 1
+    { NULL, lbo_vlasov_diff_boundary_surfvz_1x3v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvz_1x3v_ser_p2 }, // 2
     // 2x kernels
-    {NULL, NULL, NULL}, // 3
-    {NULL, lbo_vlasov_diff_boundary_surfvz_2x3v_ser_p1,
-      lbo_vlasov_diff_boundary_surfvz_2x3v_ser_p2}, // 4
+    { NULL, NULL, NULL }, // 3
+    { NULL, lbo_vlasov_diff_boundary_surfvz_2x3v_ser_p1,
+      lbo_vlasov_diff_boundary_surfvz_2x3v_ser_p2 }, // 4
     // 3x kernels
-    {NULL, lbo_vlasov_diff_boundary_surfvz_3x3v_ser_p1, NULL}, // 5
-};
+    { NULL, lbo_vlasov_diff_boundary_surfvz_3x3v_ser_p1, NULL } // 5
+  };
 
 void gkyl_lbo_vlasov_diff_free(const struct gkyl_ref_count *ref);
 

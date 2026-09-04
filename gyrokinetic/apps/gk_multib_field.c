@@ -79,7 +79,7 @@ gk_multib_field_new_allgather_ranges(struct gk_multib_field *mbf,
   int **block_list = gk_multib_field_new_connected_list(mbapp, dir, nconnected);
 
   // Construct the local and global ranges for the allgather
-  int nghost[] = {1, 1, 1};
+  int nghost[] = { 1, 1, 1 };
   int *local_blocks = mbapp->local_blocks;
   for (int bI = 0; bI < mbf->num_local_blocks; bI++) {
     int bid = local_blocks[bI];
@@ -118,7 +118,7 @@ gk_multib_field_new_allgather_comm_conns(struct gk_multib_field *mbf,
   int **block_list = gk_multib_field_new_connected_list(mbapp, dir, nconnected);
 
   // Construct the comm_conns for the allgather
-  int nghost[] = {1, 1, 1};
+  int nghost[] = { 1, 1, 1 };
   int rank_list[num_ranks];
   for (int bI = 0; bI < mbf->num_local_blocks; bI++) {
     int bid = mbapp->local_blocks[bI];
@@ -177,7 +177,7 @@ gk_multib_field_new_multib_to_global_ranges(struct gk_multib_field *mbf,
     gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_range *));
   for (int bI = 0; bI < mbf->num_local_blocks; ++bI) {
     int bid = mbapp->local_blocks[bI];
-    int shift[GKYL_MAX_DIM] = {0};
+    int shift[GKYL_MAX_DIM] = { 0 };
     for (int i = 0; i < nconnected[bid]; i++) {
       if (block_list[bid][i] == bid)
         break;
@@ -210,7 +210,7 @@ gk_multib_field_new_multib_to_local_ranges(struct gk_multib_field *mbf,
     gkyl_malloc(mbf->num_local_blocks * sizeof(struct gkyl_range *));
   for (int bI = 0; bI < mbf->num_local_blocks; ++bI) {
     int bid = mbapp->local_blocks[bI];
-    int shift[GKYL_MAX_DIM] = {0};
+    int shift[GKYL_MAX_DIM] = { 0 };
     for (int i = 0; i < nconnected[bid]; i++) {
       if (block_list[bid][i] == bid)
         break;

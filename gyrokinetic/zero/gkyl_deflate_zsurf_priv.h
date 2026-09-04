@@ -15,26 +15,12 @@ typedef struct {
 } deflate_zsurf_kernel_dim_list;
 
 GKYL_CU_D static const deflate_zsurf_kernel_dim_list ser_deflate_zsurf_kernel_dim_list[] = {
-  {.list =
-      {
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-      }},
-  {.list =
-      {
-        {NULL, NULL, NULL},
-        {NULL, NULL, NULL},
-      }},
-  {.list =
-      {
-        {NULL, deflate_surfy_lower_2x_ser_p1, deflate_surfy_lower_2x_ser_p2},
-        {NULL, deflate_surfy_upper_2x_ser_p1, deflate_surfy_upper_2x_ser_p2},
-      }},
-  {.list =
-      {
-        {NULL, deflate_surfz_lower_3x_ser_p1, deflate_surfz_lower_3x_ser_p2},
-        {NULL, deflate_surfz_upper_3x_ser_p1, deflate_surfz_upper_3x_ser_p2},
-      }},
+  { .list = { { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
+  { .list = { { NULL, NULL, NULL }, { NULL, NULL, NULL } } },
+  { .list = { { NULL, deflate_surfy_lower_2x_ser_p1, deflate_surfy_lower_2x_ser_p2 },
+      { NULL, deflate_surfy_upper_2x_ser_p1, deflate_surfy_upper_2x_ser_p2 } } },
+  { .list = { { NULL, deflate_surfz_lower_3x_ser_p1, deflate_surfz_lower_3x_ser_p2 },
+      { NULL, deflate_surfz_upper_3x_ser_p1, deflate_surfz_upper_3x_ser_p2 } } }
 };
 
 struct gkyl_deflate_zsurf {

@@ -54,7 +54,7 @@ gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
 {
   struct gkyl_range vel_rng;
   int nblocks, nthreads;
-  int vlower_idx[GKYL_MAX_DIM], vupper_idx[GKYL_MAX_DIM] = {0};
+  int vlower_idx[GKYL_MAX_DIM], vupper_idx[GKYL_MAX_DIM] = { 0 };
   for (int dim = 0; dim < phase_rng->ndim; ++dim) {
     vlower_idx[dim] = phase_rng->lower[dim];
     vupper_idx[dim] = phase_rng->upper[dim];

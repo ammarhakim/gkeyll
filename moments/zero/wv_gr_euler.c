@@ -9,7 +9,7 @@
 void
 gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
 {
-  double v[71] = {0.0};
+  double v[71] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -400,7 +400,7 @@ gkyl_gr_euler_inv_spatial_metric(const double q[71], double ***inv_spatial_metri
 void
 gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[71], double ***stress_energy)
 {
-  double v[71] = {0.0};
+  double v[71] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -503,7 +503,7 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[71], double 
 static inline double
 gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[71])
 {
-  double v[71] = {0.0};
+  double v[71] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double vx = v[1];
@@ -1815,7 +1815,7 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
   double gas_gamma = gr_euler->gas_gamma;
 
-  double v[71] = {0.0};
+  double v[71] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
 
   if (v[0] < 0.0 || v[4] < 0.0) {
@@ -1848,7 +1848,7 @@ gr_euler_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
   double gas_gamma = gr_euler->gas_gamma;
 
-  double v[71] = {0.0};
+  double v[71] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, qin, v);
   double rho = v[0];
   double vx = v[1];
@@ -2034,14 +2034,12 @@ struct gkyl_wv_eqn *
 gkyl_wv_gr_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
   struct gkyl_gr_spacetime *spacetime, bool use_gpu)
 {
-  return gkyl_wv_gr_euler_inew(&(struct gkyl_wv_gr_euler_inp){
-    .gas_gamma = gas_gamma,
+  return gkyl_wv_gr_euler_inew(&(struct gkyl_wv_gr_euler_inp){ .gas_gamma = gas_gamma,
     .spacetime_gauge = spacetime_gauge,
     .reinit_freq = reinit_freq,
     .spacetime = spacetime,
     .rp_type = WV_GR_EULER_RP_HLL,
-    .use_gpu = use_gpu,
-  });
+    .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

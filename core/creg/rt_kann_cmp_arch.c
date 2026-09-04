@@ -62,9 +62,9 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(Nt * Nx, 2);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(Nt * Nx, 1);
 
-  struct xrange tr = {.xleft = 0.0f, .xright = 3.0f, .N = Nt};
+  struct xrange tr = { .xleft = 0.0f, .xright = 3.0f, .N = Nt };
 
-  struct xrange xr = {.xleft = 0.0f, .xright = 1.0f, .N = Nx};
+  struct xrange xr = { .xleft = 0.0f, .xright = 1.0f, .N = Nx };
 
   // initialize input/output mapping
   for (int i = 0; i < Nt; ++i)
@@ -177,19 +177,19 @@ main(int argc, char *argv[])
 
   if (p_train) {
     fprintf(stdout, "*** Training MLP\n");
-    train_ann(&(struct train_inp){.ntrain = {101, 101},
+    train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
                 .ndepth = 2,
                 .nwidth = 64,
                 .learning_rate = 1e-3f,
-                .layer_type = ANN_DENSE},
+                .layer_type = ANN_DENSE },
       "rt_kann_cmp_arch_mlp.kann");
 
     fprintf(stdout, "*** Training GRU\n");
-    train_ann(&(struct train_inp){.ntrain = {101, 101},
+    train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
                 .ndepth = 2,
                 .nwidth = 32,
                 .learning_rate = 1e-3f,
-                .layer_type = ANN_GRU},
+                .layer_type = ANN_GRU },
       "rt_kann_cmp_arch_gru.kann");
   }
 
@@ -199,7 +199,7 @@ main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 2);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange tr = {.xleft = 0.0f, .xright = 3.0f, .N = inp->nvec};
+    struct xrange tr = { .xleft = 0.0f, .xright = 3.0f, .N = inp->nvec };
     for (int i = 0; i < inp->nvec; ++i) {
       inp->vals[i][0] = xrange_n(tr, i);
       inp->vals[i][1] = 0.35f;

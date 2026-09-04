@@ -8,7 +8,7 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
   // Add contribution from implicit collision terms.
   double tcurr = app->tcurr, dt = dt0;
 
-  struct gkyl_update_status st = {.success = true};
+  struct gkyl_update_status st = { .success = true };
 
   const int ns = app->num_species;
   struct gkyl_array *fin[ns];

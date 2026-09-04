@@ -132,7 +132,7 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
     MPI_Init(&argc, &argv);
     comm = gkyl_mpi_comm_new(
-      &(struct gkyl_mpi_comm_inp){.mpi_comm = MPI_COMM_WORLD, .sync_corners = true});
+      &(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD, .sync_corners = true });
 #endif
   }
   if (comm == 0)
@@ -148,30 +148,26 @@ main(int argc, char **argv)
   int nblocks = gkyl_block_geom_num_blocks(bgeom);
 
   struct gkyl_wv_eqn *euler_eqn =
-    gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){.gas_gamma = gas_gamma});
+    gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){ .gas_gamma = gas_gamma });
 
   // all data is common across blocks
   struct gkyl_moment_multib_species_pb euler_blocks[1];
-  euler_blocks[0] = (struct gkyl_moment_multib_species_pb){
-    .init = initFluidSod,
-  };
+  euler_blocks[0] = (struct gkyl_moment_multib_species_pb){ .init = initFluidSod };
 
-  struct gkyl_block_physical_bcs euler_phys_bcs[] = {
-    // block 0 BCs
-    {.bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT},
-    {.bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT},
-    {.bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_COPY},
+  struct gkyl_block_physical_bcs euler_phys_bcs[] = { // block 0 BCs
+    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_COPY },
     // block 1 BCs
-    {.bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT},
-    {.bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
     // block 2 BCs
-    {.bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_COPY},
-    {.bidx = 2, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT},
-    {.bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT},
+    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_COPY },
+    { .bidx = 2, .dir = 1, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
+    { .bidx = 2, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT }
   };
 
-  struct gkyl_moment_multib_species euler = {
-    .name = "euler",
+  struct gkyl_moment_multib_species euler = { .name = "euler",
     .charge = 0.0,
     .mass = 1.0,
     .equation = euler_eqn,
@@ -180,8 +176,7 @@ main(int argc, char **argv)
     .blocks = euler_blocks,
 
     .num_physical_bcs = 8,
-    .bcs = euler_phys_bcs,
-  };
+    .bcs = euler_phys_bcs };
 
   struct gkyl_moment_multib app_inp = {
 
@@ -189,9 +184,10 @@ main(int argc, char **argv)
     .cfl_frac = 0.9,
 
     .num_species = 1,
-    .species = {euler},
+    .species = { euler },
 
-    .comm = comm};
+    .comm = comm
+  };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
@@ -208,7 +204,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = 4;
-  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.
   gkyl_moment_multib_app_apply_ic(app, t_curr);

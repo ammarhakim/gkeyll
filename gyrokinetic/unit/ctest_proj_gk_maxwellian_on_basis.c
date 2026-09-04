@@ -66,8 +66,8 @@ void
 test_1x2v_gk(int poly_order, bool use_gpu)
 {
   double mass = 1.0;
-  double lower[] = {0.1, -6.0, 0.0}, upper[] = {1.0, 6.0, 6.0};
-  int cells[] = {2, 16, 16};
+  double lower[] = { 0.1, -6.0, 0.0 }, upper[] = { 1.0, 6.0, 6.0 };
+  int cells[] = { 2, 16, 16 };
   int vdim = 2;
   int ndim = sizeof(cells) / sizeof(cells[0]);
   int cdim = ndim - vdim;
@@ -119,15 +119,15 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     conf_basis_on_dev = &confBasis;
   }
 
-  int confGhost[] = {1, 1, 1}; // 3 elements because it's used by geo.
+  int confGhost[] = { 1, 1, 1 }; // 3 elements because it's used by geo.
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[] = {0, 0};
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -173,9 +173,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = {0.0, 0.0},
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = { 0.0, 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
@@ -186,8 +185,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis,
-  };
+    .basis = confBasis };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(
     &geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
@@ -212,8 +210,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Maxwellian (or bi-Maxwellian) projection updater.
-  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
-    .phase_grid = &grid,
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range = &confLocal,
@@ -223,8 +220,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu,
-  };
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
@@ -237,32 +233,19 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   }
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p1_vals[] = {
-    7.2307139183122714e-03,
-    0.0000000000000000e+00,
-    1.9198293226362615e-04,
-    -7.7970439910196674e-04,
-    0.0000000000000000e+00,
-    0.0000000000000000e+00,
-    -2.0701958137127286e-05,
-    0.0000000000000000e+00,
-    -1.4953406100022537e-04,
-    0.0000000000000000e+00,
-    1.6124599381836546e-05,
-    0.0000000000000000e+00,
-    -8.2719200283232917e-19,
-    0.0000000000000000e+00,
-    -3.4806248503322844e-20,
-    0.0000000000000000e+00,
-  };
-  double p2_vals[] = {7.2307468609012666e-03, 0.0000000000000000e+00, 1.9198380692343289e-04,
+  double p1_vals[] = { 7.2307139183122714e-03, 0.0000000000000000e+00, 1.9198293226362615e-04,
+    -7.7970439910196674e-04, 0.0000000000000000e+00, 0.0000000000000000e+00,
+    -2.0701958137127286e-05, 0.0000000000000000e+00, -1.4953406100022537e-04,
+    0.0000000000000000e+00, 1.6124599381836546e-05, 0.0000000000000000e+00, -8.2719200283232917e-19,
+    0.0000000000000000e+00, -3.4806248503322844e-20, 0.0000000000000000e+00 };
+  double p2_vals[] = { 7.2307468609012666e-03, 0.0000000000000000e+00, 1.9198380692343289e-04,
     -7.8092230706225602e-04, 0.0000000000000000e+00, 0.0000000000000000e+00,
     -2.0734294852987710e-05, 3.6591823321385775e-18, -1.4953474226616330e-04,
     3.7739922227981074e-05, 0.0000000000000000e+00, 7.0473141211557788e-19, 0.0000000000000000e+00,
     -4.8789097761847700e-19, 1.6149786206441256e-05, 0.0000000000000000e+00, 1.0020339643610290e-06,
-    5.4210108624275222e-20, 0.0000000000000000e+00, 0.0000000000000000e+00};
+    5.4210108624275222e-20, 0.0000000000000000e+00, 0.0000000000000000e+00 };
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){1, 9, 9}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){ 1, 9, 9 }));
   if (poly_order == 1) {
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i], fv[i], 1e-2));
@@ -322,8 +305,8 @@ void
 test_3x2v_gk(int poly_order, bool use_gpu)
 {
   double mass = 1.0;
-  double lower[] = {0.1, 0.1, 0.1, -6.0, 0.0}, upper[] = {1.0, 1.0, 1.0, 6.0, 6.0};
-  int cells[] = {2, 2, 2, 16, 16};
+  double lower[] = { 0.1, 0.1, 0.1, -6.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0, 6.0, 6.0 };
+  int cells[] = { 2, 2, 2, 16, 16 };
   int vdim = 2;
   int ndim = sizeof(cells) / sizeof(cells[0]);
   int cdim = ndim - vdim;
@@ -375,15 +358,15 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     conf_basis_on_dev = &confBasis;
   }
 
-  int confGhost[] = {1, 1, 1};
+  int confGhost[] = { 1, 1, 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], confGhost[1], confGhost[2], 0, 0};
+  int ghost[] = { confGhost[0], confGhost[1], confGhost[2], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  int vGhost[] = {0, 0};
+  int vGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&velGrid, vGhost, &velLocal_ext, &velLocal);
 
@@ -419,8 +402,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
@@ -437,8 +419,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     .geo_local_ext = confLocal_ext,
     .geo_global = confLocal,
     .geo_global_ext = confLocal_ext,
-    .geo_basis = confBasis,
-  };
+    .geo_basis = confBasis };
   struct gk_geometry *gk_geom;
   gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
@@ -463,8 +444,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     gkyl_velocity_map_new(c2p_in, grid, velGrid, local, local_ext, velLocal, velLocal_ext, use_gpu);
 
   // Maxwellian (or bi-Maxwellian) projection updater.
-  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
-    .phase_grid = &grid,
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range = &confLocal,
@@ -474,8 +454,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu,
-  };
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
@@ -489,7 +468,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
 
   // Values to compare at index (1, 1, 1, 9, 9) [remember, lower-left index is (1,1,1)]
   // They come from the gpu run results using the previous parallelization.
-  double p1_vals[] = {2.4243050727223950e-02, -1.6882464773457025e-04, -1.6882464773457199e-04,
+  double p1_vals[] = { 2.4243050727223950e-02, -1.6882464773457025e-04, -1.6882464773457199e-04,
     -1.6882464773457155e-04, 6.4367806805923898e-04, -2.6141835388891624e-03,
     1.1756672872340893e-06, 1.1756672872319208e-06, 1.1756672872319208e-06, -4.4824689894557621e-06,
     -4.4824689894555452e-06, -4.4824689894551116e-06, 1.8204747415343751e-05,
@@ -503,8 +482,8 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     -2.4313270560376134e-08, -2.4313270561026655e-08, -2.4313270560918235e-08,
     -3.7648147074447582e-07, -3.7648147074447582e-07, -3.7648147074469266e-07,
     1.6931364740599317e-10, 2.6217555038242103e-09, 2.6217555040410507e-09, 2.6217555040410507e-09,
-    -1.8257477671200626e-11};
-  double p2_vals[] = {2.4243271148107627e-02, -1.6844589780429920e-04, -1.6844589780430397e-04,
+    -1.8257477671200626e-11 };
+  double p2_vals[] = { 2.4243271148107627e-02, -1.6844589780429920e-04, -1.6844589780430397e-04,
     -1.6844589780430353e-04, 6.4368392046165463e-04, -2.6182788029943962e-03,
     1.1703874577738927e-06, 1.1703874577719411e-06, 1.1703874577718327e-06, -4.4724127871178736e-06,
     -4.4724127871176025e-06, -4.4724127871178194e-06, 1.8192195309699262e-05,
@@ -537,9 +516,10 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     2.6140463198124999e-09, 2.6140463198396050e-09, 2.6140463198124999e-09, -4.2444040868023796e-11,
     1.6219181891657465e-10, 1.6219181869973422e-10, 1.6219181865907664e-10, 4.0307008461021814e-12,
     4.0307008732072357e-12, 4.0307008189971271e-12, -1.8162787487545735e-11,
-    -1.1269332393403825e-12};
+    -1.1269332393403825e-12 };
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[5]){1, 1, 1, 9, 9}));
+  const double *fv =
+    gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[5]){ 1, 1, 1, 9, 9 }));
   if (poly_order == 1) {
     for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p1_vals[i], fv[i], 1e-2));
@@ -561,8 +541,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // Calculate the moments and copy from device to host.
-  struct gkyl_gk_maxwellian_moments_inp inp_calc = {
-    .phase_grid = &grid,
+  struct gkyl_gk_maxwellian_moments_inp inp_calc = { .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range = &confLocal,
@@ -571,8 +550,7 @@ test_3x2v_gk(int poly_order, bool use_gpu)
     .vel_map = gvm,
     .divide_jacobgeo = true,
     .mass = mass,
-    .use_gpu = use_gpu,
-  };
+    .use_gpu = use_gpu };
   gkyl_gk_maxwellian_moments *calc_moms = gkyl_gk_maxwellian_moments_inew(&inp_calc);
 
   struct gkyl_array *moms;
@@ -654,13 +632,11 @@ test_proj_maxwellian_3x2v_p1_gk_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_proj_maxwellian_1x2v_p1_gk_ho", test_proj_maxwellian_1x2v_p1_gk_ho},
-  {"test_proj_maxwellian_3x2v_p1_gk_ho", test_proj_maxwellian_3x2v_p1_gk_ho},
+TEST_LIST = { { "test_proj_maxwellian_1x2v_p1_gk_ho", test_proj_maxwellian_1x2v_p1_gk_ho },
+  { "test_proj_maxwellian_3x2v_p1_gk_ho", test_proj_maxwellian_3x2v_p1_gk_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  {"test_proj_maxwellian_1x2v_p1_gk_dev", test_proj_maxwellian_1x2v_p1_gk_dev},
-  {"test_proj_maxwellian_3x2v_p1_gk_dev", test_proj_maxwellian_3x2v_p1_gk_dev},
+  { "test_proj_maxwellian_1x2v_p1_gk_dev", test_proj_maxwellian_1x2v_p1_gk_dev },
+  { "test_proj_maxwellian_3x2v_p1_gk_dev", test_proj_maxwellian_3x2v_p1_gk_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

@@ -17,7 +17,7 @@
 
 #define SQ(x) ((x) * (x))
 
-static const int dir_shuffle[][3] = {{1, 2, 3}, {2, 3, 1}, {3, 1, 2}};
+static const int dir_shuffle[][3] = { { 1, 2, 3 }, { 2, 3, 1 }, { 3, 1, 2 } };
 
 struct gkyl_kep_scheme {
   struct gkyl_rect_grid grid; // grid object
@@ -114,7 +114,7 @@ mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], dou
 static inline long
 get_offset(int dir, int loc, const struct gkyl_range *range)
 {
-  int idx[GKYL_MAX_CDIM] = {0, 0, 0};
+  int idx[GKYL_MAX_CDIM] = { 0, 0, 0 };
   idx[dir] = loc;
   return gkyl_range_offset(range, idx);
 }

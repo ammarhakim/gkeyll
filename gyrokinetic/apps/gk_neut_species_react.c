@@ -207,7 +207,7 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
-  int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  int io_meta_len[] = { gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
   struct gkyl_msgpack_data *mt;
 
   if (app->use_gpu)
@@ -222,9 +222,10 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns
       gkr->react_type[ridx].ion_nm, frame);
 
     struct gkyl_msgpack_map_elem desc[] = {
-      {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Ionization reaction rate."}};
-    const struct gkyl_msgpack_map_elem *io_meta[] = {
-      gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Ionization reaction rate." }
+    };
+    const struct gkyl_msgpack_map_elem *io_meta[] = { gkns->io_meta_conf,
+      app->gk_geom->io_meta_basic, desc };
     mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
     gkyl_comm_array_write(
@@ -239,9 +240,10 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns
       gkr->react_type[ridx].ion_nm, frame);
 
     struct gkyl_msgpack_map_elem desc[] = {
-      {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Recombination reaction rate."}};
-    const struct gkyl_msgpack_map_elem *io_meta[] = {
-      gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Recombination reaction rate." }
+    };
+    const struct gkyl_msgpack_map_elem *io_meta[] = { gkns->io_meta_conf,
+      app->gk_geom->io_meta_basic, desc };
     mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
     gkyl_comm_array_write(
@@ -254,11 +256,11 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns
     snprintf(
       fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, gkr->react_type[ridx].ion_nm, frame);
 
-    struct gkyl_msgpack_map_elem desc[] = {{.key = "Description",
+    struct gkyl_msgpack_map_elem desc[] = { { .key = "Description",
       .elem_type = GKYL_MP_STRING,
-      .cval = "Charge exchange reaction rate."}};
-    const struct gkyl_msgpack_map_elem *io_meta[] = {
-      gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+      .cval = "Charge exchange reaction rate." } };
+    const struct gkyl_msgpack_map_elem *io_meta[] = { gkns->io_meta_conf,
+      app->gk_geom->io_meta_basic, desc };
     mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
     gkyl_comm_array_write(
@@ -374,17 +376,14 @@ gk_neut_species_react_cross_init(
       react->vt_sq_ion[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
       if (react->react_id[i] == GKYL_REACT_IZ) {
-        struct gkyl_dg_iz_inp iz_inp = {
-          .cbasis = &app->basis,
+        struct gkyl_dg_iz_inp iz_inp = { .cbasis = &app->basis,
           .conf_rng = &app->local,
           .type_ion = react->react_type[i].ion_id,
           .charge_state = react->react_type[i].charge_state,
-          .type_self = react->type_self[i],
-        };
+          .type_self = react->type_self[i] };
         react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
       } else if (react->react_id[i] == GKYL_REACT_RECOMB) {
-        struct gkyl_dg_recomb_inp recomb_inp = {
-          .grid = &s->grid,
+        struct gkyl_dg_recomb_inp recomb_inp = { .grid = &s->grid,
           .cbasis = &app->basis,
           .pbasis = &s->basis,
           .conf_rng = &app->local,
@@ -393,18 +392,15 @@ gk_neut_species_react_cross_init(
           .mass_self = s->info.mass,
           .type_ion = react->react_type[i].ion_id,
           .charge_state = react->react_type[i].charge_state,
-          .type_self = react->type_self[i],
-        };
+          .type_self = react->type_self[i] };
         react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);
       } else if (react->react_id[i] == GKYL_REACT_CX) {
         struct gk_species *gks = &app->species[react->ion_idx[i]];
-        struct gkyl_dg_cx_inp cx_inp = {
-          .cbasis = &app->basis,
+        struct gkyl_dg_cx_inp cx_inp = { .cbasis = &app->basis,
           .conf_rng = &app->local,
           .vt_sq_ion_min = ion_vt_sq_min,
           .vt_sq_neut_min = neut_vt_sq_min,
-          .type_ion = react->react_type[i].ion_id,
-        };
+          .type_ion = react->react_type[i].ion_id };
         react->cx[i] = gkyl_dg_cx_new(&cx_inp, app->use_gpu);
       }
 

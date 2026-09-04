@@ -85,15 +85,15 @@ bmag_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
 void
 test_position_map_init_1x_ho()
 {
-  int cells[] = {32};
+  int cells[] = { 32 };
   int poly_order = 1;
-  double lower[] = {0.0}, upper[] = {1.0};
+  double lower[] = { 0.0 }, upper[] = { 1.0 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -101,11 +101,10 @@ test_position_map_init_1x_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {test_nonuniform_position_map, test_nonuniform_position_map,
-      test_nonuniform_position_map},
-    .ctxs = {NULL, NULL, NULL},
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
+                                                 test_nonuniform_position_map,
+                                                 test_nonuniform_position_map },
+    .ctxs = { NULL, NULL, NULL } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -123,15 +122,15 @@ test_position_map_init_1x_ho()
 void
 test_position_map_init_1x_null_ho()
 {
-  int cells[] = {8};
+  int cells[] = { 8 };
   int poly_order = 1;
-  double lower[] = {0.0}, upper[] = {1.0};
+  double lower[] = { 0.0 }, upper[] = { 1.0 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -146,7 +145,7 @@ test_position_map_init_1x_null_ho()
 
   TEST_CHECK(pos_map->id == GKYL_PMAP_USER_INPUT);
   for (double i = 0; i < 1; i = i + 0.1) {
-    double x[1] = {i};
+    double x[1] = { i };
     double y[1];
     pos_map->maps[0](0.0, x, y, pos_map->ctxs[0]);
     TEST_CHECK(y[0] == x[0]);
@@ -170,15 +169,15 @@ test_position_map_init_1x_null_ho()
 void
 test_position_map_init_2x_ho()
 {
-  int cells[] = {8, 8};
+  int cells[] = { 8, 8 };
   int poly_order = 1;
-  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
+  double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -186,11 +185,10 @@ test_position_map_init_2x_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {test_nonuniform_position_map, test_nonuniform_position_map,
-      test_nonuniform_position_map},
-    .ctxs = {0, 0, 0},
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
+                                                 test_nonuniform_position_map,
+                                                 test_nonuniform_position_map },
+    .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -208,15 +206,15 @@ test_position_map_init_2x_ho()
 void
 test_position_map_init_3x_ho()
 {
-  int cells[] = {8, 8, 8};
+  int cells[] = { 8, 8, 8 };
   int poly_order = 1;
-  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -224,11 +222,10 @@ test_position_map_init_3x_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {test_nonuniform_position_map, test_nonuniform_position_map,
-      test_nonuniform_position_map},
-    .ctxs = {0, 0, 0},
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
+                                                 test_nonuniform_position_map,
+                                                 test_nonuniform_position_map },
+    .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -246,15 +243,15 @@ test_position_map_init_3x_ho()
 void
 test_position_map_set_ho()
 {
-  int cells[] = {8, 8, 8};
+  int cells[] = { 8, 8, 8 };
   int poly_order = 1;
-  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -262,11 +259,10 @@ test_position_map_set_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {test_nonuniform_position_map, test_nonuniform_position_map,
-      test_nonuniform_position_map},
-    .ctxs = {0, 0, 0},
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
+                                                 test_nonuniform_position_map,
+                                                 test_nonuniform_position_map },
+    .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -288,15 +284,15 @@ test_position_map_set_ho()
 void
 test_gkyl_position_map_eval_mc2nu_ho()
 {
-  int cells[] = {8, 8, 8};
+  int cells[] = { 8, 8, 8 };
   int poly_order = 2;
-  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -304,11 +300,10 @@ test_gkyl_position_map_eval_mc2nu_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {test_nonuniform_position_map, test_nonuniform_position_map,
-      test_nonuniform_position_map},
-    .ctxs = {0, 0, 0},
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
+                                                 test_nonuniform_position_map,
+                                                 test_nonuniform_position_map },
+    .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -326,7 +321,7 @@ test_gkyl_position_map_eval_mc2nu_ho()
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 5; k++) {
-        double x[3] = {i / 10.0, j / 10.0, k / 10.0};
+        double x[3] = { i / 10.0, j / 10.0, k / 10.0 };
         double x_fa[3];
         gkyl_position_map_eval_mc2nu(pos_map, x, x_fa);
         double x_analytic[3];
@@ -346,15 +341,15 @@ test_gkyl_position_map_eval_mc2nu_ho()
 void
 test_gkyl_position_map_slope_ho()
 {
-  int cells[] = {8, 8, 8};
+  int cells[] = { 8, 8, 8 };
   int poly_order = 2;
-  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
+  double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -362,11 +357,10 @@ test_gkyl_position_map_slope_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {test_nonuniform_position_map, test_nonuniform_position_map,
-      test_nonuniform_position_map},
-    .ctxs = {0, 0, 0},
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
+                                                 test_nonuniform_position_map,
+                                                 test_nonuniform_position_map },
+    .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -384,7 +378,7 @@ test_gkyl_position_map_slope_ho()
   for (int i = 0; i < 8; i++) {
     for (int j = 0; j < 8; j++) {
       for (int k = 0; k < 8; k++) {
-        double x[3] = {i / 8.0, j / 8.0, k / 8.0};
+        double x[3] = { i / 8.0, j / 8.0, k / 8.0 };
         if (x[0] == 0.25 || x[0] == 0.75)
           continue;
         if (x[1] == 0.25 || x[1] == 0.75)
@@ -411,15 +405,15 @@ test_gkyl_position_map_slope_ho()
 void
 test_position_polynomial_map_optimize_1x_ho()
 {
-  int cells[] = {64};
+  int cells[] = { 64 };
   int poly_order = 1;
-  double lower[] = {-M_PI + 1e-2}, upper[] = {M_PI - 1e-2};
+  double lower[] = { -M_PI + 1e-2 }, upper[] = { M_PI - 1e-2 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -427,10 +421,8 @@ test_position_polynomial_map_optimize_1x_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_CONSTANT_DB_POLYNOMIAL,
-    .map_strength = 1.0,
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .id = GKYL_PMAP_CONSTANT_DB_POLYNOMIAL,
+    .map_strength = 1.0 };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -444,10 +436,10 @@ test_position_polynomial_map_optimize_1x_ho()
   gkyl_proj_on_basis_release(projB);
 
   struct gkyl_rect_grid grid3D;
-  double lower3D[] = {0.4, -0.1, lower[0]}, upper3D[] = {0.6, 0.1, upper[0]};
-  int cells3D[] = {1, 1, cells[0]};
+  double lower3D[] = { 0.4, -0.1, lower[0] }, upper3D[] = { 0.6, 0.1, upper[0] };
+  int cells3D[] = { 1, 1, cells[0] };
   gkyl_rect_grid_init(&grid3D, 3, lower3D, upper3D, cells3D);
-  int ghost3D[] = {1, 1, 1};
+  int ghost3D[] = { 1, 1, 1 };
   struct gkyl_range localRange3D, localRange3D_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid3D, ghost3D, &localRange3D_ext, &localRange3D);
 
@@ -472,15 +464,15 @@ test_position_polynomial_map_optimize_1x_ho()
 void
 test_position_map_numeric_optimize_1x_ho()
 {
-  int cells[] = {64};
+  int cells[] = { 64 };
   int poly_order = 1;
-  double lower[] = {-M_PI + 1e-2}, upper[] = {M_PI - 1e-2};
+  double lower[] = { -M_PI + 1e-2 }, upper[] = { M_PI - 1e-2 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -488,10 +480,8 @@ test_position_map_numeric_optimize_1x_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-    .map_strength = 1.0,
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+    .map_strength = 1.0 };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -505,10 +495,10 @@ test_position_map_numeric_optimize_1x_ho()
   gkyl_proj_on_basis_release(projB);
 
   struct gkyl_rect_grid grid3D;
-  double lower3D[] = {0.4, -0.1, lower[0]}, upper3D[] = {0.6, 0.1, upper[0]};
-  int cells3D[] = {1, 1, cells[0]};
+  double lower3D[] = { 0.4, -0.1, lower[0] }, upper3D[] = { 0.6, 0.1, upper[0] };
+  int cells3D[] = { 1, 1, cells[0] };
   gkyl_rect_grid_init(&grid3D, 3, lower3D, upper3D, cells3D);
-  int ghost3D[] = {1, 1, 1};
+  int ghost3D[] = { 1, 1, 1 };
   struct gkyl_range localRange3D, localRange3D_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid3D, ghost3D, &localRange3D_ext, &localRange3D);
 
@@ -516,7 +506,7 @@ test_position_map_numeric_optimize_1x_ho()
   gkyl_position_map_set_bmag(pos_map, NULL, bmag_global);
   gkyl_position_map_optimize(pos_map, grid3D, localRange3D);
 
-  double theta_extrema_analytic[5] = {lower[0], lower[0] / 2, 0.0, upper[0] / 2, upper[0]};
+  double theta_extrema_analytic[5] = { lower[0], lower[0] / 2, 0.0, upper[0] / 2, upper[0] };
 
   TEST_CHECK(pos_map->constB_ctx->num_extrema == 5);
   TEST_CHECK(gkyl_compare(pos_map->constB_ctx->theta_extrema[0], theta_extrema_analytic[0], 1e-15));
@@ -532,15 +522,15 @@ test_position_map_numeric_optimize_1x_ho()
 void
 test_position_map_numeric_calculate_1x_ho()
 {
-  int cells[] = {64};
+  int cells[] = { 64 };
   int poly_order = 1;
-  double lower[] = {-M_PI + 1e-2}, upper[] = {M_PI - 1e-2};
+  double lower[] = { -M_PI + 1e-2 }, upper[] = { M_PI - 1e-2 };
   int dim = sizeof(lower) / sizeof(lower[0]);
   // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
   // Ranges
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -548,10 +538,8 @@ test_position_map_numeric_calculate_1x_ho()
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-    .map_strength = 1.0,
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+    .map_strength = 1.0 };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -565,10 +553,10 @@ test_position_map_numeric_calculate_1x_ho()
   gkyl_proj_on_basis_release(projB);
 
   struct gkyl_rect_grid grid3D;
-  double lower3D[] = {0.4, -0.1, lower[0]}, upper3D[] = {0.6, 0.1, upper[0]};
-  int cells3D[] = {1, 1, cells[0]};
+  double lower3D[] = { 0.4, -0.1, lower[0] }, upper3D[] = { 0.6, 0.1, upper[0] };
+  int cells3D[] = { 1, 1, cells[0] };
   gkyl_rect_grid_init(&grid3D, 3, lower3D, upper3D, cells3D);
-  int ghost3D[] = {1, 1, 1};
+  int ghost3D[] = { 1, 1, 1 };
   struct gkyl_range localRange3D, localRange3D_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid3D, ghost3D, &localRange3D_ext, &localRange3D);
 
@@ -584,16 +572,14 @@ test_position_map_numeric_calculate_1x_ho()
   gkyl_array_release(bmag_global);
 }
 
-TEST_LIST = {
-  {"test_position_map_init_1x_ho", test_position_map_init_1x_ho},
-  {"test_position_map_init_1x_null_ho", test_position_map_init_1x_null_ho},
-  {"test_position_map_init_2x_ho", test_position_map_init_2x_ho},
-  {"test_position_map_init_3x_ho", test_position_map_init_3x_ho},
-  {"test_position_map_set_ho", test_position_map_set_ho},
-  {"test_gkyl_position_map_eval_mc2nu_ho", test_gkyl_position_map_eval_mc2nu_ho},
-  {"test_gkyl_position_map_slope_ho", test_gkyl_position_map_slope_ho},
-  {"test_position_polynomial_map_optimize_1x_ho", test_position_polynomial_map_optimize_1x_ho},
-  {"test_position_map_numeric_optimize_1x_ho", test_position_map_numeric_optimize_1x_ho},
-  {"test_position_map_numeric_calculate_1x_ho", test_position_map_numeric_calculate_1x_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_position_map_init_1x_ho", test_position_map_init_1x_ho },
+  { "test_position_map_init_1x_null_ho", test_position_map_init_1x_null_ho },
+  { "test_position_map_init_2x_ho", test_position_map_init_2x_ho },
+  { "test_position_map_init_3x_ho", test_position_map_init_3x_ho },
+  { "test_position_map_set_ho", test_position_map_set_ho },
+  { "test_gkyl_position_map_eval_mc2nu_ho", test_gkyl_position_map_eval_mc2nu_ho },
+  { "test_gkyl_position_map_slope_ho", test_gkyl_position_map_slope_ho },
+  { "test_position_polynomial_map_optimize_1x_ho", test_position_polynomial_map_optimize_1x_ho },
+  { "test_position_map_numeric_optimize_1x_ho", test_position_map_numeric_optimize_1x_ho },
+  { "test_position_map_numeric_calculate_1x_ho", test_position_map_numeric_calculate_1x_ho },
+  { NULL, NULL } };

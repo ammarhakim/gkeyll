@@ -796,10 +796,10 @@ test(
   gkyl_array_scale_range(alt_L2_bvar, grid.cellVolume, &local);
   gkyl_array_scale_range(alt_L2_ExB, grid.cellVolume, &local);
 
-  double red_L2_bvar[9] = {0.0};
-  double red_L2_ExB[3] = {0.0};
-  double red_alt_L2_bvar[9] = {0.0};
-  double red_alt_L2_ExB[3] = {0.0};
+  double red_L2_bvar[9] = { 0.0 };
+  double red_L2_ExB[3] = { 0.0 };
+  double red_alt_L2_bvar[9] = { 0.0 };
+  double red_alt_L2_ExB[3] = { 0.0 };
 
   gkyl_array_reduce_range(red_L2_bvar, L2_bvar, GKYL_SUM, &local);
   gkyl_array_reduce_range(red_L2_ExB, L2_ExB, GKYL_SUM, &local);
@@ -1078,12 +1078,11 @@ test_dg_em_vars_3x_tensor_p2_dev()
 
 #endif
 
-TEST_LIST = {
-  {"test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho},
-  {"test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho},
-  {"test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho},
+TEST_LIST = { { "test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho },
+  { "test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho },
+  { "test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho },
 
-  {"test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho},
+  { "test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho },
 // The tensor p2 bvar comparison is disabled (CPU and GPU): the em_vars
 // operator's positivity-control fallback keeps only the cell average of
 // b_i b_j in cells where b_i b_i is negative at control points, while the
@@ -1093,15 +1092,14 @@ TEST_LIST = {
 // { "test_dg_em_vars_3x_tensor_p2_ho", test_dg_em_vars_3x_tensor_p2_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  {"test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev},
-  {"test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev},
-  {"test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev},
+  { "test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev },
+  { "test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev },
+  { "test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev },
 
-  {"test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev},
+  { "test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev },
 // Disabled for the same positivity-fallback reason as the CPU tensor tests.
 // { "test_dg_em_vars_2x_tensor_p2_dev", test_dg_em_vars_2x_tensor_p2_dev },
 // { "test_dg_em_vars_3x_tensor_p2_dev", test_dg_em_vars_3x_tensor_p2_dev },
 
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

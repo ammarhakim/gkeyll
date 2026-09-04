@@ -412,6 +412,16 @@ pip install clang-format==18.1.8
 To format everything by hand (e.g. after pulling changes), run `ci/format-all.sh`,
 or `ci/format-all.sh --check` to only check without modifying files.
 
+clang-format expands every element of a braced initializer list onto its own
+line whenever the list already ends with a trailing comma, regardless of
+column limit -- so the same struct/array literal formats differently
+depending on whether its last author happened to add one. `ci/strip-trailing-commas.py`
+removes any comma directly before a closing `}` before clang-format ever runs,
+so don't rely on a trailing comma to keep an initializer list multi-line; that's
+clang-format's call once the comma's gone. This runs automatically as part of
+the same pre-commit hook and CI check as clang-format (and as part of
+`ci/format-all.sh`), so you shouldn't need to run it by hand.
+
 Since the repo's history includes a single large reformatting commit, run:
 
 ```

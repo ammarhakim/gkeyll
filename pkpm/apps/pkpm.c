@@ -63,7 +63,7 @@ pkpm_array_meta_release(struct gkyl_msgpack_data *mt)
 static struct pkpm_output_meta
 pkpm_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
-  struct pkpm_output_meta meta = {.frame = 0, .stime = 0.0};
+  struct pkpm_output_meta meta = { .frame = 0, .stime = 0.0 };
 
   if (mt->meta_sz > 0) {
     mpack_tree_t tree;
@@ -171,15 +171,15 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
 
   gkyl_rect_grid_init(&app->grid, cdim, pkpm->lower, pkpm->upper, pkpm->cells);
 
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
 
   if (pkpm->parallelism.comm == 0) {
-    int cuts[3] = {1, 1, 1};
+    int cuts[3] = { 1, 1, 1 };
     app->decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
 
     app->comm = gkyl_null_comm_inew(
-      &(struct gkyl_null_comm_inp){.decomp = app->decomp, .use_gpu = app->use_gpu});
+      &(struct gkyl_null_comm_inp){ .decomp = app->decomp, .use_gpu = app->use_gpu });
 
     // Global and local ranges are same, and so just copy them.
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
@@ -277,11 +277,9 @@ gkyl_pkpm_app_new(struct gkyl_pkpm *pkpm)
   }
 
   // initialize stat object
-  app->stat = (struct gkyl_pkpm_stat){
-    .use_gpu = app->use_gpu,
-    .stage_2_dt_diff = {DBL_MAX, 0.0},
-    .stage_3_dt_diff = {DBL_MAX, 0.0},
-  };
+  app->stat = (struct gkyl_pkpm_stat){ .use_gpu = app->use_gpu,
+    .stage_2_dt_diff = { DBL_MAX, 0.0 },
+    .stage_3_dt_diff = { DBL_MAX, 0.0 } };
 
   return app;
 }
@@ -415,7 +413,7 @@ void
 gkyl_pkpm_app_write_field(gkyl_pkpm_app *app, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
 
   const char *fmt = "%s-field_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, frame);
@@ -465,7 +463,7 @@ void
 gkyl_pkpm_app_write_species(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id });
 
   struct pkpm_species *s = &app->species[sidx];
 
@@ -487,7 +485,7 @@ void
 gkyl_pkpm_app_write_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
 
   struct pkpm_species *s = &app->species[sidx];
 
@@ -684,13 +682,11 @@ gkyl_pkpm_app_train_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
     count += 1;
   }
 
-  struct gkyl_kann_train_params params = {
-    .learning_rate = 0.0001f,
+  struct gkyl_kann_train_params params = { .learning_rate = 0.0001f,
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f,
-  };
+    .frac_val = 0.1f };
 
   if (gkyl_kann_net_is_cu_dev(ann[sidx])) {
     // Mirror the host training data onto the device and train there.
@@ -749,7 +745,7 @@ gkyl_pkpm_app_test_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
   struct gkyl_kn_vec *output_data_predicted)
 {
   struct gkyl_msgpack_data *mt = pkpm_array_meta_new((struct pkpm_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
 
   struct pkpm_species *s = &app->species[sidx];
   pkpm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
@@ -968,10 +964,10 @@ comm_reduce_app_stat(
   global->use_gpu = local->use_gpu;
 
   enum { NUP, NFEULER, NSTAGE_2_FAIL, NSTAGE_3_FAIL, L_END };
-  int64_t l_red[] = {[NUP] = local->nup,
+  int64_t l_red[] = { [NUP] = local->nup,
     [NFEULER] = local->nfeuler,
     [NSTAGE_2_FAIL] = local->nstage_2_fail,
-    [NSTAGE_3_FAIL] = local->nstage_3_fail};
+    [NSTAGE_3_FAIL] = local->nstage_3_fail };
 
   int64_t l_red_global[L_END];
   gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
@@ -1006,7 +1002,7 @@ comm_reduce_app_stat(
     D_END
   };
 
-  double d_red[D_END] = {[TOTAL_TM] = local->total_tm,
+  double d_red[D_END] = { [TOTAL_TM] = local->total_tm,
     [RK3_TM] = local->rk3_tm,
     [PKPM_EM_TM] = local->pkpm_em_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
@@ -1026,7 +1022,7 @@ comm_reduce_app_stat(
     [IO_TM] = local->io_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
     [FLUID_SPECIES_BC_TM] = local->fluid_species_bc_tm,
-    [FIELD_BC_TM] = local->field_bc_tm};
+    [FIELD_BC_TM] = local->field_bc_tm };
 
   double d_red_global[D_END];
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
@@ -1167,7 +1163,7 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app)
 static struct gkyl_app_restart_status
 header_from_file(gkyl_pkpm_app *app, const char *fname)
 {
-  struct gkyl_app_restart_status rstat = {.io_status = 0};
+  struct gkyl_app_restart_status rstat = { .io_status = 0 };
 
   FILE *fp = 0;
   with_file(fp, fname, "r")
@@ -1181,8 +1177,8 @@ header_from_file(gkyl_pkpm_app *app, const char *fname)
         rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
     }
 
-    struct pkpm_output_meta meta =
-      pkpm_meta_from_mpack(&(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size});
+    struct pkpm_output_meta meta = pkpm_meta_from_mpack(
+      &(struct gkyl_msgpack_data){ .meta = hdr.meta, .meta_sz = hdr.meta_size });
 
     rstat.frame = meta.frame;
     rstat.stime = meta.stime;

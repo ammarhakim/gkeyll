@@ -74,7 +74,7 @@ test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int d
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
-  int ghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int ghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -233,10 +233,8 @@ eval_f(const double *phi, const double x, const double y, const double z, const 
 }
 
 // List of tests for the test framework
-TEST_LIST = {
-  {"test_ssfg_ho", test_ssfg_ho},
+TEST_LIST = { { "test_ssfg_ho", test_ssfg_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_ssfg_dev", test_ssfg_dev},
+  { "test_ssfg_dev", test_ssfg_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

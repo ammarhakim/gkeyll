@@ -38,8 +38,7 @@ struct gkyl_proj_on_basis *
 gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   int num_quad, int num_ret_vals, evalf_t eval, void *ctx)
 {
-  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-    .grid = grid,
+  return gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = grid,
     .basis = basis,
     .qtype = GKYL_GAUSS_QUAD,
     .num_quad = num_quad,
@@ -47,8 +46,7 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
     .eval = eval,
     .ctx = ctx,
     .c2p_func = 0,
-    .c2p_func_ctx = NULL,
-  });
+    .c2p_func_ctx = NULL });
 }
 
 struct gkyl_proj_on_basis *

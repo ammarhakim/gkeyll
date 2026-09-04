@@ -21,8 +21,8 @@ diffdirs_linidx(const bool *isdirdiff, int cdim)
       diff_in_dir[d] = true;
 
   // Linear index into list of volume kernels.
-  int dirs_bin_key[] = {
-    1, 2, 4, 8, 16, 32}; // Binary: 000001, 000010, 000100, 001000, 010000, 100000.
+  int dirs_bin_key[] = { 1, 2, 4, 8, 16,
+    32 }; // Binary: 000001, 000010, 000100, 001000, 010000, 100000.
   int dirs_linidx = 0; // Binary 000000.
   for (int d = 0; d < cdim; d++) {
     if (diff_in_dir[d])
@@ -594,355 +594,199 @@ ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz(const struct 
 // Volume kernel list.
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list ser_vol_kernels_constcoeff[] = {
   // 1x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order2_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL, NULL,
-                NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order2_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
-                NULL, NULL, NULL},
-            },
-        },
+  {.list =
+      {// 2nd order diffusion.
+        {.list = {{ker_dg_diffusion_fluid_order2_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL,
+                    NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order2_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+             NULL, NULL, NULL}}},
         // 4th order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order4_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL, NULL,
-                NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order4_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
-                NULL, NULL, NULL},
-            },
-        },
+        {.list = {{ker_dg_diffusion_fluid_order4_vol_1x_ser_p1_constcoeff_diffdirsx, NULL, NULL,
+                    NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order4_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+             NULL, NULL, NULL}}},
         // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order6_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
-                NULL, NULL, NULL},
-            },
-        },
-      },
-  },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order6_vol_1x_ser_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+             NULL, NULL, NULL}}}}},
   // 2x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_constcoeff_diffdirsxy, NULL, NULL, NULL,
-                NULL},
-              {ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
-                NULL},
-            },
-        },
+  {.list =
+      {// 2nd order diffusion.
+        {.list = {{ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_constcoeff_diffdirsx,
+                    ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_constcoeff_diffdirsy,
+                    ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_constcoeff_diffdirsxy, NULL, NULL,
+                    NULL, NULL},
+           {ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_constcoeff_diffdirsx,
+             ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_constcoeff_diffdirsy,
+             ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+             NULL}}},
         // 4th order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order4_vol_2x_ser_p1_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order4_vol_2x_ser_p1_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order4_vol_2x_ser_p1_constcoeff_diffdirsxy, NULL, NULL, NULL,
-                NULL},
-              {ker_dg_diffusion_fluid_order4_vol_2x_ser_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order4_vol_2x_ser_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order4_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
-                NULL},
-            },
-        },
+        {.list = {{ker_dg_diffusion_fluid_order4_vol_2x_ser_p1_constcoeff_diffdirsx,
+                    ker_dg_diffusion_fluid_order4_vol_2x_ser_p1_constcoeff_diffdirsy,
+                    ker_dg_diffusion_fluid_order4_vol_2x_ser_p1_constcoeff_diffdirsxy, NULL, NULL,
+                    NULL, NULL},
+           {ker_dg_diffusion_fluid_order4_vol_2x_ser_p2_constcoeff_diffdirsx,
+             ker_dg_diffusion_fluid_order4_vol_2x_ser_p2_constcoeff_diffdirsy,
+             ker_dg_diffusion_fluid_order4_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+             NULL}}},
         // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
-                NULL},
-            },
-        },
-      },
-  },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsx,
+             ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsy,
+             ker_dg_diffusion_fluid_order6_vol_2x_ser_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+             NULL}}}}},
   // 3x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz},
-              {ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz},
-            },
-        },
-        // 4th order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz},
-              {ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz},
-            },
-        },
-        // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz},
-            },
-        },
-      },
-  },
-};
+  {.list = {// 2nd order diffusion.
+     {.list = {{ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsx,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsy,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsxy,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsz,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsxz,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsyz,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz},
+        {ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsx,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsy,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsxy,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsz,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsxz,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsyz,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz}}},
+     // 4th order diffusion.
+     {.list = {{ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsx,
+                 ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsy,
+                 ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsxy,
+                 ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsz,
+                 ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsxz,
+                 ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsyz,
+                 ker_dg_diffusion_fluid_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz},
+        {ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsx,
+          ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsy,
+          ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsxy,
+          ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsz,
+          ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsxz,
+          ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsyz,
+          ker_dg_diffusion_fluid_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz}}},
+     // 6th order diffusion.
+     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+        {ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsx,
+          ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsy,
+          ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsxy,
+          ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsz,
+          ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsxz,
+          ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsyz,
+          ker_dg_diffusion_fluid_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz}}}}}};
 
 // Surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfx_kernels_constcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {dg_diffusion_fluid_order2_surfx_1x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order2_surfx_1x_ser_p2_constcoeff},
-        {dg_diffusion_fluid_order2_surfx_2x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order2_surfx_2x_ser_p2_constcoeff},
-        {dg_diffusion_fluid_order2_surfx_3x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order2_surfx_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { dg_diffusion_fluid_order2_surfx_1x_ser_p1_constcoeff,
+                dg_diffusion_fluid_order2_surfx_1x_ser_p2_constcoeff },
+      { dg_diffusion_fluid_order2_surfx_2x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order2_surfx_2x_ser_p2_constcoeff },
+      { dg_diffusion_fluid_order2_surfx_3x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order2_surfx_3x_ser_p2_constcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {dg_diffusion_fluid_order4_surfx_1x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order4_surfx_1x_ser_p2_constcoeff},
-        {dg_diffusion_fluid_order4_surfx_2x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order4_surfx_2x_ser_p2_constcoeff},
-        {dg_diffusion_fluid_order4_surfx_3x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order4_surfx_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { dg_diffusion_fluid_order4_surfx_1x_ser_p1_constcoeff,
+                dg_diffusion_fluid_order4_surfx_1x_ser_p2_constcoeff },
+      { dg_diffusion_fluid_order4_surfx_2x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order4_surfx_2x_ser_p2_constcoeff },
+      { dg_diffusion_fluid_order4_surfx_3x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order4_surfx_3x_ser_p2_constcoeff } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, dg_diffusion_fluid_order6_surfx_1x_ser_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order6_surfx_2x_ser_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order6_surfx_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, dg_diffusion_fluid_order6_surfx_1x_ser_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order6_surfx_2x_ser_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order6_surfx_3x_ser_p2_constcoeff } } }
 };
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfy_kernels_constcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {dg_diffusion_fluid_order2_surfy_2x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order2_surfy_2x_ser_p2_constcoeff},
-        {dg_diffusion_fluid_order2_surfy_3x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order2_surfy_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL },
+      { dg_diffusion_fluid_order2_surfy_2x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order2_surfy_2x_ser_p2_constcoeff },
+      { dg_diffusion_fluid_order2_surfy_3x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order2_surfy_3x_ser_p2_constcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {dg_diffusion_fluid_order4_surfy_2x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order4_surfy_2x_ser_p2_constcoeff},
-        {dg_diffusion_fluid_order4_surfy_3x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order4_surfy_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL },
+      { dg_diffusion_fluid_order4_surfy_2x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order4_surfy_2x_ser_p2_constcoeff },
+      { dg_diffusion_fluid_order4_surfy_3x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order4_surfy_3x_ser_p2_constcoeff } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order6_surfy_2x_ser_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order6_surfy_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, dg_diffusion_fluid_order6_surfy_2x_ser_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order6_surfy_3x_ser_p2_constcoeff } } }
 };
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfz_kernels_constcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {dg_diffusion_fluid_order2_surfz_3x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order2_surfz_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL },
+      { dg_diffusion_fluid_order2_surfz_3x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order2_surfz_3x_ser_p2_constcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {dg_diffusion_fluid_order4_surfz_3x_ser_p1_constcoeff,
-          dg_diffusion_fluid_order4_surfz_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL },
+      { dg_diffusion_fluid_order4_surfz_3x_ser_p1_constcoeff,
+        dg_diffusion_fluid_order4_surfz_3x_ser_p2_constcoeff } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order6_surfz_3x_ser_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL },
+      { NULL, dg_diffusion_fluid_order6_surfz_3x_ser_p2_constcoeff } } }
 };
 
 // Boundary surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   ser_boundary_surfx_kernels_constcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {dg_diffusion_fluid_order2_boundary_surfx_1x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order2_boundary_surfx_1x_ser_p2_constcoeff},
-          {dg_diffusion_fluid_order2_boundary_surfx_2x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order2_boundary_surfx_2x_ser_p2_constcoeff},
-          {dg_diffusion_fluid_order2_boundary_surfx_3x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order2_boundary_surfx_3x_ser_p2_constcoeff},
-        },
-    },
+    { .list = { { dg_diffusion_fluid_order2_boundary_surfx_1x_ser_p1_constcoeff,
+                  dg_diffusion_fluid_order2_boundary_surfx_1x_ser_p2_constcoeff },
+        { dg_diffusion_fluid_order2_boundary_surfx_2x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order2_boundary_surfx_2x_ser_p2_constcoeff },
+        { dg_diffusion_fluid_order2_boundary_surfx_3x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order2_boundary_surfx_3x_ser_p2_constcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {dg_diffusion_fluid_order4_boundary_surfx_1x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order4_boundary_surfx_1x_ser_p2_constcoeff},
-          {dg_diffusion_fluid_order4_boundary_surfx_2x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order4_boundary_surfx_2x_ser_p2_constcoeff},
-          {dg_diffusion_fluid_order4_boundary_surfx_3x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order4_boundary_surfx_3x_ser_p2_constcoeff},
-        },
-    },
+    { .list = { { dg_diffusion_fluid_order4_boundary_surfx_1x_ser_p1_constcoeff,
+                  dg_diffusion_fluid_order4_boundary_surfx_1x_ser_p2_constcoeff },
+        { dg_diffusion_fluid_order4_boundary_surfx_2x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order4_boundary_surfx_2x_ser_p2_constcoeff },
+        { dg_diffusion_fluid_order4_boundary_surfx_3x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order4_boundary_surfx_3x_ser_p2_constcoeff } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, dg_diffusion_fluid_order6_boundary_surfx_1x_ser_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfx_2x_ser_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfx_3x_ser_p2_constcoeff},
-        },
-    },
-};
+    { .list = { { NULL, dg_diffusion_fluid_order6_boundary_surfx_1x_ser_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfx_2x_ser_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfx_3x_ser_p2_constcoeff } } }
+  };
 // Boundary surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   ser_boundary_surfy_kernels_constcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {dg_diffusion_fluid_order2_boundary_surfy_2x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order2_boundary_surfy_2x_ser_p2_constcoeff},
-          {dg_diffusion_fluid_order2_boundary_surfy_3x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order2_boundary_surfy_3x_ser_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, NULL },
+        { dg_diffusion_fluid_order2_boundary_surfy_2x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order2_boundary_surfy_2x_ser_p2_constcoeff },
+        { dg_diffusion_fluid_order2_boundary_surfy_3x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order2_boundary_surfy_3x_ser_p2_constcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {dg_diffusion_fluid_order4_boundary_surfy_2x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order4_boundary_surfy_2x_ser_p2_constcoeff},
-          {dg_diffusion_fluid_order4_boundary_surfy_3x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order4_boundary_surfy_3x_ser_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, NULL },
+        { dg_diffusion_fluid_order4_boundary_surfy_2x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order4_boundary_surfy_2x_ser_p2_constcoeff },
+        { dg_diffusion_fluid_order4_boundary_surfy_3x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order4_boundary_surfy_3x_ser_p2_constcoeff } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfy_2x_ser_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfy_3x_ser_p2_constcoeff},
-        },
-    },
-};
+    { .list = { { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfy_2x_ser_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfy_3x_ser_p2_constcoeff } } }
+  };
 // Boundary surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   ser_boundary_surfz_kernels_constcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {dg_diffusion_fluid_order2_boundary_surfz_3x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order2_boundary_surfz_3x_ser_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL },
+        { dg_diffusion_fluid_order2_boundary_surfz_3x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order2_boundary_surfz_3x_ser_p2_constcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {dg_diffusion_fluid_order4_boundary_surfz_3x_ser_p1_constcoeff,
-            dg_diffusion_fluid_order4_boundary_surfz_3x_ser_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL },
+        { dg_diffusion_fluid_order4_boundary_surfz_3x_ser_p1_constcoeff,
+          dg_diffusion_fluid_order4_boundary_surfz_3x_ser_p2_constcoeff } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfz_3x_ser_p2_constcoeff},
-        },
-    },
-};
+    { .list = { { NULL, NULL }, { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfz_3x_ser_p2_constcoeff } } }
+  };
 
 // Tensor volume kernels
 // Need to be separated like this for GPU build
@@ -1257,311 +1101,153 @@ ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsxyz(const stru
 // Volume kernel list.
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list tensor_vol_kernels_constcoeff[] = {
   // 1x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order2_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL,
-                NULL, NULL, NULL, NULL},
-            },
-        },
+  {.list =
+      {// 2nd order diffusion.
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order2_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+             NULL, NULL, NULL}}},
         // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order4_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL,
-                NULL, NULL, NULL, NULL},
-            },
-        },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order4_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+             NULL, NULL, NULL}}},
         // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order6_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL,
-                NULL, NULL, NULL, NULL},
-            },
-        },
-      },
-  },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order6_vol_1x_tensor_p2_constcoeff_diffdirsx, NULL, NULL, NULL,
+             NULL, NULL, NULL}}}}},
   // 2x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_constcoeff_diffdirsxy, NULL, NULL,
-                NULL, NULL},
-            },
-        },
+  {.list =
+      {// 2nd order diffusion.
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_constcoeff_diffdirsx,
+             ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_constcoeff_diffdirsy,
+             ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+             NULL}}},
         // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order4_vol_2x_tensor_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order4_vol_2x_tensor_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order4_vol_2x_tensor_p2_constcoeff_diffdirsxy, NULL, NULL,
-                NULL, NULL},
-            },
-        },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order4_vol_2x_tensor_p2_constcoeff_diffdirsx,
+             ker_dg_diffusion_fluid_order4_vol_2x_tensor_p2_constcoeff_diffdirsy,
+             ker_dg_diffusion_fluid_order4_vol_2x_tensor_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+             NULL}}},
         // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsxy, NULL, NULL,
-                NULL, NULL},
-            },
-        },
-      },
-  },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsx,
+             ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsy,
+             ker_dg_diffusion_fluid_order6_vol_2x_tensor_p2_constcoeff_diffdirsxy, NULL, NULL, NULL,
+             NULL}}}}},
   // 3x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsxyz},
-            },
-        },
-        // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsxyz},
-            },
-        },
-        // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsxyz},
-            },
-        },
-      },
-  },
-};
+  {.list = {// 2nd order diffusion.
+     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+        {ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsx,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsy,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsxy,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsz,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsxz,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsyz,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_constcoeff_diffdirsxyz}}},
+     // 4th order diffusion.
+     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+        {ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsx,
+          ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsy,
+          ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsxy,
+          ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsz,
+          ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsxz,
+          ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsyz,
+          ker_dg_diffusion_fluid_order4_vol_3x_tensor_p2_constcoeff_diffdirsxyz}}},
+     // 6th order diffusion.
+     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+        {ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsx,
+          ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsy,
+          ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsxy,
+          ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsz,
+          ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsxz,
+          ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsyz,
+          ker_dg_diffusion_fluid_order6_vol_3x_tensor_p2_constcoeff_diffdirsxyz}}}}}};
 
 // Surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfx_kernels_constcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, dg_diffusion_fluid_order2_surfx_1x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order2_surfx_2x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order2_surfx_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, dg_diffusion_fluid_order2_surfx_1x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order2_surfx_2x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order2_surfx_3x_tensor_p2_constcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, dg_diffusion_fluid_order4_surfx_1x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order4_surfx_2x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order4_surfx_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, dg_diffusion_fluid_order4_surfx_1x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order4_surfx_2x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order4_surfx_3x_tensor_p2_constcoeff } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, dg_diffusion_fluid_order6_surfx_1x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order6_surfx_2x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order6_surfx_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, dg_diffusion_fluid_order6_surfx_1x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order6_surfx_2x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order6_surfx_3x_tensor_p2_constcoeff } } }
 };
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfy_kernels_constcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order2_surfy_2x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order2_surfy_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, dg_diffusion_fluid_order2_surfy_2x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order2_surfy_3x_tensor_p2_constcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order4_surfy_2x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order4_surfy_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, dg_diffusion_fluid_order4_surfy_2x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order4_surfy_3x_tensor_p2_constcoeff } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order6_surfy_2x_tensor_p2_constcoeff},
-        {NULL, dg_diffusion_fluid_order6_surfy_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, dg_diffusion_fluid_order6_surfy_2x_tensor_p2_constcoeff },
+      { NULL, dg_diffusion_fluid_order6_surfy_3x_tensor_p2_constcoeff } } }
 };
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfz_kernels_constcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order2_surfz_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL },
+      { NULL, dg_diffusion_fluid_order2_surfz_3x_tensor_p2_constcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order4_surfz_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL },
+      { NULL, dg_diffusion_fluid_order4_surfz_3x_tensor_p2_constcoeff } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order6_surfz_3x_tensor_p2_constcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL },
+      { NULL, dg_diffusion_fluid_order6_surfz_3x_tensor_p2_constcoeff } } }
 };
 
 // Boundary surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   tensor_boundary_surfx_kernels_constcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, dg_diffusion_fluid_order2_boundary_surfx_1x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfx_2x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfx_3x_tensor_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, dg_diffusion_fluid_order2_boundary_surfx_1x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfx_2x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfx_3x_tensor_p2_constcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, dg_diffusion_fluid_order4_boundary_surfx_1x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order4_boundary_surfx_2x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order4_boundary_surfx_3x_tensor_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, dg_diffusion_fluid_order4_boundary_surfx_1x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order4_boundary_surfx_2x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order4_boundary_surfx_3x_tensor_p2_constcoeff } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, dg_diffusion_fluid_order6_boundary_surfx_1x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfx_2x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfx_3x_tensor_p2_constcoeff},
-        },
-    },
-};
+    { .list = { { NULL, dg_diffusion_fluid_order6_boundary_surfx_1x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfx_2x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfx_3x_tensor_p2_constcoeff } } }
+  };
 // Boundary surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   tensor_boundary_surfy_kernels_constcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfy_2x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfy_3x_tensor_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfy_2x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfy_3x_tensor_p2_constcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order4_boundary_surfy_2x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order4_boundary_surfy_3x_tensor_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order4_boundary_surfy_2x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order4_boundary_surfy_3x_tensor_p2_constcoeff } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfy_2x_tensor_p2_constcoeff},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfy_3x_tensor_p2_constcoeff},
-        },
-    },
-};
+    { .list = { { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfy_2x_tensor_p2_constcoeff },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfy_3x_tensor_p2_constcoeff } } }
+  };
 // Boundary surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   tensor_boundary_surfz_kernels_constcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfz_3x_tensor_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfz_3x_tensor_p2_constcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order4_boundary_surfz_3x_tensor_p2_constcoeff},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order4_boundary_surfz_3x_tensor_p2_constcoeff } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order6_boundary_surfz_3x_tensor_p2_constcoeff},
-        },
-    },
-};
+    { .list = { { NULL, NULL }, { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order6_boundary_surfz_3x_tensor_p2_constcoeff } } }
+  };
 
 // ............... Inhomogeneous (spatially varying) diffusion coefficient ............... //
 
@@ -1773,313 +1459,138 @@ ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz(const struct gk
 // Volume kernel list.
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list ser_vol_kernels_varcoeff[] = {
   // 1x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order2_vol_1x_ser_p1_varcoeff_diffdirsx, NULL, NULL, NULL,
-                NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order2_vol_1x_ser_p2_varcoeff_diffdirsx, NULL, NULL, NULL,
-                NULL, NULL, NULL},
-            },
-        },
+  {.list =
+      {// 2nd order diffusion.
+        {.list = {{ker_dg_diffusion_fluid_order2_vol_1x_ser_p1_varcoeff_diffdirsx, NULL, NULL, NULL,
+                    NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order2_vol_1x_ser_p2_varcoeff_diffdirsx, NULL, NULL, NULL, NULL,
+             NULL, NULL}}},
         // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
         // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
-      },
-  },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
   // 2x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_varcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_varcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_varcoeff_diffdirsxy, NULL, NULL, NULL,
-                NULL},
-              {ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_varcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_varcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_varcoeff_diffdirsxy, NULL, NULL, NULL,
-                NULL},
-            },
-        },
+  {.list =
+      {// 2nd order diffusion.
+        {.list = {{ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_varcoeff_diffdirsx,
+                    ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_varcoeff_diffdirsy,
+                    ker_dg_diffusion_fluid_order2_vol_2x_ser_p1_varcoeff_diffdirsxy, NULL, NULL,
+                    NULL, NULL},
+           {ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_varcoeff_diffdirsx,
+             ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_varcoeff_diffdirsy,
+             ker_dg_diffusion_fluid_order2_vol_2x_ser_p2_varcoeff_diffdirsxy, NULL, NULL, NULL,
+             NULL}}},
         // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
         // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
-      },
-  },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
   // 3x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsxyz},
-              {ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz},
-            },
-        },
-        // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
-        // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
-      },
-  },
-};
+  {.list = {// 2nd order diffusion.
+     {.list = {{ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsx,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsy,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsxy,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsz,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsxz,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsyz,
+                 ker_dg_diffusion_fluid_order2_vol_3x_ser_p1_varcoeff_diffdirsxyz},
+        {ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsx,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsy,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsxy,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsz,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsxz,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsyz,
+          ker_dg_diffusion_fluid_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz}}},
+     // 4th order diffusion.
+     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+        {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
+     // 6th order diffusion.
+     {.list = {
+        {NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}}};
 
 // Surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfx_kernels_varcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {dg_diffusion_fluid_order2_surfx_1x_ser_p1_varcoeff,
-          dg_diffusion_fluid_order2_surfx_1x_ser_p2_varcoeff},
-        {dg_diffusion_fluid_order2_surfx_2x_ser_p1_varcoeff,
-          dg_diffusion_fluid_order2_surfx_2x_ser_p2_varcoeff},
-        {dg_diffusion_fluid_order2_surfx_3x_ser_p1_varcoeff,
-          dg_diffusion_fluid_order2_surfx_3x_ser_p2_varcoeff},
-      },
-  },
+  { .list = { { dg_diffusion_fluid_order2_surfx_1x_ser_p1_varcoeff,
+                dg_diffusion_fluid_order2_surfx_1x_ser_p2_varcoeff },
+      { dg_diffusion_fluid_order2_surfx_2x_ser_p1_varcoeff,
+        dg_diffusion_fluid_order2_surfx_2x_ser_p2_varcoeff },
+      { dg_diffusion_fluid_order2_surfx_3x_ser_p1_varcoeff,
+        dg_diffusion_fluid_order2_surfx_3x_ser_p2_varcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
 };
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfy_kernels_varcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {dg_diffusion_fluid_order2_surfy_2x_ser_p1_varcoeff,
-          dg_diffusion_fluid_order2_surfy_2x_ser_p2_varcoeff},
-        {dg_diffusion_fluid_order2_surfy_3x_ser_p1_varcoeff,
-          dg_diffusion_fluid_order2_surfy_3x_ser_p2_varcoeff},
-      },
-  },
+  { .list = { { NULL, NULL },
+      { dg_diffusion_fluid_order2_surfy_2x_ser_p1_varcoeff,
+        dg_diffusion_fluid_order2_surfy_2x_ser_p2_varcoeff },
+      { dg_diffusion_fluid_order2_surfy_3x_ser_p1_varcoeff,
+        dg_diffusion_fluid_order2_surfy_3x_ser_p2_varcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
 };
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list ser_surfz_kernels_varcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {dg_diffusion_fluid_order2_surfz_3x_ser_p1_varcoeff,
-          dg_diffusion_fluid_order2_surfz_3x_ser_p2_varcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL },
+      { dg_diffusion_fluid_order2_surfz_3x_ser_p1_varcoeff,
+        dg_diffusion_fluid_order2_surfz_3x_ser_p2_varcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
 };
 
 // Boundary surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   ser_boundary_surfx_kernels_varcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {dg_diffusion_fluid_order2_boundary_surfx_1x_ser_p1_varcoeff,
-            dg_diffusion_fluid_order2_boundary_surfx_1x_ser_p2_varcoeff},
-          {dg_diffusion_fluid_order2_boundary_surfx_2x_ser_p1_varcoeff,
-            dg_diffusion_fluid_order2_boundary_surfx_2x_ser_p2_varcoeff},
-          {dg_diffusion_fluid_order2_boundary_surfx_3x_ser_p1_varcoeff,
-            dg_diffusion_fluid_order2_boundary_surfx_3x_ser_p2_varcoeff},
-        },
-    },
+    { .list = { { dg_diffusion_fluid_order2_boundary_surfx_1x_ser_p1_varcoeff,
+                  dg_diffusion_fluid_order2_boundary_surfx_1x_ser_p2_varcoeff },
+        { dg_diffusion_fluid_order2_boundary_surfx_2x_ser_p1_varcoeff,
+          dg_diffusion_fluid_order2_boundary_surfx_2x_ser_p2_varcoeff },
+        { dg_diffusion_fluid_order2_boundary_surfx_3x_ser_p1_varcoeff,
+          dg_diffusion_fluid_order2_boundary_surfx_3x_ser_p2_varcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
-};
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
+  };
 // Boundary surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   ser_boundary_surfy_kernels_varcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {dg_diffusion_fluid_order2_boundary_surfy_2x_ser_p1_varcoeff,
-            dg_diffusion_fluid_order2_boundary_surfy_2x_ser_p2_varcoeff},
-          {dg_diffusion_fluid_order2_boundary_surfy_3x_ser_p1_varcoeff,
-            dg_diffusion_fluid_order2_boundary_surfy_3x_ser_p2_varcoeff},
-        },
-    },
+    { .list = { { NULL, NULL },
+        { dg_diffusion_fluid_order2_boundary_surfy_2x_ser_p1_varcoeff,
+          dg_diffusion_fluid_order2_boundary_surfy_2x_ser_p2_varcoeff },
+        { dg_diffusion_fluid_order2_boundary_surfy_3x_ser_p1_varcoeff,
+          dg_diffusion_fluid_order2_boundary_surfy_3x_ser_p2_varcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
-};
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
+  };
 // Boundary surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   ser_boundary_surfz_kernels_varcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {dg_diffusion_fluid_order2_boundary_surfz_3x_ser_p1_varcoeff,
-            dg_diffusion_fluid_order2_boundary_surfz_3x_ser_p2_varcoeff},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL },
+        { dg_diffusion_fluid_order2_boundary_surfz_3x_ser_p1_varcoeff,
+          dg_diffusion_fluid_order2_boundary_surfz_3x_ser_p2_varcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
-};
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
+  };
 
 // Tensor volume kernels
 // Need to be separated like this for GPU build
@@ -2190,291 +1701,115 @@ ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsxyz(const struct
 // Volume kernel list.
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_vol_kern_list tensor_vol_kernels_varcoeff[] = {
   // 1x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order2_vol_1x_tensor_p2_varcoeff_diffdirsx, NULL, NULL, NULL,
-                NULL, NULL, NULL},
-            },
-        },
+  {.list =
+      {// 2nd order diffusion.
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order2_vol_1x_tensor_p2_varcoeff_diffdirsx, NULL, NULL, NULL,
+             NULL, NULL, NULL}}},
         // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
         // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
-      },
-  },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
   // 2x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_varcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_varcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_varcoeff_diffdirsxy, NULL, NULL,
-                NULL, NULL},
-            },
-        },
+  {.list =
+      {// 2nd order diffusion.
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_varcoeff_diffdirsx,
+             ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_varcoeff_diffdirsy,
+             ker_dg_diffusion_fluid_order2_vol_2x_tensor_p2_varcoeff_diffdirsxy, NULL, NULL, NULL,
+             NULL}}},
         // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
         // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
-      },
-  },
+        {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+           {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}},
   // 3x
-  {
-    .list =
-      {
-        // 2nd order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsx,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsy,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsxy,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsz,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsxz,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsyz,
-                ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsxyz},
-            },
-        },
-        // 4th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
-        // 6th order diffusion.
-        {
-          .list =
-            {
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-              {NULL, NULL, NULL, NULL, NULL, NULL, NULL},
-            },
-        },
-      },
-  },
-};
+  {.list = {// 2nd order diffusion.
+     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+        {ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsx,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsy,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsxy,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsz,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsxz,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsyz,
+          ker_dg_diffusion_fluid_order2_vol_3x_tensor_p2_varcoeff_diffdirsxyz}}},
+     // 4th order diffusion.
+     {.list = {{NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+        {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}},
+     // 6th order diffusion.
+     {.list = {
+        {NULL, NULL, NULL, NULL, NULL, NULL, NULL}, {NULL, NULL, NULL, NULL, NULL, NULL, NULL}}}}}};
 
 // Surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfx_kernels_varcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, dg_diffusion_fluid_order2_surfx_1x_tensor_p2_varcoeff},
-        {NULL, dg_diffusion_fluid_order2_surfx_2x_tensor_p2_varcoeff},
-        {NULL, dg_diffusion_fluid_order2_surfx_3x_tensor_p2_varcoeff},
-      },
-  },
+  { .list = { { NULL, dg_diffusion_fluid_order2_surfx_1x_tensor_p2_varcoeff },
+      { NULL, dg_diffusion_fluid_order2_surfx_2x_tensor_p2_varcoeff },
+      { NULL, dg_diffusion_fluid_order2_surfx_3x_tensor_p2_varcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
 };
 // Surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfy_kernels_varcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order2_surfy_2x_tensor_p2_varcoeff},
-        {NULL, dg_diffusion_fluid_order2_surfy_3x_tensor_p2_varcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, dg_diffusion_fluid_order2_surfy_2x_tensor_p2_varcoeff },
+      { NULL, dg_diffusion_fluid_order2_surfy_3x_tensor_p2_varcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
 };
 // Surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_surf_kern_list tensor_surfz_kernels_varcoeff[] = {
   // 2nd order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, dg_diffusion_fluid_order2_surfz_3x_tensor_p2_varcoeff},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL },
+      { NULL, dg_diffusion_fluid_order2_surfz_3x_tensor_p2_varcoeff } } },
   // 4th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
   // 6th order diffusion.
-  {
-    .list =
-      {
-        {NULL, NULL},
-        {NULL, NULL},
-        {NULL, NULL},
-      },
-  },
+  { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
 };
 
 // Boundary surface kernel list: x-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   tensor_boundary_surfx_kernels_varcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, dg_diffusion_fluid_order2_boundary_surfx_1x_tensor_p2_varcoeff},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfx_2x_tensor_p2_varcoeff},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfx_3x_tensor_p2_varcoeff},
-        },
-    },
+    { .list = { { NULL, dg_diffusion_fluid_order2_boundary_surfx_1x_tensor_p2_varcoeff },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfx_2x_tensor_p2_varcoeff },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfx_3x_tensor_p2_varcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
-};
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
+  };
 // Boundary surface kernel list: y-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   tensor_boundary_surfy_kernels_varcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfy_2x_tensor_p2_varcoeff},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfy_3x_tensor_p2_varcoeff},
-        },
-    },
+    { .list = { { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfy_2x_tensor_p2_varcoeff },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfy_3x_tensor_p2_varcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
-};
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
+  };
 // Boundary surface kernel list: z-direction
 GKYL_CU_D static const gkyl_dg_diffusion_fluid_boundary_surf_kern_list
   tensor_boundary_surfz_kernels_varcoeff[] = {
     // 2nd order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, dg_diffusion_fluid_order2_boundary_surfz_3x_tensor_p2_varcoeff},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL },
+        { NULL, dg_diffusion_fluid_order2_boundary_surfz_3x_tensor_p2_varcoeff } } },
     // 4th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } },
     // 6th order diffusion.
-    {
-      .list =
-        {
-          {NULL, NULL},
-          {NULL, NULL},
-          {NULL, NULL},
-        },
-    },
-};
+    { .list = { { NULL, NULL }, { NULL, NULL }, { NULL, NULL } } }
+  };
 
 // Macro for choosing volume and surface kernels.
 #define CKVOL(lst, cdim, diff_order, poly_order, diffdir_linidx) \

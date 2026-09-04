@@ -27,7 +27,7 @@ test_tensor_field_raise_idx_in_place_ho()
   struct gkyl_tensor_field *diag_metric_contra =
     gkyl_tensor_field_new(rank, ndim, size, iloc_contra);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -96,7 +96,7 @@ test_tensor_field_lower_idx_in_place_ho()
   struct gkyl_tensor_field *diag_metric_contra =
     gkyl_tensor_field_new(rank, ndim, size, iloc_contra);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -166,7 +166,7 @@ test_tensor_field_lower_idx_in_place_2_ho()
   struct gkyl_tensor_field *diag_metric_contra =
     gkyl_tensor_field_new(rank, ndim, size, iloc_contra);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -268,7 +268,7 @@ test_tensor_field_raise_idx_in_place_2_ho()
   struct gkyl_tensor_field *diag_metric_contra =
     gkyl_tensor_field_new(rank, ndim, size, iloc_contra);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -369,7 +369,7 @@ test_tensor_field_raise_idx_set_ho()
   struct gkyl_tensor_field *diag_metric_contra =
     gkyl_tensor_field_new(rank, ndim, size, iloc_contra);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -440,7 +440,7 @@ test_tensor_field_lower_idx_set_ho()
   struct gkyl_tensor_field *diag_metric_contra =
     gkyl_tensor_field_new(rank, ndim, size, iloc_contra);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -512,7 +512,7 @@ test_tensor_field_lower_idx_set_2_ho()
   struct gkyl_tensor_field *diag_metric_contra =
     gkyl_tensor_field_new(rank, ndim, size, iloc_contra);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -616,7 +616,7 @@ test_tensor_field_raise_idx_set_2_ho()
   struct gkyl_tensor_field *diag_metric_contra =
     gkyl_tensor_field_new(rank, ndim, size, iloc_contra);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -747,7 +747,7 @@ test_tensor_field_lower_idx_set_dev()
   gkyl_tensor_field_copy(ten_res, ten_res_cu);
   gkyl_tensor_field_copy(diag_metric_contra, diag_metric_contra_cu);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -891,7 +891,7 @@ test_tensor_field_raise_idx_set_dev()
   gkyl_tensor_field_copy(ten_res, ten_res_cu);
   gkyl_tensor_field_copy(diag_metric_contra, diag_metric_contra_cu);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -1056,7 +1056,7 @@ test_tensor_field_lower_idx_in_place_dev()
   TEST_CHECK(diag_metric_contra_cu->iloc[0] == GKYL_TENSOR_INDEX_UPPER);
   TEST_CHECK(diag_metric_contra_cu->iloc[1] == GKYL_TENSOR_INDEX_UPPER);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -1231,7 +1231,7 @@ test_tensor_field_raise_idx_in_place_dev()
   gkyl_tensor_field_copy(diag_metric_cov, diag_metric_cov_cu);
   gkyl_tensor_field_copy(diag_metric_contra, diag_metric_contra_cu);
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -1335,20 +1335,19 @@ test_tensor_field_raise_idx_in_place_dev()
 
 #endif
 
-TEST_LIST = {
-  {"test_tensor_field_raise_idx_in_place_ho", test_tensor_field_raise_idx_in_place_ho},
-  {"test_tensor_field_lower_idx_in_place_ho", test_tensor_field_lower_idx_in_place_ho},
-  {"test_tensor_field_lower_idx_in_place_2_ho", test_tensor_field_lower_idx_in_place_2_ho},
-  {"test_tensor_field_raise_idx_in_place_2_ho", test_tensor_field_raise_idx_in_place_2_ho},
-  {"test_tensor_field_raise_idx_set_ho", test_tensor_field_raise_idx_set_ho},
-  {"test_tensor_field_lower_idx_set_ho", test_tensor_field_lower_idx_set_ho},
-  {"test_tensor_field_lower_idx_set_2_ho", test_tensor_field_lower_idx_set_2_ho},
-  {"test_tensor_field_raise_idx_set_2_ho", test_tensor_field_raise_idx_set_2_ho},
+TEST_LIST = { { "test_tensor_field_raise_idx_in_place_ho",
+                test_tensor_field_raise_idx_in_place_ho },
+  { "test_tensor_field_lower_idx_in_place_ho", test_tensor_field_lower_idx_in_place_ho },
+  { "test_tensor_field_lower_idx_in_place_2_ho", test_tensor_field_lower_idx_in_place_2_ho },
+  { "test_tensor_field_raise_idx_in_place_2_ho", test_tensor_field_raise_idx_in_place_2_ho },
+  { "test_tensor_field_raise_idx_set_ho", test_tensor_field_raise_idx_set_ho },
+  { "test_tensor_field_lower_idx_set_ho", test_tensor_field_lower_idx_set_ho },
+  { "test_tensor_field_lower_idx_set_2_ho", test_tensor_field_lower_idx_set_2_ho },
+  { "test_tensor_field_raise_idx_set_2_ho", test_tensor_field_raise_idx_set_2_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"tensor_field_lower_idx_in_place_dev", test_tensor_field_lower_idx_in_place_dev},
-  {"tensor_field_raise_idx_in_place_dev", test_tensor_field_raise_idx_in_place_dev},
-  {"tensor_field_lower_idx_set_dev", test_tensor_field_lower_idx_set_dev},
-  {"tensor_field_raise_idx_set_dev", test_tensor_field_raise_idx_set_dev},
+  { "tensor_field_lower_idx_in_place_dev", test_tensor_field_lower_idx_in_place_dev },
+  { "tensor_field_raise_idx_in_place_dev", test_tensor_field_raise_idx_in_place_dev },
+  { "tensor_field_lower_idx_set_dev", test_tensor_field_lower_idx_set_dev },
+  { "tensor_field_raise_idx_set_dev", test_tensor_field_raise_idx_set_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

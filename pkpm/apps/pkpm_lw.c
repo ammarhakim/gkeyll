@@ -31,7 +31,7 @@
 // Magic IDs for use in distinguishing various species and field types.
 enum pkpm_magic_ids {
   PKPM_SPECIES_DEFAULT = 100, // Non-relativistic PKPM species.
-  PKPM_FIELD_DEFAULT, // Maxwell equations.
+  PKPM_FIELD_DEFAULT // Maxwell equations.
 };
 
 /* *************** */
@@ -210,28 +210,23 @@ pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->pkpm_species = pkpm_species;
 
   pkpm_s_lw->has_dist_init_func = has_dist_init_func;
-  pkpm_s_lw->dist_init_func_ref = (struct lua_func_ctx){
-    .func_ref = dist_init_func_ref,
+  pkpm_s_lw->dist_init_func_ref = (struct lua_func_ctx){ .func_ref = dist_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 2,
-    .L = L,
-  };
+    .L = L };
 
   pkpm_s_lw->has_fluid_init_func = has_fluid_init_func;
-  pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx){
-    .func_ref = fluid_init_func_ref,
+  pkpm_s_lw->fluid_init_func_ref = (struct lua_func_ctx){ .func_ref = fluid_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L,
-  };
+    .L = L };
 
   pkpm_s_lw->has_applied_acceleration_func = has_applied_acceleration_func;
-  pkpm_s_lw->applied_acceleration_func_ref = (struct lua_func_ctx){
-    .func_ref = applied_acceleration_func_ref,
-    .ndim = 0, // This will be set later.
-    .nret = 3,
-    .L = L,
-  };
+  pkpm_s_lw->applied_acceleration_func_ref =
+    (struct lua_func_ctx){ .func_ref = applied_acceleration_func_ref,
+      .ndim = 0, // This will be set later.
+      .nret = 3,
+      .L = L };
   pkpm_s_lw->evolve_applied_acceleration = evolve_applied_acceleration;
 
   pkpm_s_lw->has_diffusion = has_diffusion;
@@ -241,12 +236,8 @@ pkpm_species_lw_new(lua_State *L)
   pkpm_s_lw->collision_id = collision_id;
 
   pkpm_s_lw->has_self_nu_func = has_self_nu_func;
-  pkpm_s_lw->self_nu_func_ref = (struct lua_func_ctx){
-    .func_ref = self_nu_func_ref,
-    .ndim = 0,
-    .nret = 1,
-    .L = L,
-  };
+  pkpm_s_lw->self_nu_func_ref =
+    (struct lua_func_ctx){ .func_ref = self_nu_func_ref, .ndim = 0, .nret = 1, .L = L };
 
   pkpm_s_lw->num_cross_collisions = num_cross_collisions;
   for (int i = 0; i < num_cross_collisions; i++) {
@@ -261,7 +252,7 @@ pkpm_species_lw_new(lua_State *L)
 }
 
 // Species constructor.
-static struct luaL_Reg pkpm_species_ctor[] = {{"new", pkpm_species_lw_new}, {0, 0}};
+static struct luaL_Reg pkpm_species_ctor[] = { { "new", pkpm_species_lw_new }, { 0, 0 } };
 
 /* ************* */
 /* Field methods */
@@ -365,29 +356,23 @@ pkpm_field_lw_new(lua_State *L)
   pkpm_f_lw->evolve = evolve;
   pkpm_f_lw->pkpm_field = pkpm_field;
 
-  pkpm_f_lw->init_ref = (struct lua_func_ctx){
-    .func_ref = init_ref,
+  pkpm_f_lw->init_ref = (struct lua_func_ctx){ .func_ref = init_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L,
-  };
+    .L = L };
 
   pkpm_f_lw->has_external_field_func = has_external_field_func;
-  pkpm_f_lw->external_field_func_ref = (struct lua_func_ctx){
-    .func_ref = external_field_func_ref,
+  pkpm_f_lw->external_field_func_ref = (struct lua_func_ctx){ .func_ref = external_field_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 6,
-    .L = L,
-  };
+    .L = L };
   pkpm_f_lw->evolve_external_field = evolve_external_field;
 
   pkpm_f_lw->has_applied_current_func = has_applied_current_func;
-  pkpm_f_lw->applied_current_func_ref = (struct lua_func_ctx){
-    .func_ref = applied_current_func_ref,
+  pkpm_f_lw->applied_current_func_ref = (struct lua_func_ctx){ .func_ref = applied_current_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L,
-  };
+    .L = L };
   pkpm_f_lw->evolve_applied_current = evolve_applied_current;
 
   // Set metatable.
@@ -398,7 +383,7 @@ pkpm_field_lw_new(lua_State *L)
 }
 
 // Species constructor.
-static struct luaL_Reg pkpm_field_ctor[] = {{"new", pkpm_field_lw_new}, {0, 0}};
+static struct luaL_Reg pkpm_field_ctor[] = { { "new", pkpm_field_lw_new }, { 0, 0 } };
 
 /* *********** */
 /* App methods */
@@ -548,8 +533,7 @@ struct script_cli {
 static struct script_cli
 pkpm_parse_script_cli(struct gkyl_tool_args *acv)
 {
-  struct script_cli cli = {
-    .help = -false,
+  struct script_cli cli = { .help = -false,
     .step_mode = false,
     .num_steps = INT_MAX,
     .use_mpi = false,
@@ -557,8 +541,7 @@ pkpm_parse_script_cli(struct gkyl_tool_args *acv)
     .trace_mem = false,
     .use_verbose = false,
     .is_restart = false,
-    .restart_frame = 0,
-  };
+    .restart_frame = 0 };
 
 #ifdef GKYL_HAVE_MPI
   cli.use_mpi = true;
@@ -567,7 +550,7 @@ pkpm_parse_script_cli(struct gkyl_tool_args *acv)
   cli.use_gpu = true;
 #endif
 
-  coption_long longopts[] = {{0}};
+  coption_long longopts[] = { { 0 } };
   const char *shortopts = "+hVs:SGmr:";
 
   coption opt = coption_init();
@@ -865,9 +848,7 @@ pkpm_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-          .mpi_comm = mpi_comm,
-        });
+        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = mpi_comm });
       }
     }
 #else
@@ -886,20 +867,14 @@ pkpm_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-          .mpi_comm = mpi_comm,
-        });
+        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = mpi_comm });
       }
     }
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-      .use_gpu = script_cli.use_gpu,
-    });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-    .use_gpu = script_cli.use_gpu,
-  });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
 #endif
 
   pkpm.parallelism.comm = comm;
@@ -1348,21 +1323,23 @@ pkpm_app_run(lua_State *L)
   int integrated_L2_f_calcs = app_lw->integrated_L2_f_calcs;
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
-  struct step_message_trigs m_trig = {
-    .log_count = 0,
+  struct step_message_trigs m_trig = { .log_count = 0,
     .tenth = t_curr > 0.0 ? (int)floor(t_curr / t_end * 10.0) : 0.0,
     .p1c = t_curr > 0.0 ? (int)floor(t_curr / t_end * 100.0) % 10 : 0.0,
-    .log_trig = {.dt = t_end / 10.0, .tcurr = t_curr},
-    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr},
-  };
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr } };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
@@ -1373,7 +1350,9 @@ pkpm_app_run(lua_State *L)
 
   // Create trigger for neural network training.
   int num_trains = app_lw->num_trains;
-  struct gkyl_tm_trigger nn_trig = {.dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr};
+  struct gkyl_tm_trigger nn_trig = {
+    .dt = t_end / num_trains, .tcurr = t_curr, .curr = frame_curr
+  };
 
   kad_node_t **t = gkyl_malloc(sizeof(kad_node_t *) * app->num_species);
   struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app->num_species);
@@ -1450,7 +1429,8 @@ pkpm_app_run(lua_State *L)
   // Create trigger for neural network writing.
   int num_nn_writes = app_lw->num_nn_writes;
   struct gkyl_tm_trigger nnw_trig = {
-    .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / num_nn_writes, .tcurr = t_curr, .curr = frame_curr
+  };
 
   if (app_lw->train_nn) {
     write_nn(&nnw_trig, app, t_curr, false, ann);
@@ -1458,7 +1438,9 @@ pkpm_app_run(lua_State *L)
 
   // Create trigger for neural network testing.
   int num_tests = app_lw->num_tests;
-  struct gkyl_tm_trigger nnt_trig = {.dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr};
+  struct gkyl_tm_trigger nnt_trig = {
+    .dt = t_end / num_tests, .tcurr = t_curr, .curr = frame_curr
+  };
 
   struct gkyl_kann_net **ann_test = gkyl_malloc(sizeof(struct gkyl_kann_net *) * app->num_species);
   if (app_lw->test_nn) {
@@ -1663,19 +1645,19 @@ pkpm_app_gc(lua_State *L)
 }
 
 // App constructor.
-static struct luaL_Reg pkpm_app_ctor[] = {{"new", pkpm_app_new}, {0, 0}};
+static struct luaL_Reg pkpm_app_ctor[] = { { "new", pkpm_app_new }, { 0, 0 } };
 
 // App methods.
-static struct luaL_Reg pkpm_app_funcs[] = {{"apply_ic", pkpm_app_apply_ic},
-  {"apply_ic_field", pkpm_app_apply_ic_field}, {"apply_ic_species", pkpm_app_apply_ic_species},
-  {"calc_integrated_mom", pkpm_app_calc_integrated_mom},
-  {"calc_integrated_L2_f", pkpm_app_calc_integrated_L2_f},
-  {"calc_field_energy", pkpm_app_calc_field_energy}, {"write", pkpm_app_write},
-  {"write_field", pkpm_app_write_field}, {"write_species", pkpm_app_write_species},
-  {"write_integrated_mom", pkpm_app_write_integrated_mom},
-  {"write_integrated_L2_f", pkpm_app_write_integrated_L2_f},
-  {"write_field_energy", pkpm_app_write_field_energy}, {"stat_write", pkpm_app_stat_write},
-  {"run", pkpm_app_run}, {0, 0}};
+static struct luaL_Reg pkpm_app_funcs[] = { { "apply_ic", pkpm_app_apply_ic },
+  { "apply_ic_field", pkpm_app_apply_ic_field }, { "apply_ic_species", pkpm_app_apply_ic_species },
+  { "calc_integrated_mom", pkpm_app_calc_integrated_mom },
+  { "calc_integrated_L2_f", pkpm_app_calc_integrated_L2_f },
+  { "calc_field_energy", pkpm_app_calc_field_energy }, { "write", pkpm_app_write },
+  { "write_field", pkpm_app_write_field }, { "write_species", pkpm_app_write_species },
+  { "write_integrated_mom", pkpm_app_write_integrated_mom },
+  { "write_integrated_L2_f", pkpm_app_write_integrated_L2_f },
+  { "write_field_energy", pkpm_app_write_field_energy }, { "stat_write", pkpm_app_stat_write },
+  { "run", pkpm_app_run }, { 0, 0 } };
 
 static void
 app_openlibs(lua_State *L)

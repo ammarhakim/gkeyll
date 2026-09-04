@@ -58,7 +58,7 @@ moment_update_ssp_rk3(gkyl_moment_app *app, double dt0)
 {
   const struct gkyl_array *fin[app->num_species];
   struct gkyl_array *fout[app->num_species];
-  struct gkyl_update_status st = {.success = true};
+  struct gkyl_update_status st = { .success = true };
 
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;

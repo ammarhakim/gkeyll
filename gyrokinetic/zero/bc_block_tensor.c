@@ -88,15 +88,15 @@ gkyl_bc_block_tensor_advance(struct bc_block_tensor *up, int dir, int edge1, int
   // For block 1, the index in dir will be min/max based on edge1
   // For block 2, index in dir is based on edge2
 
-  int idx1[GKYL_MAX_DIM] = {0};
-  int idx2[GKYL_MAX_DIM] = {0};
+  int idx1[GKYL_MAX_DIM] = { 0 };
+  int idx2[GKYL_MAX_DIM] = { 0 };
   idx1[dir] = edge1 == 0 ? range1->lower[dir] : range1->upper[dir];
   idx2[dir] = edge2 == 0 ? range2->lower[dir] : range2->upper[dir];
 
   struct gkyl_range range_def;
-  int remdir[GKYL_MAX_DIM] = {0};
+  int remdir[GKYL_MAX_DIM] = { 0 };
   remdir[dir] = 1;
-  int locdir[GKYL_MAX_DIM] = {0};
+  int locdir[GKYL_MAX_DIM] = { 0 };
   locdir[dir] = idx2[dir];
   gkyl_range_deflate(&range_def, range2, remdir, locdir);
 

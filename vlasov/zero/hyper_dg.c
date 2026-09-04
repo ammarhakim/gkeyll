@@ -15,8 +15,8 @@ create_offsets(struct gkyl_hyper_dg *up, const struct gkyl_range *range, long of
 {
   // Construct the offsets *only* in the directions being updated.
   // No need to load the neighbors that are not needed for the update.
-  int lower_offset[GKYL_MAX_DIM] = {0};
-  int upper_offset[GKYL_MAX_DIM] = {0};
+  int lower_offset[GKYL_MAX_DIM] = { 0 };
+  int upper_offset[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < up->num_up_dirs; ++d) {
     int dir = up->update_dirs[d];
     lower_offset[dir] = -1;
@@ -120,7 +120,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *up, const struct gkyl_range *up
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = up->ndim;
-  long sz[] = {3, 9, 27};
+  long sz[] = { 3, 9, 27 };
   long sz_dim = sz[up->num_up_dirs - 1];
   long offsets[sz_dim];
   create_offsets(up, update_range, offsets);

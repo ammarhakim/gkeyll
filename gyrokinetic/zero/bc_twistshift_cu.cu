@@ -52,10 +52,10 @@ gkyl_bc_twistshift_add_contr_cu_ker(struct gkyl_array *ftar, long *num_numcol_fi
   if ((linidx_tar < num_cells_skin) && (row_idx < ftar->ncomp)) {
     double *ftar_c = (double *)gkyl_array_fetch(ftar, num_numcol_fidx_tar[linidx_tar]);
 
-    int idx[GKYL_MAX_DIM] = {1};
+    int idx[GKYL_MAX_DIM] = { 1 };
     gkyl_sub_range_inv_idx(&permutted_ghost_r, linidx_tar, idx);
 
-    int ac[GKYL_MAX_DIM] = {1};
+    int ac[GKYL_MAX_DIM] = { 1 };
     for (int d = 2; d < grid.ndim - 1; d++)
       ac[d - 2] = grid.cells[d + 1];
     ac[permutted_ghost_r.ndim - 2] = mm_contr->num;

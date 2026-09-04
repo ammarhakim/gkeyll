@@ -169,8 +169,8 @@ gkyl_gk_dg_geom_populate_surf(
   // Populate surface nodes
   for (int dir = 0; dir < ndim; dir++) {
     struct gkyl_range local_ext_in_dir;
-    int lower[3] = {gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2]};
-    int upper[3] = {gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2]};
+    int lower[3] = { gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2] };
+    int upper[3] = { gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2] };
     upper[dir] += 1;
     gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 

@@ -40,13 +40,13 @@ gkyl_dg_updater_gyrokinetic_passive_new(const struct gkyl_rect_grid *grid,
   int pdim = pbasis->ndim;
 
   // Update only conf-space directions (no vpar advection for passive type).
-  int up_dirs[GKYL_MAX_DIM] = {0};
+  int up_dirs[GKYL_MAX_DIM] = { 0 };
   int num_up_dirs = cdim;
   for (int d = 0; d < num_up_dirs; d++)
     up_dirs[d] = d;
 
   // Zero-flux flags: conf-space BCs from input.
-  int zero_flux_flags[2 * GKYL_MAX_DIM] = {0};
+  int zero_flux_flags[2 * GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++) {
     zero_flux_flags[d] = is_zero_flux_bc[d] ? 1 : 0;
     zero_flux_flags[d + pdim] = is_zero_flux_bc[d + pdim] ? 1 : 0;
@@ -75,9 +75,8 @@ gkyl_dg_updater_gyrokinetic_passive_advance(gkyl_dg_updater_gyrokinetic_passive 
 struct gkyl_dg_updater_gyrokinetic_passive_tm
 gkyl_dg_updater_gyrokinetic_passive_get_tm(const gkyl_dg_updater_gyrokinetic_passive *up)
 {
-  return (struct gkyl_dg_updater_gyrokinetic_passive_tm){
-    .gyrokinetic_passive_tm = up->gyrokinetic_passive_tm,
-  };
+  return (struct gkyl_dg_updater_gyrokinetic_passive_tm){ .gyrokinetic_passive_tm =
+                                                            up->gyrokinetic_passive_tm };
 }
 
 void

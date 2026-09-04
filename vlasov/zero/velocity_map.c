@@ -94,7 +94,7 @@ gkyl_velocity_map_new(struct gkyl_mapc2p_inp mapc2p_in, struct gkyl_rect_grid gr
 
   gkyl_eval_on_nodes *evup;
   if (gvm->is_identity) {
-    struct mapc2p_vel_identity_ctx identity_ctx = {.vdim = vdim};
+    struct mapc2p_vel_identity_ctx identity_ctx = { .vdim = vdim };
     evup = gkyl_eval_on_nodes_new(
       &gvm->grid_vel, &vmap_basis_vdim, vdim, mapc2p_vel_identity, &identity_ctx);
   } else {
@@ -304,7 +304,7 @@ gkyl_velocity_map_eval_c2p(const struct gkyl_velocity_map *gvm, const double *zc
 
   for (int d = 0; d < gvm->local_ext_vel.ndim; d++) {
     // Convert computational to logical coord.
-    double zlog[] = {(zc[d] - zc_cc[d]) / (0.5 * gvm->grid_vel.dx[d])};
+    double zlog[] = { (zc[d] - zc_cc[d]) / (0.5 * gvm->grid_vel.dx[d]) };
     // Evaluate vmap expansion at logical coord.
     vp[d] = gvm->vmap_basis_ho.eval_expand(zlog, &vmap_c[d * gvm->vmap_basis_ho.num_basis]);
   }

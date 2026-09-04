@@ -90,8 +90,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct amr_10m_riem_ctx ctx = {
-    .epsilon0 = epsilon0,
+  struct amr_10m_riem_ctx ctx = { .epsilon0 = epsilon0,
     .mu0 = mu0,
     .mass_ion = mass_ion,
     .charge_ion = charge_ion,
@@ -118,8 +117,7 @@ create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -237,8 +235,7 @@ main(int argc, char **argv)
 {
   struct amr_10m_riem_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct ten_moment_1d_single_init init = {
-    .base_Nx = ctx.Nx,
+  struct ten_moment_1d_single_init init = { .base_Nx = ctx.Nx,
     .ref_factor = ctx.ref_factor,
 
     .coarse_x1 = 0.0,
@@ -272,8 +269,7 @@ main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
-  };
+    .num_failures_max = ctx.num_failures_max };
 
   ten_moment_1d_run_single(argc, argv, &init);
 }

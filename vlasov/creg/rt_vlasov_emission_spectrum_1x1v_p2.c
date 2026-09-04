@@ -151,8 +151,7 @@ create_ctx(void)
   double E_hat = 1.0e-6;
   double W = 60.86;
   double p = 1.0;
-  struct sheath_ctx ctx = {
-    .epsilon0 = 8.854e-12,
+  struct sheath_ctx ctx = { .epsilon0 = 8.854e-12,
     .mu0 = 1.257e-6,
     .q0 = q0,
     .chargeElc = -q0,
@@ -187,8 +186,7 @@ create_ctx(void)
     .t_end = 10.0 / ctx.omega_pe,
     .num_frames = 1,
     .dt_failure_tol = 1.0e-4,
-    .num_failures_max = 20,
-  };
+    .num_failures_max = 20 };
   return ctx;
 }
 
@@ -237,7 +235,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = {NX};
+  int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -260,22 +258,18 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -296,7 +290,7 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  char in_species[1][128] = {"elc"};
+  char in_species[1][128] = { "elc" };
 
   // Copper preset for emission BC where models and parameters are chosen automatically
   struct gkyl_bc_emission_ctx *bc_ctx = gkyl_bc_emission_secondary_electron_copper_new(
@@ -316,102 +310,56 @@ main(int argc, char **argv)
   /*   0.0, true, spectrum_model, yield_model, elastic_model, in_species); */
 
   // electrons
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_species elc = { .name = "elc",
     .charge = ctx.chargeElc,
     .mass = ctx.massElc,
-    .lower = {-4.0 * ctx.vte},
-    .upper = {4.0 * ctx.vte},
-    .cells = {NV},
+    .lower = { -4.0 * ctx.vte },
+    .upper = { 4.0 * ctx.vte },
+    .cells = { NV },
 
     .num_init = 1,
-    .projection[0] =
-      {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = evalDistFuncElc,
-        .ctx_func = &ctx,
-      },
+    .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncElc, .ctx_func = &ctx },
 
-    .source =
-      {
-        .source_id = GKYL_BFLUX_SOURCE,
-        .source_length = ctx.Ls,
-        .source_species = "ion",
-        .num_sources = 1,
-        .projection[0] =
-          {
-            .proj_id = GKYL_PROJ_FUNC,
-            .func = evalDistFuncElcSource,
-            .ctx_func = &ctx,
-          },
-      },
+    .source = { .source_id = GKYL_BFLUX_SOURCE,
+      .source_length = ctx.Ls,
+      .source_species = "ion",
+      .num_sources = 1,
+      .projection[0] = { .proj_id = GKYL_PROJ_FUNC,
+        .func = evalDistFuncElcSource,
+        .ctx_func = &ctx } },
 
-    .bcx =
-      {
-        .lower =
-          {
-            .type = GKYL_SPECIES_REFLECT,
-          },
-        .upper =
-          {
-            .type = GKYL_SPECIES_EMISSION,
-            .aux_ctx = bc_ctx,
-          },
-      },
+    .bcx = { .lower = { .type = GKYL_SPECIES_REFLECT },
+      .upper = { .type = GKYL_SPECIES_EMISSION, .aux_ctx = bc_ctx } },
 
     .num_diag_moments = 3,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 } };
 
   // ions
-  struct gkyl_vlasov_species ion = {
-    .name = "ion",
+  struct gkyl_vlasov_species ion = { .name = "ion",
     .charge = ctx.chargeIon,
     .mass = ctx.massIon,
-    .lower = {-4.0 * ctx.vti},
-    .upper = {4.0 * ctx.vti},
-    .cells = {NV},
+    .lower = { -4.0 * ctx.vti },
+    .upper = { 4.0 * ctx.vti },
+    .cells = { NV },
 
     .num_init = 1,
-    .projection[0] =
-      {
-        .proj_id = GKYL_PROJ_FUNC,
-        .func = evalDistFuncIon,
-        .ctx_func = &ctx,
-      },
+    .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = evalDistFuncIon, .ctx_func = &ctx },
 
-    .source =
-      {
-        .source_id = GKYL_BFLUX_SOURCE,
-        .source_length = ctx.Ls,
-        .source_species = "ion",
-        .num_sources = 1,
-        .projection[0] =
-          {
-            .proj_id = GKYL_PROJ_FUNC,
-            .func = evalDistFuncIonSource,
-            .ctx_func = &ctx,
-          },
-      },
+    .source = { .source_id = GKYL_BFLUX_SOURCE,
+      .source_length = ctx.Ls,
+      .source_species = "ion",
+      .num_sources = 1,
+      .projection[0] = { .proj_id = GKYL_PROJ_FUNC,
+        .func = evalDistFuncIonSource,
+        .ctx_func = &ctx } },
 
-    .bcx =
-      {
-        .lower =
-          {
-            .type = GKYL_SPECIES_REFLECT,
-          },
-        .upper =
-          {
-            .type = GKYL_SPECIES_ABSORB,
-          },
-      },
+    .bcx = { .lower = { .type = GKYL_SPECIES_REFLECT }, .upper = { .type = GKYL_SPECIES_ABSORB } },
 
     .num_diag_moments = 3,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2},
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 } };
 
   // field
-  struct gkyl_vlasov_field field = {.epsilon0 = ctx.epsilon0,
+  struct gkyl_vlasov_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -419,16 +367,16 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFieldFunc,
 
-    .bcx = {GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL}};
+    .bcx = { GKYL_FIELD_SYM_WALL, GKYL_FIELD_PEC_WALL } };
 
   // VM app
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
     .vdim = 1,
-    .lower = {0.0},
-    .upper = {ctx.Lx},
-    .cells = {NX},
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
@@ -436,15 +384,10 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 2,
-    .species = {elc, ion},
+    .species = { elc, ion },
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
   };
 
   // Create app object.
@@ -457,7 +400,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.
   gkyl_vlasov_app_apply_ic(app, t_curr);

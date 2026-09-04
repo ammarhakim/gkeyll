@@ -206,17 +206,17 @@ gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, doub
   enum { I, LL, L, R, RR, XE }; // i, i-2, i-1, i+1, i+2 nodes
 
   struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, 1, (int[]){cells});
+  gkyl_range_init_from_shape(&range, 1, (int[]){ cells });
 
   struct gkyl_range nc_range;
-  gkyl_range_init_from_shape(&nc_range, 1, (int[]){cells + 1});
+  gkyl_range_init_from_shape(&nc_range, 1, (int[]){ cells + 1 });
 
   long offset[XE];
   offset[I] = 0; // i
-  offset[LL] = gkyl_range_offset(&nc_range, (int[]){-2}); // i-1
-  offset[L] = gkyl_range_offset(&nc_range, (int[]){-1}); // i-1
-  offset[R] = gkyl_range_offset(&nc_range, (int[]){1}); // i+1
-  offset[RR] = gkyl_range_offset(&nc_range, (int[]){2}); // i+2
+  offset[LL] = gkyl_range_offset(&nc_range, (int[]){ -2 }); // i-1
+  offset[L] = gkyl_range_offset(&nc_range, (int[]){ -1 }); // i-1
+  offset[R] = gkyl_range_offset(&nc_range, (int[]){ 1 }); // i+1
+  offset[RR] = gkyl_range_offset(&nc_range, (int[]){ 2 }); // i+2
 
   struct gkyl_array *gradx = mem->grad1dx;
 
@@ -268,8 +268,8 @@ gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, doub
     const double *grad_I = gkyl_array_cfetch(gradx, nidx + offset[I]);
     const double *grad_R = gkyl_array_cfetch(gradx, nidx + offset[R]);
 
-    double val[2] = {val_I[0], val_R[0]};
-    double grad[2] = {grad_I[0] * dx / 2, grad_R[0] * dx / 2};
+    double val[2] = { val_I[0], val_R[0] };
+    double grad[2] = { grad_I[0] * dx / 2, grad_R[0] * dx / 2 };
 
     long cidx = gkyl_range_idx(&range, iter.idx);
     gkyl_dg_calc_cubic_1d(val, grad, gkyl_array_fetch(cubic, cidx));
@@ -309,36 +309,36 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
   gkyl_range_init_from_shape(&range, 2, cells);
 
   struct gkyl_range nc_range;
-  gkyl_range_init_from_shape(&nc_range, 2, (int[]){cells[0] + 1, cells[1] + 1});
+  gkyl_range_init_from_shape(&nc_range, 2, (int[]){ cells[0] + 1, cells[1] + 1 });
 
   long offset[XE];
   offset[I] = 0; // i,j
-  offset[LL] = gkyl_range_offset(&nc_range, (int[]){-2, 0}); // i-2,j
-  offset[L] = gkyl_range_offset(&nc_range, (int[]){-1, 0}); // i-1,j
-  offset[R] = gkyl_range_offset(&nc_range, (int[]){1, 0}); // i+1,j
-  offset[RR] = gkyl_range_offset(&nc_range, (int[]){2, 0}); // i+2,j
+  offset[LL] = gkyl_range_offset(&nc_range, (int[]){ -2, 0 }); // i-2,j
+  offset[L] = gkyl_range_offset(&nc_range, (int[]){ -1, 0 }); // i-1,j
+  offset[R] = gkyl_range_offset(&nc_range, (int[]){ 1, 0 }); // i+1,j
+  offset[RR] = gkyl_range_offset(&nc_range, (int[]){ 2, 0 }); // i+2,j
 
-  offset[BB] = gkyl_range_offset(&nc_range, (int[]){0, -2}); // i,j-2
-  offset[B] = gkyl_range_offset(&nc_range, (int[]){0, -1}); // i,j-1
-  offset[T] = gkyl_range_offset(&nc_range, (int[]){0, 1}); // i,j+1
-  offset[TT] = gkyl_range_offset(&nc_range, (int[]){0, 2}); // i,j+2
+  offset[BB] = gkyl_range_offset(&nc_range, (int[]){ 0, -2 }); // i,j-2
+  offset[B] = gkyl_range_offset(&nc_range, (int[]){ 0, -1 }); // i,j-1
+  offset[T] = gkyl_range_offset(&nc_range, (int[]){ 0, 1 }); // i,j+1
+  offset[TT] = gkyl_range_offset(&nc_range, (int[]){ 0, 2 }); // i,j+2
 
-  offset[LT] = gkyl_range_offset(&nc_range, (int[]){-1, 1}); // i-1,j+1
-  offset[RT] = gkyl_range_offset(&nc_range, (int[]){1, 1}); // i+1,j+1
-  offset[LB] = gkyl_range_offset(&nc_range, (int[]){-1, -1}); // i-1,j-1
-  offset[RB] = gkyl_range_offset(&nc_range, (int[]){1, -1}); // i+1,j-1
+  offset[LT] = gkyl_range_offset(&nc_range, (int[]){ -1, 1 }); // i-1,j+1
+  offset[RT] = gkyl_range_offset(&nc_range, (int[]){ 1, 1 }); // i+1,j+1
+  offset[LB] = gkyl_range_offset(&nc_range, (int[]){ -1, -1 }); // i-1,j-1
+  offset[RB] = gkyl_range_offset(&nc_range, (int[]){ 1, -1 }); // i+1,j-1
 
-  offset[RRT] = gkyl_range_offset(&nc_range, (int[]){2, 1}); // i+2,j+1
-  offset[RRB] = gkyl_range_offset(&nc_range, (int[]){2, -1}); // i+2,j-1
+  offset[RRT] = gkyl_range_offset(&nc_range, (int[]){ 2, 1 }); // i+2,j+1
+  offset[RRB] = gkyl_range_offset(&nc_range, (int[]){ 2, -1 }); // i+2,j-1
 
-  offset[LLT] = gkyl_range_offset(&nc_range, (int[]){-2, 1}); // i-2,j+1
-  offset[LLB] = gkyl_range_offset(&nc_range, (int[]){-2, -1}); // i-2,j-1
+  offset[LLT] = gkyl_range_offset(&nc_range, (int[]){ -2, 1 }); // i-2,j+1
+  offset[LLB] = gkyl_range_offset(&nc_range, (int[]){ -2, -1 }); // i-2,j-1
 
-  offset[LTT] = gkyl_range_offset(&nc_range, (int[]){-1, 2}); // i-1,j+2
-  offset[RTT] = gkyl_range_offset(&nc_range, (int[]){1, 2}); // i+1,j+2
+  offset[LTT] = gkyl_range_offset(&nc_range, (int[]){ -1, 2 }); // i-1,j+2
+  offset[RTT] = gkyl_range_offset(&nc_range, (int[]){ 1, 2 }); // i+1,j+2
 
-  offset[LBB] = gkyl_range_offset(&nc_range, (int[]){-1, -2}); // i-1,j-2
-  offset[RBB] = gkyl_range_offset(&nc_range, (int[]){1, -2}); // i+1,j-2
+  offset[LBB] = gkyl_range_offset(&nc_range, (int[]){ -1, -2 }); // i-1,j-2
+  offset[RBB] = gkyl_range_offset(&nc_range, (int[]){ 1, -2 }); // i+1,j-2
 
   struct gkyl_array *gradx = mem->grad2dx;
   struct gkyl_array *grady = mem->grad2dy;
@@ -503,7 +503,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       grady_I[0] = -(val_TT[0] - 4 * val_T[0] + 3 * val_I[0]) / (2 * dx[1]);
 
       double *gradxy_I = gkyl_array_fetch(gradxy, nidx + offset[I]);
-      double vxy[4] = {val_I[0], val_T[0], val_R[0], val_RT[0]};
+      double vxy[4] = { val_I[0], val_T[0], val_R[0], val_RT[0] };
       gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
     }
 
@@ -523,7 +523,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       grady_I[0] = (3 * val_I[0] - 4 * val_B[0] + val_BB[0]) / (2 * dx[1]);
 
       double *gradxy_I = gkyl_array_fetch(gradxy, nidx + offset[I]);
-      double vxy[4] = {val_B[0], val_I[0], val_RB[0], val_R[0]};
+      double vxy[4] = { val_B[0], val_I[0], val_RB[0], val_R[0] };
       gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
     }
 
@@ -543,7 +543,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       grady_I[0] = -(val_TT[0] - 4 * val_T[0] + 3 * val_I[0]) / (2 * dx[1]);
 
       double *gradxy_I = gkyl_array_fetch(gradxy, nidx + offset[I]);
-      double vxy[4] = {val_L[0], val_LT[0], val_I[0], val_T[0]};
+      double vxy[4] = { val_L[0], val_LT[0], val_I[0], val_T[0] };
       gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
     }
 
@@ -563,7 +563,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       grady_I[0] = (3 * val_I[0] - 4 * val_B[0] + val_BB[0]) / (2 * dx[1]);
 
       double *gradxy_I = gkyl_array_fetch(gradxy, nidx + offset[I]);
-      double vxy[4] = {val_LB[0], val_L[0], val_B[0], val_I[0]};
+      double vxy[4] = { val_LB[0], val_L[0], val_B[0], val_I[0] };
       gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
     }
   }
@@ -594,13 +594,13 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
     const double *gradxy_T = gkyl_array_cfetch(gradxy, nidx + offset[T]);
     const double *gradxy_RT = gkyl_array_cfetch(gradxy, nidx + offset[RT]);
 
-    double val[4] = {val_I[0], val_T[0], val_R[0], val_RT[0]};
-    double gradx[4] = {gradx_I[0] * dx[0] / 2, gradx_T[0] * dx[0] / 2, gradx_R[0] * dx[0] / 2,
-      gradx_RT[0] * dx[0] / 2};
-    double grady[4] = {grady_I[0] * dx[1] / 2, grady_T[0] * dx[1] / 2, grady_R[0] * dx[1] / 2,
-      grady_RT[0] * dx[1] / 2};
-    double gradxy[4] = {gradxy_I[0] * dx[0] / 2 * dx[1] / 2, gradxy_T[0] * dx[0] / 2 * dx[1] / 2,
-      gradxy_R[0] * dx[0] / 2 * dx[1] / 2, gradxy_RT[0] * dx[0] / 2 * dx[1] / 2};
+    double val[4] = { val_I[0], val_T[0], val_R[0], val_RT[0] };
+    double gradx[4] = { gradx_I[0] * dx[0] / 2, gradx_T[0] * dx[0] / 2, gradx_R[0] * dx[0] / 2,
+      gradx_RT[0] * dx[0] / 2 };
+    double grady[4] = { grady_I[0] * dx[1] / 2, grady_T[0] * dx[1] / 2, grady_R[0] * dx[1] / 2,
+      grady_RT[0] * dx[1] / 2 };
+    double gradxy[4] = { gradxy_I[0] * dx[0] / 2 * dx[1] / 2, gradxy_T[0] * dx[0] / 2 * dx[1] / 2,
+      gradxy_R[0] * dx[0] / 2 * dx[1] / 2, gradxy_RT[0] * dx[0] / 2 * dx[1] / 2 };
 
     long cidx = gkyl_range_idx(&range, iter.idx);
     double *coeff = gkyl_array_fetch(cubic, cidx);
@@ -764,7 +764,7 @@ gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid, const struct gkyl
   }
 
   ctx->grid = *grid;
-  int nghost[GKYL_MAX_CDIM] = {0};
+  int nghost[GKYL_MAX_CDIM] = { 0 };
   gkyl_create_grid_ranges(grid, nghost, &ctx->local_ext, &ctx->local);
 
   gkyl_cart_modal_tensor(&ctx->basis, ndim, 3);
@@ -788,7 +788,7 @@ gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid, const struct gkyl
   evf->eval_cubic_wgrad2 = eval_cubic_wgrad2;
   evf->eval_cubic_laplacian = eval_laplacian_expand_2d_tensor_p3;
   evf->eval_cubic_mixedpartial = eval_mixedpartial_expand_2d_tensor_p3;
-  evf->ref_count = (struct gkyl_ref_count){evalf_free, 1};
+  evf->ref_count = (struct gkyl_ref_count){ evalf_free, 1 };
 
   return evf;
 }
@@ -799,8 +799,8 @@ gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, cons
   struct dg_basis_ops_evalf_ctx *ectx = evf->ctx;
 
   struct gkyl_msgpack_data *mdata = gkyl_msgpack_create(2,
-    (struct gkyl_msgpack_map_elem[]){{.key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3},
-      {.key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id}});
+    (struct gkyl_msgpack_map_elem[]){ { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3 },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id } });
 
   enum gkyl_array_rio_status status =
     gkyl_grid_sub_array_write(&ectx->grid, &ectx->local, mdata, ectx->cubic, fname);

@@ -86,9 +86,9 @@ test_2x_option(bool use_gpu)
   double mu_max_ion = 12. * mi * vtIon * vtIon / (2.0 * B0);
 
   // Phase space and Configuration space extents and resolution
-  double lower[] = {0.0, 0.0, -vpar_max_ion, 0.0};
-  double upper[] = {1.0, 1.0, vpar_max_ion, mu_max_ion};
-  int cells[] = {10, 16, 16, 20};
+  double lower[] = { 0.0, 0.0, -vpar_max_ion, 0.0 };
+  double upper[] = { 1.0, 1.0, vpar_max_ion, mu_max_ion };
+  int cells[] = { 10, 16, 16, 20 };
   int vdim = 2;
   int ndim = sizeof(cells) / sizeof(cells[0]);
   int cdim = ndim - vdim;
@@ -128,24 +128,23 @@ test_2x_option(bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[] = {1, 1};
+  int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
+  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  int vGhost[] = {0, 0, 0};
+  int vGhost[] = { 0, 0, 0 };
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = {0.0},
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = { 0.0 },
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -156,10 +155,9 @@ test_2x_option(bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis,
-  };
+    .basis = confBasis };
 
-  int geo_ghost[3] = {1};
+  int geo_ghost[3] = { 1 };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext,
@@ -209,8 +207,7 @@ test_2x_option(bool use_gpu)
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
 
   // Maxwellian (or bi-Maxwellian) projection updater.
-  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
-    .phase_grid = &grid,
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range = &confLocal,
@@ -220,8 +217,7 @@ test_2x_option(bool use_gpu)
     .vel_map = gvm,
     .mass = mi,
     .bimaxwellian = false,
-    .use_gpu = use_gpu,
-  };
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
@@ -319,10 +315,8 @@ test_integrated_moms_2x_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_integrated_moms_2x_ho", test_integrated_moms_2x_ho},
+TEST_LIST = { { "test_integrated_moms_2x_ho", test_integrated_moms_2x_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_integrated_moms_2x_dev", test_integrated_moms_2x_dev},
+  { "test_integrated_moms_2x_dev", test_integrated_moms_2x_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

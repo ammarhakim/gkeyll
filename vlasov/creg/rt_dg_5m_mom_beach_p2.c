@@ -101,8 +101,7 @@ create_ctx(void)
     (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
   double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
 
-  struct mom_beach_ctx ctx = {
-    .pi = pi,
+  struct mom_beach_ctx ctx = { .pi = pi,
     .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -125,8 +124,7 @@ create_ctx(void)
     .num_failures_max = num_failures_max,
     .deltaT = deltaT,
     .factor = factor,
-    .omega_drive = omega_drive,
-  };
+    .omega_drive = omega_drive };
 
   return ctx;
 }
@@ -277,20 +275,17 @@ main(int argc, char **argv)
   // Electron equations.
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
-  struct gkyl_vlasov_fluid_species elc = {
-    .name = "elc",
+  struct gkyl_vlasov_fluid_species elc = { .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .equation = elc_euler,
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-  };
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   // Field.
-  struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0,
+  struct gkyl_vlasov_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -302,8 +297,7 @@ main(int argc, char **argv)
     .app_current_ctx = &ctx,
     .app_current_evolve = true,
 
-    .bcx = {GKYL_FIELD_COPY, GKYL_FIELD_COPY},
-  };
+    .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -312,7 +306,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int cells[] = {NX};
+  int cells[] = { NX };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -334,14 +328,12 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -367,9 +359,9 @@ main(int argc, char **argv)
 
     .cdim = 1,
     .vdim = 0,
-    .lower = {0.0},
-    .upper = {ctx.Lx},
-    .cells = {NX},
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
@@ -382,16 +374,11 @@ main(int argc, char **argv)
     .species = {},
 
     .num_fluid_species = 1,
-    .fluid_species = {elc},
+    .fluid_species = { elc },
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
   };
 
   // Create app object.
@@ -426,28 +413,32 @@ main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr);
 
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 

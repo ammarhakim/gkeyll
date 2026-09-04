@@ -5,7 +5,7 @@
 // Type of Riemann-solver to use:
 enum gkyl_wv_gr_medium_rp {
   WV_GR_MEDIUM_RP_LAX = 0, // Default (Lax fluxes).
-  WV_GR_MEDIUM_RP_ROE,
+  WV_GR_MEDIUM_RP_ROE
 };
 
 // Input context, packaged as a struct.

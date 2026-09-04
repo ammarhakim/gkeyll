@@ -116,12 +116,12 @@ gkyl_fem_parproj_set_rhs_kernel(double *rhs_global, const struct gkyl_array *rhs
     const double *phibc_p =
       kers->get_dirichlet_value(range.ndim - 1, parnum_cells, idx, &range, phibc);
 
-    int idx1d[] = {idx[range.ndim - 1]};
+    int idx1d[] = { idx[range.ndim - 1] };
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     int keri = idx1d[0] == parnum_cells ? 1 : 0;
     kers->l2g[keri](parnum_cells, paridx, globalidx);
 
-    int idx2d[] = {perp_range2d.lower[0], perp_range2d.lower[0]};
+    int idx2d[] = { perp_range2d.lower[0], perp_range2d.lower[0] };
     for (int d = 0; d < range.ndim - 1; d++)
       idx2d[d] = idx[d];
     long perpidx2d = gkyl_range_idx(&perp_range2d, idx2d);
@@ -173,13 +173,13 @@ gkyl_fem_parproj_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid grid,
     // since update_range is a subrange
     gkyl_sub_range_inv_idx(&range, linc1, idx);
 
-    int idx1d[] = {idx[ndim_perp]};
+    int idx1d[] = { idx[ndim_perp] };
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     int keri = idx1d[0] == parnum_cells ? 1 : 0;
     kers->l2g[keri](parnum_cells, paridx, globalidx);
 
     // Modify the RHS source to enforce biasing of the solution.
-    int idx2d[] = {perp_range2d.lower[0], perp_range2d.lower[0]};
+    int idx2d[] = { perp_range2d.lower[0], perp_range2d.lower[0] };
     for (int d = 0; d < ndim_perp; d++)
       idx2d[d] = idx[d];
     long perpidx2d = gkyl_range_idx(&perp_range2d, idx2d);
@@ -199,10 +199,8 @@ gkyl_fem_parproj_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid grid,
         (idx[bl->perp_dirs[0]] == bl_idx_m[0] + 1 && idx[bl->perp_dirs[1]] == bl_idx_m[1]) ||
         (idx[bl->perp_dirs[0]] == bl_idx_m[0] && idx[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
         (idx[bl->perp_dirs[0]] == bl_idx_m[0] + 1 && idx[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
-        int edge[2] = {
-          -1 + 2 * ((bl_idx_m[0] + 1) - idx[bl->perp_dirs[0]]),
-          -1 + 2 * ((bl_idx_m[1] + 1) - idx[bl->perp_dirs[1]]),
-        };
+        int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx[bl->perp_dirs[0]]),
+          -1 + 2 * ((bl_idx_m[1] + 1) - idx[bl->perp_dirs[1]]) };
         kers->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, perpProbOff, globalidx, rhs_global);
       }
     }
@@ -239,12 +237,12 @@ gkyl_fem_parproj_get_sol_kernel(struct gkyl_array *phiout, const double *x_globa
     long linidx = gkyl_range_idx(&range, idx);
     double *phiout_p = (double *)gkyl_array_cfetch(phiout, linidx);
 
-    int idx1d[] = {idx[range.ndim - 1]};
+    int idx1d[] = { idx[range.ndim - 1] };
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     int keri = idx1d[0] == parnum_cells ? 1 : 0;
     kers->l2g[keri](parnum_cells, paridx, globalidx);
 
-    int idx2d[] = {perp_range2d.lower[0], perp_range2d.lower[0]};
+    int idx2d[] = { perp_range2d.lower[0], perp_range2d.lower[0] };
     for (int d = 0; d < range.ndim - 1; d++)
       idx2d[d] = idx[d];
     long perpidx2d = gkyl_range_idx(&perp_range2d, idx2d);

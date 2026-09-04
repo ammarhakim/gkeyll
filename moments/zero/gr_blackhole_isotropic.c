@@ -569,14 +569,13 @@ struct gkyl_gr_spacetime *
 gkyl_gr_blackhole_isotropic_new(
   bool use_gpu, double mass, double spin, double pos_x, double pos_y, double pos_z)
 {
-  return gkyl_gr_blackhole_isotropic_inew(&(struct gkyl_gr_blackhole_isotropic_inp){
-    .use_gpu = use_gpu,
-    .mass = mass,
-    .spin = spin,
-    .pos_x = pos_x,
-    .pos_y = pos_y,
-    .pos_z = pos_z,
-  });
+  return gkyl_gr_blackhole_isotropic_inew(
+    &(struct gkyl_gr_blackhole_isotropic_inp){ .use_gpu = use_gpu,
+      .mass = mass,
+      .spin = spin,
+      .pos_x = pos_x,
+      .pos_y = pos_y,
+      .pos_z = pos_z });
 }
 
 struct gkyl_gr_spacetime *

@@ -55,9 +55,7 @@ gkyl_dg_updater_moment_pkpm_advance(struct gkyl_dg_updater_moment *moment,
 struct gkyl_dg_updater_moment_tm
 gkyl_dg_updater_moment_pkpm_get_tm(const gkyl_dg_updater_moment *moment)
 {
-  return (struct gkyl_dg_updater_moment_tm){
-    .moment_tm = moment->moment_tm,
-  };
+  return (struct gkyl_dg_updater_moment_tm){ .moment_tm = moment->moment_tm };
 }
 
 void

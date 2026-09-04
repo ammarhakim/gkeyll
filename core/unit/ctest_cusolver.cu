@@ -55,9 +55,9 @@ test_cusolver_qr()
   e = 5.0;
   r = 18.0;
   l = 12.0;
-  int cooRowInd[] = {0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4};
-  int colInd[] = {0, 2, 3, 0, 1, 1, 2, 3, 4, 0, 1, 4};
-  double Aval[] = {s, u, u, l, u, l, p, e, u, l, l, r};
+  int cooRowInd[] = { 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4 };
+  int colInd[] = { 0, 2, 3, 0, 1, 1, 2, 3, 4, 0, 1, 4 };
+  double Aval[] = { s, u, u, l, u, l, p, e, u, l, l, r };
 
   cusolverSpCreate(&cusolverH);
   cusparseCreate(&cusparseH);
@@ -92,7 +92,7 @@ test_cusolver_qr()
   cusolverSpCreateCsrqrInfo(&info);
 
   // allocate rhs vector
-  double b[] = {1.0, 1.0, 1.0, 1.0, 1.0};
+  double b[] = { 1.0, 1.0, 1.0, 1.0, 1.0 };
   double *b_cu;
   b_cu = (double *)gkyl_cu_malloc(sizeof(double) * m);
   gkyl_cu_memcpy(b_cu, b, sizeof(double) * m, GKYL_CU_MEMCPY_H2D);
@@ -461,9 +461,9 @@ test_cusolver_rf()
   e = 5.0;
   r = 18.0;
   l = 12.0;
-  double h_csrValA[] = {s, u, u, l, u, l, p, e, u, l, l, r};
-  int h_csrRowIndA[] = {0, 3, 5, 7, 9, 12};
-  int h_csrColIndA[] = {0, 2, 3, 0, 1, 1, 2, 3, 4, 0, 1, 4};
+  double h_csrValA[] = { s, u, u, l, u, l, p, e, u, l, l, r };
+  int h_csrRowIndA[] = { 0, 3, 5, 7, 9, 12 };
+  int h_csrColIndA[] = { 0, 2, 3, 0, 1, 1, 2, 3, 4, 0, 1, 4 };
 
   int rowsA = 5; // number of rows of A
   int colsA = rowsA; // number of columns of A
@@ -504,7 +504,7 @@ test_cusolver_rf()
   checkCuda(cudaGetLastError());
 
   // Allocate rhs vector (host only for now).
-  double h_b[] = {1.0, 1.0, 1.0, 1.0, 1.0};
+  double h_b[] = { 1.0, 1.0, 1.0, 1.0, 1.0 };
 
   // reorder to reduce zero fill-in
   // Qreorder = symrcm(A) or Qreroder = symamd(A)

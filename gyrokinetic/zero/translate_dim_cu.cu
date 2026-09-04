@@ -72,8 +72,8 @@ gkyl_translate_dim_advance_cu_ker(int cdim_do, int cdim_tar, int vdim_do, int vd
   const struct gkyl_range rng_do, const struct gkyl_range rng_tar,
   const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp, struct gkyl_array *GKYL_RESTRICT ftar)
 {
-  int idx_do[GKYL_MAX_DIM] = {0};
-  int idx_tar[GKYL_MAX_DIM] = {0};
+  int idx_do[GKYL_MAX_DIM] = { 0 };
+  int idx_tar[GKYL_MAX_DIM] = { 0 };
 
   for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < rng_tar.volume;
        tid += blockDim.x * gridDim.x) {

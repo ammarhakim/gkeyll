@@ -47,36 +47,36 @@ moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_arr
   const double *inp;
   if (app->ndim == 2) {
     // LL skin cell -> UU ghost cell
-    idx_src = gkyl_range_idx(&app->local, (int[]){app->local.lower[0], app->local.lower[1]});
+    idx_src = gkyl_range_idx(&app->local, (int[]){ app->local.lower[0], app->local.lower[1] });
     idx_dest =
-      gkyl_range_idx(&app->local_ext, (int[]){app->local.upper[0] + 1, app->local.upper[1] + 1});
+      gkyl_range_idx(&app->local_ext, (int[]){ app->local.upper[0] + 1, app->local.upper[1] + 1 });
 
     out = (double *)gkyl_array_fetch(f, idx_dest);
     inp = (const double *)gkyl_array_cfetch(f, idx_src);
     gkyl_copy_double_arr(f->ncomp, inp, out);
 
     // LU skin cell -> UL ghost cell
-    idx_src = gkyl_range_idx(&app->local, (int[]){app->local.lower[0], app->local.upper[1]});
+    idx_src = gkyl_range_idx(&app->local, (int[]){ app->local.lower[0], app->local.upper[1] });
     idx_dest =
-      gkyl_range_idx(&app->local_ext, (int[]){app->local.upper[0] + 1, app->local.lower[1] - 1});
+      gkyl_range_idx(&app->local_ext, (int[]){ app->local.upper[0] + 1, app->local.lower[1] - 1 });
 
     out = (double *)gkyl_array_fetch(f, idx_dest);
     inp = (const double *)gkyl_array_cfetch(f, idx_src);
     gkyl_copy_double_arr(f->ncomp, inp, out);
 
     // UL skin cell -> LU ghost cell
-    idx_src = gkyl_range_idx(&app->local, (int[]){app->local.upper[0], app->local.lower[1]});
+    idx_src = gkyl_range_idx(&app->local, (int[]){ app->local.upper[0], app->local.lower[1] });
     idx_dest =
-      gkyl_range_idx(&app->local_ext, (int[]){app->local.lower[0] - 1, app->local.upper[1] + 1});
+      gkyl_range_idx(&app->local_ext, (int[]){ app->local.lower[0] - 1, app->local.upper[1] + 1 });
 
     out = (double *)gkyl_array_fetch(f, idx_dest);
     inp = (const double *)gkyl_array_cfetch(f, idx_src);
     gkyl_copy_double_arr(f->ncomp, inp, out);
 
     // UU skin cell -> LL ghost cell
-    idx_src = gkyl_range_idx(&app->local, (int[]){app->local.upper[0], app->local.upper[1]});
+    idx_src = gkyl_range_idx(&app->local, (int[]){ app->local.upper[0], app->local.upper[1] });
     idx_dest =
-      gkyl_range_idx(&app->local_ext, (int[]){app->local.lower[0] - 1, app->local.lower[1] - 1});
+      gkyl_range_idx(&app->local_ext, (int[]){ app->local.lower[0] - 1, app->local.lower[1] - 1 });
 
     out = (double *)gkyl_array_fetch(f, idx_dest);
     inp = (const double *)gkyl_array_cfetch(f, idx_src);

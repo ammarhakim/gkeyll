@@ -50,7 +50,7 @@ gkyl_dg_updater_diffusion_gen_advance(struct gkyl_dg_updater_diffusion_gen *up,
   struct timespec wst = gkyl_wall_clock();
   // Set arrays needed and call the specific advance method required
   gkyl_diffusion_gen_set_auxfields(
-    up->dgeqn, (struct gkyl_dg_diffusion_gen_auxfields){.Dij = coeff});
+    up->dgeqn, (struct gkyl_dg_diffusion_gen_auxfields){ .Dij = coeff });
 #ifdef GKYL_HAVE_CUDA
   //    if (up->use_gpu)
   //      // hyper_dg_gen_stencil NOT YET IMPLEMENTED ON DEVICE
@@ -67,9 +67,7 @@ gkyl_dg_updater_diffusion_gen_advance(struct gkyl_dg_updater_diffusion_gen *up,
 struct gkyl_dg_updater_diffusion_gen_tm
 gkyl_dg_updater_diffusion_gen_get_tm(const struct gkyl_dg_updater_diffusion_gen *up)
 {
-  return (struct gkyl_dg_updater_diffusion_gen_tm){
-    .diffusion_tm = up->diffusion_tm,
-  };
+  return (struct gkyl_dg_updater_diffusion_gen_tm){ .diffusion_tm = up->diffusion_tm };
 }
 
 void

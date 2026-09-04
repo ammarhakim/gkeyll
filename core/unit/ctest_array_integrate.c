@@ -25,7 +25,7 @@ void
 evalFunc_1x_nc1_op_none(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double lower[] = {-6.0}, upper[] = {6.0}; // Has to match the test below.
+  double lower[] = { -6.0 }, upper[] = { 6.0 }; // Has to match the test below.
   fout[0] = 1. / (upper[0] - lower[0]);
 }
 
@@ -33,15 +33,15 @@ void
 evalFunc_1x_nc1_op_sq(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double lower[] = {-6.0}, upper[] = {6.0}; // Has to match the test below.
+  double lower[] = { -6.0 }, upper[] = { 6.0 }; // Has to match the test below.
   fout[0] = 1. / sqrt(upper[0] - lower[0]);
 }
 
 void
 test_1x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool use_gpu)
 {
-  double lower[] = {-6.0}, upper[] = {6.0};
-  int cells[] = {16};
+  double lower[] = { -6.0 }, upper[] = { 6.0 };
+  int cells[] = { 16 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int nc = 1;
 
@@ -53,7 +53,7 @@ test_1x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool use_g
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // local, local-ext ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -110,7 +110,7 @@ void
 evalFunc_1x_nc3_op_none(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double lower[] = {-6.0}, upper[] = {6.0}; // Has to match the test below.
+  double lower[] = { -6.0 }, upper[] = { 6.0 }; // Has to match the test below.
   fout[0] = 1. / (upper[0] - lower[0]);
   fout[1] = 1.5 / (upper[0] - lower[0]);
   fout[2] = 2.5 / (upper[0] - lower[0]);
@@ -120,7 +120,7 @@ void
 evalFunc_1x_nc3_op_sq(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double lower[] = {-6.0}, upper[] = {6.0}; // Has to match the test below.
+  double lower[] = { -6.0 }, upper[] = { 6.0 }; // Has to match the test below.
   fout[0] = 1. / sqrt(upper[0] - lower[0]);
   fout[1] = 1.5 / sqrt(upper[0] - lower[0]);
   fout[2] = 2.5 / sqrt(upper[0] - lower[0]);
@@ -129,8 +129,8 @@ evalFunc_1x_nc3_op_sq(double t, const double *xn, double *restrict fout, void *c
 void
 test_1x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool use_gpu)
 {
-  double lower[] = {-6.0}, upper[] = {6.0};
-  int cells[] = {16};
+  double lower[] = { -6.0 }, upper[] = { 6.0 };
+  int cells[] = { 16 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int nc = 3;
 
@@ -142,7 +142,7 @@ test_1x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool use_g
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // local, local-ext ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -203,7 +203,7 @@ void
 evalFunc_2x_nc1_op_none(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double lower[] = {0., -6.0}, upper[] = {2., 6.0}; // Has to match the test below.
+  double lower[] = { 0., -6.0 }, upper[] = { 2., 6.0 }; // Has to match the test below.
   fout[0] = 1. / ((upper[0] - lower[0]) * (upper[1] - lower[1]));
 }
 
@@ -211,15 +211,15 @@ void
 evalFunc_2x_nc1_op_sq(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double lower[] = {0., -6.0}, upper[] = {2., 6.0}; // Has to match the test below.
+  double lower[] = { 0., -6.0 }, upper[] = { 2., 6.0 }; // Has to match the test below.
   fout[0] = 1. / sqrt((upper[0] - lower[0]) * (upper[1] - lower[1]));
 }
 
 void
 test_2x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool use_gpu)
 {
-  double lower[] = {0., -6.0}, upper[] = {2., 6.0};
-  int cells[] = {6, 16};
+  double lower[] = { 0., -6.0 }, upper[] = { 2., 6.0 };
+  int cells[] = { 6, 16 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int nc = 1;
 
@@ -231,7 +231,7 @@ test_2x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool use_g
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1, 0};
+  int ghost[] = { 1, 0 };
   struct gkyl_range local, local_ext; // local, local-ext ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -290,7 +290,7 @@ void
 evalFunc_2x_nc3_op_none(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double lower[] = {0., -6.0}, upper[] = {2., 6.0}; // Has to match the test below.
+  double lower[] = { 0., -6.0 }, upper[] = { 2., 6.0 }; // Has to match the test below.
   fout[0] = 1. / ((upper[0] - lower[0]) * (upper[1] - lower[1]));
   fout[1] = 1.5 / ((upper[0] - lower[0]) * (upper[1] - lower[1]));
   fout[2] = 2.5 / ((upper[0] - lower[0]) * (upper[1] - lower[1]));
@@ -300,7 +300,7 @@ void
 evalFunc_2x_nc3_op_sq(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  double lower[] = {0., -6.0}, upper[] = {2., 6.0}; // Has to match the test below.
+  double lower[] = { 0., -6.0 }, upper[] = { 2., 6.0 }; // Has to match the test below.
   fout[0] = 1. / sqrt((upper[0] - lower[0]) * (upper[1] - lower[1]));
   fout[1] = 1.5 / sqrt((upper[0] - lower[0]) * (upper[1] - lower[1]));
   fout[2] = 2.5 / sqrt((upper[0] - lower[0]) * (upper[1] - lower[1]));
@@ -309,8 +309,8 @@ evalFunc_2x_nc3_op_sq(double t, const double *xn, double *restrict fout, void *c
 void
 test_2x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool use_gpu)
 {
-  double lower[] = {0., -6.0}, upper[] = {2., 6.0};
-  int cells[] = {6, 16};
+  double lower[] = { 0., -6.0 }, upper[] = { 2., 6.0 };
+  int cells[] = { 6, 16 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int nc = 3;
 
@@ -322,7 +322,7 @@ test_2x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool use_g
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1, 0};
+  int ghost[] = { 1, 0 };
   struct gkyl_range local, local_ext; // local, local-ext ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -391,8 +391,8 @@ evalFunc_1x_op_gradsq(double t, const double *xn, double *restrict fout, void *c
 void
 test_1x_op_gradsq(int poly_order, bool use_gpu)
 {
-  double lower[] = {-6.0}, upper[] = {6.0};
-  int cells[] = {16};
+  double lower[] = { -6.0 }, upper[] = { 6.0 };
+  int cells[] = { 16 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int nc = 1;
 
@@ -404,7 +404,7 @@ test_1x_op_gradsq(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // local, local-ext ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -471,8 +471,8 @@ evalFunc_2x_op_gradsq(double t, const double *xn, double *restrict fout, void *c
 void
 test_2x_op_gradsq(int poly_order, bool use_gpu)
 {
-  double lower[] = {0., -6.0}, upper[] = {1., 6.0};
-  int cells[] = {6, 16};
+  double lower[] = { 0., -6.0 }, upper[] = { 1., 6.0 };
+  int cells[] = { 6, 16 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   int nc = 1;
 
@@ -484,7 +484,7 @@ test_2x_op_gradsq(int poly_order, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -678,16 +678,14 @@ test_array_integrate_2x_gradsq_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_array_integrate_1x_ho", test_array_integrate_1x_ho},
-  {"test_array_integrate_2x_ho", test_array_integrate_2x_ho},
-  {"test_array_integrate_1x_gradsq_ho", test_array_integrate_1x_gradsq_ho},
-  {"test_array_integrate_2x_gradsq_ho", test_array_integrate_2x_gradsq_ho},
+TEST_LIST = { { "test_array_integrate_1x_ho", test_array_integrate_1x_ho },
+  { "test_array_integrate_2x_ho", test_array_integrate_2x_ho },
+  { "test_array_integrate_1x_gradsq_ho", test_array_integrate_1x_gradsq_ho },
+  { "test_array_integrate_2x_gradsq_ho", test_array_integrate_2x_gradsq_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_array_integrate_1x_dev", test_array_integrate_1x_dev},
-  {"test_array_integrate_2x_dev", test_array_integrate_2x_dev},
-  {"test_array_integrate_1x_gradsq_dev", test_array_integrate_1x_gradsq_dev},
-  {"test_array_integrate_2x_gradsq_dev", test_array_integrate_2x_gradsq_dev},
+  { "test_array_integrate_1x_dev", test_array_integrate_1x_dev },
+  { "test_array_integrate_2x_dev", test_array_integrate_2x_dev },
+  { "test_array_integrate_1x_gradsq_dev", test_array_integrate_1x_gradsq_dev },
+  { "test_array_integrate_2x_gradsq_dev", test_array_integrate_2x_gradsq_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

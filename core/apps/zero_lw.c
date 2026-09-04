@@ -73,7 +73,7 @@ rect_decomp_lw_new(lua_State *L)
   struct rect_decomp_lw *rd_lw = gkyl_malloc(sizeof(*rd_lw));
 
   int ndim = 1;
-  int cells[GKYL_MAX_DIM] = {0}, cuts[GKYL_MAX_DIM] = {1};
+  int cells[GKYL_MAX_DIM] = { 0 }, cuts[GKYL_MAX_DIM] = { 1 };
 
   with_lua_tbl_tbl(L, "cells")
   {
@@ -115,10 +115,10 @@ rect_decomp_lw_gc(lua_State *L)
 }
 
 // rect_decomp constructor
-static struct luaL_Reg rect_decomp_ctor[] = {{"new", rect_decomp_lw_new}, {0, 0}};
+static struct luaL_Reg rect_decomp_ctor[] = { { "new", rect_decomp_lw_new }, { 0, 0 } };
 
 // rect_decomp methods
-static struct luaL_Reg rect_decomp_funcs[] = {{0, 0}};
+static struct luaL_Reg rect_decomp_funcs[] = { { 0, 0 } };
 
 static void
 rect_decomp_openlibs(lua_State *L)
@@ -159,7 +159,7 @@ rect_grid_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg rect_grid_funcs[] = {{0, 0}};
+static struct luaL_Reg rect_grid_funcs[] = { { 0, 0 } };
 
 static void
 rect_grid_openlibs(lua_State *L)
@@ -194,7 +194,7 @@ array_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg array_funcs[] = {{0, 0}};
+static struct luaL_Reg array_funcs[] = { { 0, 0 } };
 
 static void
 array_openlibs(lua_State *L)
@@ -228,7 +228,7 @@ range_lw_gc(lua_State *L)
   return 0;
 }
 
-static struct luaL_Reg range_funcs[] = {{0, 0}};
+static struct luaL_Reg range_funcs[] = { { 0, 0 } };
 
 static void
 range_openlibs(lua_State *L)
@@ -352,7 +352,7 @@ create_grid_ranges_lw(lua_State *L)
   luaL_checktype(L, 2, LUA_TTABLE);
 
   int ndim = (*l_g)->grid.ndim;
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < ndim; ++d) {
     lua_rawgeti(L, 2, d + 1);
     nghost[d] = (int)lua_tointeger(L, -1);
@@ -515,7 +515,7 @@ dynvec_diff_lw(lua_State *L)
 
   // Build a 1-D range [0, nsteps-1] for gkyl_array_diff.
   struct gkyl_range rng;
-  int shape[1] = {(int)nsteps};
+  int shape[1] = { (int)nsteps };
   gkyl_range_init_from_shape(&rng, 1, shape);
 
   struct gkyl_array_diff ddiff = gkyl_array_diff(da1, da2, &rng);
@@ -602,10 +602,10 @@ block_topo_cmp_lw(lua_State *L)
 }
 
 // Module-level functions registered under G0.Zero
-static struct luaL_Reg zero_array_funcs[] = {{"gkylFileType", gkyl_file_type_lw},
-  {"arrayNewFromFile", array_new_from_file_lw}, {"rectGridCmp", rect_grid_cmp_lw},
-  {"createGridRanges", create_grid_ranges_lw}, {"arrayDiff", array_diff_lw},
-  {"dynvecDiff", dynvec_diff_lw}, {"blockTopoCmp", block_topo_cmp_lw}, {0, 0}};
+static struct luaL_Reg zero_array_funcs[] = { { "gkylFileType", gkyl_file_type_lw },
+  { "arrayNewFromFile", array_new_from_file_lw }, { "rectGridCmp", rect_grid_cmp_lw },
+  { "createGridRanges", create_grid_ranges_lw }, { "arrayDiff", array_diff_lw },
+  { "dynvecDiff", dynvec_diff_lw }, { "blockTopoCmp", block_topo_cmp_lw }, { 0, 0 } };
 
 void
 gkyl_zero_lw_openlibs(lua_State *L)

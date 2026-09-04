@@ -80,10 +80,7 @@ create_L_domain(const int *cuts)
 static void
 test_multib_comm_conn_0_ho(void)
 {
-  struct gkyl_comm_conn cclist[] = {
-    {.rank = 1},
-    {.rank = 2},
-  };
+  struct gkyl_comm_conn cclist[] = { { .rank = 1 }, { .rank = 2 } };
 
   struct gkyl_multib_comm_conn *mbcc = gkyl_multib_comm_conn_new(2, cclist);
 
@@ -95,12 +92,12 @@ test_multib_comm_conn_0_ho(void)
 static void
 test_multib_comm_conn_L_domain_send_c1_ho(void)
 {
-  struct gkyl_block_geom *geom = create_L_domain((int[]){1, 1});
+  struct gkyl_block_geom *geom = create_L_domain((int[]){ 1, 1 });
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
 
   int num_blocks = topo->num_blocks;
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // construct decomp objects
   struct gkyl_rect_decomp **decomp = gkyl_malloc(sizeof(struct gkyl_rect_decomp *[num_blocks]));
@@ -117,26 +114,21 @@ test_multib_comm_conn_L_domain_send_c1_ho(void)
   }
 
   // for testing
-  int num_send_neigh[] = {1, 2, 1};
+  int num_send_neigh[] = { 1, 2, 1 };
 
   // for testing (these hard-coded values depend on how the algorithm
   // is implemented)
-  struct gkyl_comm_conn conn_0[] = {{.block_id = 1, .rank = 0}};
-  gkyl_range_init(&conn_0[0].range, 2, (int[]){1, 1}, (int[]){300, 1});
+  struct gkyl_comm_conn conn_0[] = { { .block_id = 1, .rank = 0 } };
+  gkyl_range_init(&conn_0[0].range, 2, (int[]){ 1, 1 }, (int[]){ 300, 1 });
 
-  struct gkyl_comm_conn conn_1[] = {
-    {.block_id = 2, .rank = 0},
-    {.block_id = 0, .rank = 0},
-  };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]){300, 1}, (int[]){300, 300});
-  gkyl_range_init(&conn_1[1].range, 2, (int[]){1, 300}, (int[]){300, 300});
+  struct gkyl_comm_conn conn_1[] = { { .block_id = 2, .rank = 0 }, { .block_id = 0, .rank = 0 } };
+  gkyl_range_init(&conn_1[0].range, 2, (int[]){ 300, 1 }, (int[]){ 300, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]){ 1, 300 }, (int[]){ 300, 300 });
 
-  struct gkyl_comm_conn conn_2[] = {
-    {.block_id = 1, .rank = 0},
-  };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]){1, 1}, (int[]){1, 300});
+  struct gkyl_comm_conn conn_2[] = { { .block_id = 1, .rank = 0 } };
+  gkyl_range_init(&conn_2[0].range, 2, (int[]){ 1, 1 }, (int[]){ 1, 300 });
 
-  struct gkyl_comm_conn *block_conn[] = {conn_0, conn_1, conn_2};
+  struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
 
   for (int bid = 0; bid < num_blocks; ++bid) {
     for (int brank = 0; brank < num_cuts[bid]; ++brank) {
@@ -168,12 +160,12 @@ test_multib_comm_conn_L_domain_send_c3_ho(void)
   // THIS IS ONLY A PARTIAL TEST: checks send volume is correct and
   // total sends are correct
 
-  struct gkyl_block_geom *geom = create_L_domain((int[]){3, 3});
+  struct gkyl_block_geom *geom = create_L_domain((int[]){ 3, 3 });
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
 
   int num_blocks = topo->num_blocks;
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   int elo[2], eup[2];
   for (int d = 0; d < 2; ++d)
@@ -221,12 +213,12 @@ test_multib_comm_conn_L_domain_send_c3_ho(void)
 static void
 test_multib_comm_conn_L_domain_recv_c1_ho(void)
 {
-  struct gkyl_block_geom *geom = create_L_domain((int[]){1, 1});
+  struct gkyl_block_geom *geom = create_L_domain((int[]){ 1, 1 });
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
 
   int num_blocks = topo->num_blocks;
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   // construct decomp objects
   struct gkyl_rect_decomp **decomp = gkyl_malloc(sizeof(struct gkyl_rect_decomp *[num_blocks]));
@@ -243,26 +235,21 @@ test_multib_comm_conn_L_domain_recv_c1_ho(void)
   }
 
   // for testing
-  int num_send_neigh[] = {1, 2, 1};
+  int num_send_neigh[] = { 1, 2, 1 };
 
   // for testing (these hard-coded values depend on how the algorithm
   // is implemented)
-  struct gkyl_comm_conn conn_0[] = {{.block_id = 1, .rank = 0}};
-  gkyl_range_init(&conn_0[0].range, 2, (int[]){1, 0}, (int[]){300, 0});
+  struct gkyl_comm_conn conn_0[] = { { .block_id = 1, .rank = 0 } };
+  gkyl_range_init(&conn_0[0].range, 2, (int[]){ 1, 0 }, (int[]){ 300, 0 });
 
-  struct gkyl_comm_conn conn_1[] = {
-    {.block_id = 2, .rank = 0},
-    {.block_id = 0, .rank = 0},
-  };
-  gkyl_range_init(&conn_1[0].range, 2, (int[]){301, 1}, (int[]){301, 300});
-  gkyl_range_init(&conn_1[1].range, 2, (int[]){1, 301}, (int[]){300, 301});
+  struct gkyl_comm_conn conn_1[] = { { .block_id = 2, .rank = 0 }, { .block_id = 0, .rank = 0 } };
+  gkyl_range_init(&conn_1[0].range, 2, (int[]){ 301, 1 }, (int[]){ 301, 300 });
+  gkyl_range_init(&conn_1[1].range, 2, (int[]){ 1, 301 }, (int[]){ 300, 301 });
 
-  struct gkyl_comm_conn conn_2[] = {
-    {.block_id = 1, .rank = 0},
-  };
-  gkyl_range_init(&conn_2[0].range, 2, (int[]){0, 1}, (int[]){0, 300});
+  struct gkyl_comm_conn conn_2[] = { { .block_id = 1, .rank = 0 } };
+  gkyl_range_init(&conn_2[0].range, 2, (int[]){ 0, 1 }, (int[]){ 0, 300 });
 
-  struct gkyl_comm_conn *block_conn[] = {conn_0, conn_1, conn_2};
+  struct gkyl_comm_conn *block_conn[] = { conn_0, conn_1, conn_2 };
 
   for (int bid = 0; bid < num_blocks; ++bid) {
     for (int brank = 0; brank < num_cuts[bid]; ++brank) {
@@ -294,12 +281,12 @@ test_multib_comm_conn_L_domain_recv_c3_ho(void)
   // THIS IS ONLY A PARTIAL TEST: checks recv volume is correct and
   // total recvs are correct
 
-  struct gkyl_block_geom *geom = create_L_domain((int[]){3, 3});
+  struct gkyl_block_geom *geom = create_L_domain((int[]){ 3, 3 });
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
 
   int num_blocks = topo->num_blocks;
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   int elo[2], eup[2];
   for (int d = 0; d < 2; ++d)
@@ -347,12 +334,12 @@ test_multib_comm_conn_L_domain_recv_c3_ho(void)
 static void
 test_L_domain_sync_c3(void)
 {
-  struct gkyl_block_geom *geom = create_L_domain((int[]){3, 3});
+  struct gkyl_block_geom *geom = create_L_domain((int[]){ 3, 3 });
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
 
   int num_blocks = topo->num_blocks;
   int num_cuts[num_blocks];
-  int nghost[] = {1, 1};
+  int nghost[] = { 1, 1 };
 
   int elo[2], eup[2];
   for (int d = 0; d < 2; ++d)
@@ -388,11 +375,9 @@ test_L_domain_sync_c3(void)
   gkyl_block_geom_release(geom);
 }
 
-TEST_LIST = {
-  {"test_multib_comm_conn_0_ho", test_multib_comm_conn_0_ho},
-  {"test_multib_comm_conn_L_domain_send_c1_ho", test_multib_comm_conn_L_domain_send_c1_ho},
-  {"test_multib_comm_conn_L_domain_send_c3_ho", test_multib_comm_conn_L_domain_send_c3_ho},
-  {"test_multib_comm_conn_L_domain_recv_c1_ho", test_multib_comm_conn_L_domain_recv_c1_ho},
-  {"test_multib_comm_conn_L_domain_recv_c3_ho", test_multib_comm_conn_L_domain_recv_c3_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_multib_comm_conn_0_ho", test_multib_comm_conn_0_ho },
+  { "test_multib_comm_conn_L_domain_send_c1_ho", test_multib_comm_conn_L_domain_send_c1_ho },
+  { "test_multib_comm_conn_L_domain_send_c3_ho", test_multib_comm_conn_L_domain_send_c3_ho },
+  { "test_multib_comm_conn_L_domain_recv_c1_ho", test_multib_comm_conn_L_domain_recv_c1_ho },
+  { "test_multib_comm_conn_L_domain_recv_c3_ho", test_multib_comm_conn_L_domain_recv_c3_ho },
+  { NULL, NULL } };

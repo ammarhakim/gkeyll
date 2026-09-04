@@ -54,10 +54,8 @@ fem_parproj_bias_src_enabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsi
           (idx1[bl->perp_dirs[0]] == bl_idx_m[0] && idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
           (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
             idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
-          int edge[2] = {
-            -1 + 2 * ((bl_idx_m[0] + 1) - idx1[bl->perp_dirs[0]]),
-            -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]),
-          };
+          int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx1[bl->perp_dirs[0]]),
+            -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
           up->kernels->bias_src_ker[keri](
             edge, bl->perp_dirs, bl->val, perpProbOff, up->globalidx, brhs_p);
         }
@@ -118,7 +116,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   gkyl_range_shorten_from_above(&perp_range, up->solve_range, up->pardir, 1);
 
   // 1D range of parallel cells.
-  int lower1d[] = {par_range.lower[up->pardir]}, upper1d[] = {par_range.upper[up->pardir]};
+  int lower1d[] = { par_range.lower[up->pardir] }, upper1d[] = { par_range.upper[up->pardir] };
   gkyl_range_init(&up->par_range1d, 1, lower1d, upper1d);
   // 2D range of perpendicular cells.
   gkyl_range_init(&up->perp_range2d, up->ndim == 3 ? 2 : 1, perp_range.lower, perp_range.upper);
@@ -182,10 +180,10 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
           }
         }
 
-        bool pick_lower[3] = {
-          true, true, true}; // If at a cell boundary, pick the cell lower than the biased line.
+        bool pick_lower[3] = { true, true,
+          true }; // If at a cell boundary, pick the cell lower than the biased line.
         int line_idx[GKYL_MAX_CDIM];
-        gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1, -1, -1}, line_idx);
+        gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){ -1, -1, -1 }, line_idx);
         bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
 
         if (!bl_in_solve_range[i]) {
@@ -202,7 +200,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
           if (on_upper_cell_boundary) {
             pick_lower[0] = pick_lower[1] = pick_lower[2] =
               false; // If at a cell boundary, pick the cell upper than the biased line.
-            gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1, -1, -1}, line_idx);
+            gkyl_rect_grid_find_cell(
+              grid, line_coords, pick_lower, (int[3]){ -1, -1, -1 }, line_idx);
             bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
           }
         }
@@ -248,7 +247,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   int nrhs;
   if (up->ndim == 1) {
     nrhs = 1;
-    gkyl_range_init(&prob_range, 1, &((int){1}), &((int){1}));
+    gkyl_range_init(&prob_range, 1, &((int){ 1 }), &((int){ 1 }));
   } else {
     if (has_weight_lhs || up->num_bias_line) {
       nrhs = 1;
@@ -256,7 +255,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
         &prob_range, up->perp_range2d.ndim, up->perp_range2d.lower, up->perp_range2d.upper);
     } else {
       nrhs = perp_range.volume;
-      gkyl_range_init(&prob_range, 1, &((int){1}), &((int){1}));
+      gkyl_range_init(&prob_range, 1, &((int){ 1 }), &((int){ 1 }));
     }
   }
 
@@ -346,10 +345,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
                 idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
               (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
                 idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
-              int edge[2] = {
-                -1 + 2 * ((bl_idx_m[0] + 1) - idx1[bl->perp_dirs[0]]),
-                -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]),
-              };
+              int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx1[bl->perp_dirs[0]]),
+                -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
               kernels_ho->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, tri[perpidx]);
             }
           }

@@ -107,14 +107,12 @@ struct gkyl_wv_eqn *
 gkyl_wv_ten_moment_new(double k0, bool use_grad_closure, bool use_nn_closure, int poly_order,
   struct gkyl_kann_net *ann, bool use_gpu)
 {
-  return gkyl_wv_ten_moment_inew(&(struct gkyl_wv_ten_moment_inp){
-    .k0 = k0,
+  return gkyl_wv_ten_moment_inew(&(struct gkyl_wv_ten_moment_inp){ .k0 = k0,
     .use_grad_closure = use_grad_closure,
     .use_nn_closure = use_nn_closure,
     .poly_order = poly_order,
     .ann = ann,
-    .use_gpu = use_gpu,
-  });
+    .use_gpu = use_gpu });
 }
 
 double

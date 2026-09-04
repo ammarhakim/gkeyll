@@ -79,26 +79,26 @@ gkyl_gk_geometry_new(
   // Store metadata for I/O.
   if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
     struct gkyl_msgpack_map_elem io_meta_basic[] = {
-      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
-      {.key = "geqdsk_sign_convention",
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+      { .key = "geqdsk_sign_convention",
         .elem_type = GKYL_MP_UNSIGNED_INT,
-        .uval = up->geqdsk_sign_convention},
-      {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
+        .uval = up->geqdsk_sign_convention },
+      { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain }
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
   } else if (up->geometry_id == GKYL_GEOMETRY_MIRROR) {
     struct gkyl_msgpack_map_elem io_meta_basic[] = {
-      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
-      {.key = "geqdsk_sign_convention",
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+      { .key = "geqdsk_sign_convention",
         .elem_type = GKYL_MP_UNSIGNED_INT,
-        .uval = up->geqdsk_sign_convention},
+        .uval = up->geqdsk_sign_convention }
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
   } else {
     struct gkyl_msgpack_map_elem io_meta_basic[] = {
-      {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id }
     };
     up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
     up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
@@ -126,11 +126,9 @@ gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
         "geqdsk_sign_convention", up->geqdsk_sign_convention);
     } else {
       // Element list doesn't have this key. Create a new list with it.
-      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
-        {.key = "geqdsk_sign_convention",
-          .elem_type = GKYL_MP_UNSIGNED_INT,
-          .uval = up->geqdsk_sign_convention},
-      };
+      struct gkyl_msgpack_map_elem io_meta_basic_new[] = { { .key = "geqdsk_sign_convention",
+        .elem_type = GKYL_MP_UNSIGNED_INT,
+        .uval = up->geqdsk_sign_convention } };
       int io_meta_basic_new_len = sizeof(io_meta_basic_new) / sizeof(io_meta_basic_new[0]);
 
       struct gkyl_msgpack_map_elem *io_meta_basic_buffer =
@@ -138,9 +136,9 @@ gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
       int io_meta_basic_buffer_len = up->io_meta_basic_len;
       gkyl_msgpack_map_elem_release(io_meta_basic_buffer_len, up->io_meta_basic);
 
-      int io_meta_basic_list_len[] = {io_meta_basic_new_len, io_meta_basic_buffer_len};
-      const struct gkyl_msgpack_map_elem *io_meta_basic_list[] = {
-        io_meta_basic_new, io_meta_basic_buffer};
+      int io_meta_basic_list_len[] = { io_meta_basic_new_len, io_meta_basic_buffer_len };
+      const struct gkyl_msgpack_map_elem *io_meta_basic_list[] = { io_meta_basic_new,
+        io_meta_basic_buffer };
       up->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_list_len) / sizeof(int),
         io_meta_basic_list_len, io_meta_basic_list, &up->io_meta_basic_len);
 
@@ -156,7 +154,7 @@ gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
     } else {
       // Element list doesn't have this key. Create a new list with it.
       struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
-        {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
+        { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain }
       };
       int io_meta_basic_new_len = sizeof(io_meta_basic_new) / sizeof(io_meta_basic_new[0]);
 
@@ -165,9 +163,9 @@ gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
       int io_meta_basic_buffer_len = up->io_meta_basic_len;
       gkyl_msgpack_map_elem_release(io_meta_basic_buffer_len, up->io_meta_basic);
 
-      int io_meta_basic_list_len[] = {io_meta_basic_new_len, io_meta_basic_buffer_len};
-      const struct gkyl_msgpack_map_elem *io_meta_basic_list[] = {
-        io_meta_basic_new, io_meta_basic_buffer};
+      int io_meta_basic_list_len[] = { io_meta_basic_new_len, io_meta_basic_buffer_len };
+      const struct gkyl_msgpack_map_elem *io_meta_basic_list[] = { io_meta_basic_new,
+        io_meta_basic_buffer };
       up->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_list_len) / sizeof(int),
         io_meta_basic_list_len, io_meta_basic_list, &up->io_meta_basic_len);
 
@@ -508,7 +506,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
   }
 
   // Now fill the arrays by deflation
-  int rem_dirs[3] = {0};
+  int rem_dirs[3] = { 0 };
   if (up->grid.ndim == 1) {
     rem_dirs[0] = 1;
     rem_dirs[1] = 1;
@@ -632,8 +630,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry *up_3d, struct gkyl_gk_geometr
   for (int dir = 0; dir < 3; dir++) {
     if (rem_dirs[dir] == 0) {
       struct gkyl_range local_ext_in_dir_3d;
-      int lower_3d[3] = {up_3d->local.lower[0], up_3d->local.lower[1], up_3d->local.lower[2]};
-      int upper_3d[3] = {up_3d->local.upper[0], up_3d->local.upper[1], up_3d->local.upper[2]};
+      int lower_3d[3] = { up_3d->local.lower[0], up_3d->local.lower[1], up_3d->local.lower[2] };
+      int upper_3d[3] = { up_3d->local.upper[0], up_3d->local.upper[1], up_3d->local.upper[2] };
       upper_3d[dir] += 1;
       gkyl_sub_range_init(&local_ext_in_dir_3d, &up_3d->local_ext, lower_3d, upper_3d);
 
@@ -730,25 +728,25 @@ gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp,
   char geqdsk_file_name[128];
   get_filename_from_path(efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
   struct gkyl_msgpack_map_elem io_meta_basic_rz[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
-    {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
-    {.key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep},
-    {.key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
-    {.key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},
-    {.key = "bcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->bcentr},
-    {.key = "current", .elem_type = GKYL_MP_DOUBLE, .dval = efit->current},
-    {.key = "rmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rmaxis},
-    {.key = "rcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
-    {.key = "rleft", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rleft},
-    {.key = "rdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rdim},
-    {.key = "zmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis},
-    {.key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
-    {.key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim},
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id },
+    { .key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name },
+    { .key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep },
+    { .key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry },
+    { .key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag },
+    { .key = "bcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->bcentr },
+    { .key = "current", .elem_type = GKYL_MP_DOUBLE, .dval = efit->current },
+    { .key = "rmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rmaxis },
+    { .key = "rcentr", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis },
+    { .key = "rleft", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rleft },
+    { .key = "rdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->rdim },
+    { .key = "zmaxis", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmaxis },
+    { .key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid },
+    { .key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim }
   };
   int io_meta_basic_rz_len = sizeof(io_meta_basic_rz) / sizeof(io_meta_basic_rz[0]);
-  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len};
-  const struct gkyl_msgpack_map_elem *io_meta_basic[] = {io_meta_basic_basic, io_meta_basic_rz};
+  int io_meta_basic_len[] = { io_meta_basic_basic_len, io_meta_basic_rz_len };
+  const struct gkyl_msgpack_map_elem *io_meta_basic[] = { io_meta_basic_basic, io_meta_basic_rz };
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(
     sizeof(io_meta_basic_len) / sizeof(int), io_meta_basic_len, io_meta_basic);
   gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);

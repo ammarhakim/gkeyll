@@ -138,7 +138,7 @@ evalFunc_rhs_dirichletx_2x(double t, const double *xn, double *restrict fout, vo
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
-  double bmn[] = {1.5, 1.5, -0.5};
+  double bmn[] = { 1.5, 1.5, -0.5 };
   fout[0] = 0.;
   for (int m = 1; m < 3; m++) {
     double b = bmn[m - 1];
@@ -157,7 +157,7 @@ evalFunc_sol_dirichletx_2x(double t, const double *xn, double *restrict fout, vo
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
-  double bmn[] = {1.5, 1.5, -0.5};
+  double bmn[] = { 1.5, 1.5, -0.5 };
   fout[0] = 0.;
   for (int m = 1; m < 3; m++) {
     double b = bmn[m - 1];
@@ -178,8 +178,8 @@ evalFunc_rhs_periodicx_2x(double t, const double *xn, double *restrict fout, voi
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
   double gxx = 1.0;
-  double amn[] = {-0.6, -2., 1.5};
-  double bmn[] = {1., 0.7, -0.3};
+  double amn[] = { -0.6, -2., 1.5 };
+  double bmn[] = { 1., 0.7, -0.3 };
   fout[0] = 0.;
   for (int m = 1; m < 3; m++) {
     double a = amn[m - 1];
@@ -197,8 +197,8 @@ evalFunc_sol_periodicx_2x(double t, const double *xn, double *restrict fout, voi
 {
   double x = xn[0], z = xn[1];
   // These values have to match those in the test below.
-  double amn[] = {-0.6, -2., 1.5};
-  double bmn[] = {1., 0.7, -0.3};
+  double amn[] = { -0.6, -2., 1.5 };
+  double bmn[] = { 1., 0.7, -0.3 };
   fout[0] = 0.;
   for (int m = 1; m < 3; m++) {
     double a = amn[m - 1];
@@ -215,7 +215,7 @@ evalFunc_sol_periodicx_2x(double t, const double *xn, double *restrict fout, voi
 double
 trig_func(double x, double y, bool laplacian)
 {
-  double amn[] = {0.0, -1., 0., -0.0};
+  double amn[] = { 0.0, -1., 0., -0.0 };
   double out = 0.;
   for (int m = 0; m < 4; m++) {
     double a = amn[m];
@@ -336,7 +336,7 @@ solve_fem_helmholtz_perp_2x(
   double epsilon_0 = 1.0;
   double kSq = ksquare(); // Helmholtz wave number squared.
 
-  double lower[] = {0.0, -M_PI}, upper[] = {1.0, M_PI};
+  double lower[] = { 0.0, -M_PI }, upper[] = { 1.0, M_PI };
   int dim = sizeof(lower) / sizeof(lower[0]);
   int dim_perp = dim - 1;
 
@@ -348,7 +348,7 @@ solve_fem_helmholtz_perp_2x(
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -482,7 +482,7 @@ test_fem_helmholtz_perp_2x(
   } else {
     // Default convergence check: run at baseline and 2x resolution, verify error ratio >= 3.5
     // (consistent with 2nd-order convergence: factor of 4 = 2^2).
-    int cells2[2] = {2 * cells[0], 2 * cells[1]};
+    int cells2[2] = { 2 * cells[0], 2 * cells[1] };
     double err_coarse = solve_fem_helmholtz_perp_2x(poly_order, cells, bcs, use_gpu, NULL);
     double err_fine = solve_fem_helmholtz_perp_2x(poly_order, cells2, bcs, use_gpu, NULL);
     double ratio = err_coarse / err_fine;
@@ -500,7 +500,7 @@ solve_fem_helmholtz_perp_3x(
   double epsilon_0 = 1.0;
   double kSq = ksquare(); // Helmholtz wave number squared.
 
-  double lower[] = {0.0, 0.0, -M_PI}, upper[] = {1.0, 1.0, M_PI};
+  double lower[] = { 0.0, 0.0, -M_PI }, upper[] = { 1.0, 1.0, M_PI };
   int dim = sizeof(lower) / sizeof(lower[0]);
   int dim_perp = dim - 1;
 
@@ -512,7 +512,7 @@ solve_fem_helmholtz_perp_3x(
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
@@ -673,7 +673,7 @@ test_fem_helmholtz_perp_3x(
       printf("L2 error = %.6e, relative L2 error = %.6e\n", err_L2, rel_err);
   } else {
     // Default convergence check: run at baseline and 2x resolution, verify error ratio >= 3.5
-    int cells2[3] = {2 * cells[0], 2 * cells[1], 2 * cells[2]};
+    int cells2[3] = { 2 * cells[0], 2 * cells[1], 2 * cells[2] };
     double err_coarse = solve_fem_helmholtz_perp_3x(poly_order, cells, bcs, use_gpu, NULL);
     double err_fine = solve_fem_helmholtz_perp_3x(poly_order, cells2, bcs, use_gpu, NULL);
     double ratio = err_coarse / err_fine;
@@ -810,23 +810,25 @@ test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev()
 
 TEST_LIST = {
   // 2x tests
-  {"test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho", test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho},
-  {"test_fem_poisson_perp_ksq_2x_p1_periodicx_ho", test_fem_poisson_perp_ksq_2x_p1_periodicx_ho},
+  { "test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho",
+    test_fem_poisson_perp_ksq_2x_p1_dirichletx_ho },
+  { "test_fem_poisson_perp_ksq_2x_p1_periodicx_ho", test_fem_poisson_perp_ksq_2x_p1_periodicx_ho },
 
   // 3x tests
-  {"test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho",
-    test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho},
-  {"test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho",
-    test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho},
+  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho",
+    test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_ho },
+  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho",
+    test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  {"test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev",
-    test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev},
-  {"test_fem_poisson_perp_ksq_2x_p1_periodicx_dev", test_fem_poisson_perp_ksq_2x_p1_periodicx_dev},
-  {"test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev",
-    test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev},
-  {"test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev",
-    test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev},
+  { "test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev",
+    test_fem_poisson_perp_ksq_2x_p1_dirichletx_dev },
+  { "test_fem_poisson_perp_ksq_2x_p1_periodicx_dev",
+    test_fem_poisson_perp_ksq_2x_p1_periodicx_dev },
+  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev",
+    test_fem_poisson_perp_ksq_3x_p1_dirichletx_dirichlety_dev },
+  { "test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev",
+    test_fem_poisson_perp_ksq_3x_p1_dirichletx_periodicy_dev },
 #endif
-  {NULL, NULL},
+  { NULL, NULL }
 };

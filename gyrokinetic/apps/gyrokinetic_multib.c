@@ -588,15 +588,15 @@ and the maximum number of cuts in a block is %d\n\n",
   const char *build_id = GIT_COMMIT_ID;
   const char *build_date = GKYL_BUILD_DATE;
   struct gkyl_msgpack_map_elem io_meta_default[] = {
-    {.key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id},
-    {.key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date},
-    {.key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1},
-    {.key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo},
+    { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
+    { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
+    { .key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1 },
+    { .key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo }
   };
-  const struct gkyl_msgpack_map_elem *io_meta_union[] = {
-    io_meta_default, mbinp->metadata.attributes};
-  int io_meta_union_len[] = {
-    sizeof(io_meta_default) / sizeof(io_meta_default[0]), mbinp->metadata.num_attributes};
+  const struct gkyl_msgpack_map_elem *io_meta_union[] = { io_meta_default,
+    mbinp->metadata.attributes };
+  int io_meta_union_len[] = { sizeof(io_meta_default) / sizeof(io_meta_default[0]),
+    mbinp->metadata.num_attributes };
 
   mbapp->io_meta_basic =
     gkyl_msgpack_map_elem_union(sizeof(io_meta_union) / sizeof(io_meta_union[0]), io_meta_union_len,
@@ -655,7 +655,7 @@ and the maximum number of cuts in a block is %d\n\n",
   mbapp->bmag_ref = (bmag_max_global + bmag_min_global) / 2.0;
 
   // Create connections needed for conf-space syncs.
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   mbapp->mbcc_sync_conf = gkyl_malloc(sizeof(struct gkyl_mbcc_sr));
   mbapp->mbcc_sync_conf->send =
     gkyl_malloc(mbapp->num_local_blocks * sizeof(struct gkyl_multib_comm_conn *));
@@ -2031,9 +2031,10 @@ gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app *app)
     struct timespec wtm = gkyl_wall_clock();
     if (app->is_first_dt_write_call) {
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
-        {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size."}};
-      int io_meta_len[] = {app->io_meta_basic_len, 1};
-      const struct gkyl_msgpack_map_elem *io_meta[] = {app->io_meta_basic, io_meta_phi};
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size." }
+      };
+      int io_meta_len[] = { app->io_meta_basic_len, 1 };
+      const struct gkyl_msgpack_map_elem *io_meta[] = { app->io_meta_basic, io_meta_phi };
       struct gkyl_msgpack_data *mt =
         gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 

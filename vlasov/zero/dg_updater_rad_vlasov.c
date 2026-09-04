@@ -25,11 +25,11 @@ gkyl_dg_updater_rad_vlasov_new(const struct gkyl_rect_grid *phase_grid,
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
   int vdim = pdim - cdim;
   int num_up_dirs = vdim;
-  int up_dirs[GKYL_MAX_DIM] = {0};
+  int up_dirs[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < vdim; ++d)
     up_dirs[d] = d + phase_basis->ndim - vdim;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = {0};
+  int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
   for (int d = cdim; d < pdim; ++d)
     zero_flux_flags[d] = 1;
 
@@ -54,7 +54,7 @@ gkyl_dg_updater_rad_vlasov_advance(struct gkyl_dg_updater_rad_vlasov *rad,
 struct gkyl_dg_updater_rad_vlasov_tm
 gkyl_dg_updater_rad_vlasov_get_tm(const gkyl_dg_updater_rad_vlasov *rad)
 {
-  return (struct gkyl_dg_updater_rad_vlasov_tm){.drag_tm = rad->drag_tm};
+  return (struct gkyl_dg_updater_rad_vlasov_tm){ .drag_tm = rad->drag_tm };
 }
 
 void

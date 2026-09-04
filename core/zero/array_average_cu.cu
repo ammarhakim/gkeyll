@@ -52,8 +52,8 @@ __global__ void
 gkyl_array_average_advance_cu_ker(
   const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
-  int idx[GKYL_MAX_DIM] = {0};
-  int idx_avg[GKYL_MAX_DIM] = {0};
+  int idx[GKYL_MAX_DIM] = { 0 };
+  int idx_avg[GKYL_MAX_DIM] = { 0 };
 
   for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < up->local.volume;
        tid += blockDim.x * gridDim.x) {

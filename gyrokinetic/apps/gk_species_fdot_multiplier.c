@@ -17,19 +17,19 @@ gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app *app, struct gk_sp
   struct timespec wst = gkyl_wall_clock();
   // DG metadata for multiplier.
   struct gkyl_msgpack_map_elem mpe_mult[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
-    {.key = "Description",
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description",
       .elem_type = GKYL_MP_STRING,
-      .cval = "Function multiplying the distribution time derivative."},
-    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame},
+      .cval = "Function multiplying the distribution time derivative." },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame }
   };
   int mpe_mult_len = sizeof(mpe_mult) / sizeof(mpe_mult[0]);
   // Package metadata.
-  int io_meta_len[] = {gks->io_meta_basic_len, mpe_mult_len, app->gk_geom->io_meta_basic_len};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_basic, mpe_mult, app->gk_geom->io_meta_basic};
+  int io_meta_len[] = { gks->io_meta_basic_len, mpe_mult_len, app->gk_geom->io_meta_basic_len };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic, mpe_mult,
+    app->gk_geom->io_meta_basic };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -298,16 +298,15 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
       fdmul->buffer = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
       struct gkyl_array *buffer_ho = mkarr(false, basis_mult.num_basis, gks->local_ext.volume);
 
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-        .grid = &gks->grid,
-        .basis = &basis_mult,
-        .num_quad = basis_mult.poly_order + 1,
-        .num_ret_vals = 1,
-        .eval = fdot_mult_inp->profile,
-        .ctx = fdot_mult_inp->profile_ctx,
-        .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
-      });
+      gkyl_proj_on_basis *projup =
+        gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &gks->grid,
+          .basis = &basis_mult,
+          .num_quad = basis_mult.poly_order + 1,
+          .num_ret_vals = 1,
+          .eval = fdot_mult_inp->profile,
+          .ctx = fdot_mult_inp->profile_ctx,
+          .c2p_func = proj_on_basis_c2p_phase_func,
+          .c2p_func_ctx = &fdmul->proj_on_basis_c2p_ctx });
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, buffer_ho);
       gkyl_proj_on_basis_release(projup);
 
@@ -366,8 +365,7 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
         fdmul->phi_m_global = gkyl_malloc(sizeof(double));
       }
 
-      struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
-        .phase_grid = &gks->grid,
+      struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = { .phase_grid = &gks->grid,
         .conf_basis = &app->basis,
         .phase_basis = &gks->basis,
         .conf_range = &app->local,
@@ -384,8 +382,7 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
         .cellwise_trap_loss = cellwise_const,
         .c2p_pos_func = proj_on_basis_c2p_position_func,
         .c2p_pos_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
-        .use_gpu = app->use_gpu,
-      };
+        .use_gpu = app->use_gpu };
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
       fdmul->advance_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
@@ -456,16 +453,14 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
           break;
         }
 
-        struct gkyl_dg_array_mask_inp cfl_mask_inp = {
-          .type = mask_type,
+        struct gkyl_dg_array_mask_inp cfl_mask_inp = { .type = mask_type,
           .threshold = fdmul->f_threshold,
           .phase_rng = &gks->local,
           .phase_rng_ext = &gks->local_ext,
           .conf_rng = &app->local,
           .conf_rng_ext = &app->local_ext,
           .vel_rng = &gks->local_vel,
-          .use_gpu = app->use_gpu,
-        };
+          .use_gpu = app->use_gpu };
         fdmul->cfl_mask = gkyl_dg_array_mask_new(cfl_mask_inp);
       }
     }

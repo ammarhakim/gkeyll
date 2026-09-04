@@ -164,17 +164,17 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   if (sp->scheme_type == GKYL_MOMENT_WAVE_PROP) {
     // create updaters for each directional update
     for (int d = 0; d < ndim; ++d)
-      sp->slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){.grid = &app->grid,
+      sp->slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &app->grid,
         .equation = mom_sp->equation,
         .split_type = split_type,
         .limiter = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .force_low_order_flux = mom_sp->force_low_order_flux,
         .check_inv_domain = true,
-        .update_dirs = {d},
+        .update_dirs = { d },
         .cfl = app->cfl,
         .geom = app->geom,
-        .comm = app->comm});
+        .comm = app->comm });
 
     sp->fdup = mkarr(false, meqn, app->local_ext.volume);
     // allocate arrays
@@ -185,7 +185,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->fcurr = sp->f[0];
   } else if (sp->scheme_type == GKYL_MOMENT_MP || sp->scheme_type == GKYL_MOMENT_KEP) {
     // determine directions to update
-    int num_up_dirs = 0, update_dirs[GKYL_MAX_CDIM] = {0};
+    int num_up_dirs = 0, update_dirs[GKYL_MAX_CDIM] = { 0 };
     for (int d = 0; d < ndim; ++d)
       if (!app->is_dir_skipped[d]) {
         update_dirs[num_up_dirs] = d;
@@ -194,27 +194,23 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
     if (sp->scheme_type == GKYL_MOMENT_MP)
       // single MP updater updates all directions
-      sp->mp_slvr = gkyl_mp_scheme_new(&(struct gkyl_mp_scheme_inp){
-        .grid = &app->grid,
+      sp->mp_slvr = gkyl_mp_scheme_new(&(struct gkyl_mp_scheme_inp){ .grid = &app->grid,
         .equation = mom_sp->equation,
         .mp_recon = app->mp_recon,
         .skip_mp_limiter = mom->skip_mp_limiter,
         .num_up_dirs = num_up_dirs,
-        .update_dirs = {update_dirs[0], update_dirs[1], update_dirs[2]},
+        .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] },
         .cfl = app->cfl,
-        .geom = app->geom,
-      });
+        .geom = app->geom });
     else
       // single KEP updater updates all directions
-      sp->kep_slvr = gkyl_kep_scheme_new(&(struct gkyl_kep_scheme_inp){
-        .grid = &app->grid,
+      sp->kep_slvr = gkyl_kep_scheme_new(&(struct gkyl_kep_scheme_inp){ .grid = &app->grid,
         .equation = mom_sp->equation,
         .use_hybrid_flux = app->use_hybrid_flux_kep,
         .num_up_dirs = num_up_dirs,
-        .update_dirs = {update_dirs[0], update_dirs[1], update_dirs[2]},
+        .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] },
         .cfl = app->cfl,
-        .geom = app->geom,
-      });
+        .geom = app->geom });
 
     // allocate arrays
     sp->f0 = mkarr(false, meqn, app->local_ext.volume);
@@ -228,7 +224,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
 
   // determine which directions are not periodic
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = { 1, 1, 1 };
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np[app->periodic_dirs[d]] = 0;
 
@@ -237,7 +233,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->upper_bc[i] = 0;
   }
 
-  int nghost[3] = {2, 2, 2};
+  int nghost[3] = { 2, 2, 2 };
   for (int dir = 0; dir < app->ndim; ++dir) {
     if (is_np[dir]) {
       const enum gkyl_species_bc_type *bc;
@@ -396,7 +392,7 @@ moment_species_apply_bc(
 {
   struct timespec wst = gkyl_wall_clock();
 
-  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = { 1, 1, 1 };
 
   for (int d = 0; d < num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
@@ -458,7 +454,7 @@ moment_species_update(gkyl_moment_app *app, struct moment_species *sp, double tc
     max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
 
     if (!stat.success)
-      return (struct gkyl_update_status){.success = false, .dt_suggested = stat.dt_suggested};
+      return (struct gkyl_update_status){ .success = false, .dt_suggested = stat.dt_suggested };
 
     dt_suggested = fmin(dt_suggested, stat.dt_suggested);
     moment_species_apply_bc(app, tcurr, sp, sp->f[d + 1]);
@@ -475,7 +471,7 @@ moment_species_update(gkyl_moment_app *app, struct moment_species *sp, double tc
     // gkyl_mhd_src_set_glm_ch(app->mhd_source.slvr, max_speed);
   }
 
-  return (struct gkyl_update_status){.success = true, .dt_suggested = dt_suggested};
+  return (struct gkyl_update_status){ .success = true, .dt_suggested = dt_suggested };
 }
 
 // Compute RHS of moment equations
@@ -565,13 +561,11 @@ mhd_src_init(
     dxyz_min = dx < dxyz_min ? dx : dxyz_min;
   }
 
-  struct gkyl_mhd_src_inp src_inp = {
-    .grid = &app->grid,
+  struct gkyl_mhd_src_inp src_inp = { .grid = &app->grid,
     .divergence_constraint = gkyl_wv_mhd_divergence_constraint(sp->equation),
     .glm_ch = gkyl_wv_mhd_glm_ch(sp->equation),
     .glm_alpha = gkyl_wv_mhd_glm_ch(sp->equation),
-    .dxyz_min = dxyz_min,
-  };
+    .dxyz_min = dxyz_min };
 
   src->slvr = gkyl_mhd_src_new(src_inp, &app->local_ext);
 }
@@ -581,7 +575,7 @@ mhd_src_init(
 void
 mhd_src_update(gkyl_moment_app *app, struct mhd_src *src, int nstrang, double tcurr, double dt)
 {
-  int sidx[] = {0, app->ndim};
+  int sidx[] = { 0, app->ndim };
   int i = 0; // mhd has only one 'species'
   struct gkyl_array *fluid = app->species[i].f[sidx[nstrang]];
 

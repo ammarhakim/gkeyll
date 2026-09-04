@@ -3,10 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 
-enum gkyl_tensor_index_loc {
-  GKYL_TENSOR_INDEX_LOWER,
-  GKYL_TENSOR_INDEX_UPPER,
-};
+enum gkyl_tensor_index_loc { GKYL_TENSOR_INDEX_LOWER, GKYL_TENSOR_INDEX_UPPER };
 
 struct gkyl_tensor_field {
   size_t ndim, rank; // dimension and rank of tensor

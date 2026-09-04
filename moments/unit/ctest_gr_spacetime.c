@@ -1952,12 +1952,9 @@ test_gr_spacetime_brill_lindquist_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-TEST_LIST = {
-  {"gr_spacetime_minkowski_ho", test_gr_spacetime_minkowski_ho},
-  {"gr_spacetime_schwarzschild_ho", test_gr_spacetime_schwarzschild_ho},
-  {"gr_spacetime_kerr_ho", test_gr_spacetime_kerr_ho},
-  {"gr_spacetime_neutronstar_static_ho", test_gr_spacetime_neutronstar_static_ho},
-  {"gr_spacetime_neutronstar_spinning_ho", test_gr_spacetime_neutronstar_spinning_ho},
-  {"gr_spacetime_brill_lindquist_ho", test_gr_spacetime_brill_lindquist_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "gr_spacetime_minkowski_ho", test_gr_spacetime_minkowski_ho },
+  { "gr_spacetime_schwarzschild_ho", test_gr_spacetime_schwarzschild_ho },
+  { "gr_spacetime_kerr_ho", test_gr_spacetime_kerr_ho },
+  { "gr_spacetime_neutronstar_static_ho", test_gr_spacetime_neutronstar_static_ho },
+  { "gr_spacetime_neutronstar_spinning_ho", test_gr_spacetime_neutronstar_spinning_ho },
+  { "gr_spacetime_brill_lindquist_ho", test_gr_spacetime_brill_lindquist_ho }, { NULL, NULL } };

@@ -13,7 +13,7 @@ enum gkyl_embed_type {
   GKYL_EMBED_REFLECT,
   GKYL_EMBED_COPY_B,
   GKYL_EMBED_PEC,
-  GKYL_EMBED_FUNC,
+  GKYL_EMBED_FUNC
 };
 
 // Object type

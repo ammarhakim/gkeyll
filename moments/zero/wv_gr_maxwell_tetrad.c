@@ -597,16 +597,15 @@ gkyl_wv_gr_maxwell_tetrad_new(double light_speed, double e_fact, double b_fact,
   enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
   bool use_gpu)
 {
-  return gkyl_wv_gr_maxwell_tetrad_inew(&(struct gkyl_wv_gr_maxwell_tetrad_inp){
-    .light_speed = light_speed,
-    .e_fact = e_fact,
-    .b_fact = b_fact,
-    .spacetime_gauge = spacetime_gauge,
-    .reinit_freq = reinit_freq,
-    .spacetime = spacetime,
-    .rp_type = WV_GR_MAXWELL_TETRAD_RP_ROE,
-    .use_gpu = use_gpu,
-  });
+  return gkyl_wv_gr_maxwell_tetrad_inew(
+    &(struct gkyl_wv_gr_maxwell_tetrad_inp){ .light_speed = light_speed,
+      .e_fact = e_fact,
+      .b_fact = b_fact,
+      .spacetime_gauge = spacetime_gauge,
+      .reinit_freq = reinit_freq,
+      .spacetime = spacetime,
+      .rp_type = WV_GR_MAXWELL_TETRAD_RP_ROE,
+      .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

@@ -64,7 +64,7 @@ vlasov_array_meta_release(struct gkyl_msgpack_data *mt)
 struct vlasov_output_meta
 vlasov_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
-  struct vlasov_output_meta meta = {.frame = 0, .stime = 0.0};
+  struct vlasov_output_meta meta = { .frame = 0, .stime = 0.0 };
 
   if (mt->meta_sz > 0) {
     mpack_tree_t tree;
@@ -181,15 +181,15 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   gkyl_rect_grid_init(&app->grid, cdim, vm->lower, vm->upper, vm->cells);
 
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
 
   if (vm->parallelism.comm == 0) {
-    int cuts[3] = {1, 1, 1};
+    int cuts[3] = { 1, 1, 1 };
     app->decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
 
     app->comm = gkyl_null_comm_inew(
-      &(struct gkyl_null_comm_inp){.decomp = app->decomp, .use_gpu = app->use_gpu});
+      &(struct gkyl_null_comm_inp){ .decomp = app->decomp, .use_gpu = app->use_gpu });
 
     // Global and local ranges are same, and so just copy them.
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
@@ -349,11 +349,9 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   }
 
   // initialize stat object
-  app->stat = (struct gkyl_vlasov_stat){
-    .use_gpu = app->use_gpu,
-    .stage_2_dt_diff = {DBL_MAX, 0.0},
-    .stage_3_dt_diff = {DBL_MAX, 0.0},
-  };
+  app->stat = (struct gkyl_vlasov_stat){ .use_gpu = app->use_gpu,
+    .stage_2_dt_diff = { DBL_MAX, 0.0 },
+    .stage_3_dt_diff = { DBL_MAX, 0.0 } };
 
   return app;
 }
@@ -616,7 +614,7 @@ void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app *app, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
 
   const char *fmt = "%s-field_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, frame);
@@ -686,7 +684,7 @@ void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app *app, int sidx, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id });
 
   struct vm_species *vm_s = &app->species[sidx];
 
@@ -730,7 +728,7 @@ void
 gkyl_vlasov_app_write_species_lte(gkyl_vlasov_app *app, int sidx, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->basis.id });
 
   struct vm_species *vm_s = &app->species[sidx];
 
@@ -766,7 +764,7 @@ void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
 
   for (int i = 0; i < app->num_species; ++i) {
     struct vm_species *vm_s = &app->species[i];
@@ -1032,10 +1030,10 @@ comm_reduce_app_stat(
   global->use_gpu = local->use_gpu;
 
   enum { NUP, NFEULER, NSTAGE_2_FAIL, NSTAGE_3_FAIL, L_END };
-  int64_t l_red[] = {[NUP] = local->nup,
+  int64_t l_red[] = { [NUP] = local->nup,
     [NFEULER] = local->nfeuler,
     [NSTAGE_2_FAIL] = local->nstage_2_fail,
-    [NSTAGE_3_FAIL] = local->nstage_3_fail};
+    [NSTAGE_3_FAIL] = local->nstage_3_fail };
 
   int64_t l_red_global[L_END];
   gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
@@ -1085,7 +1083,7 @@ comm_reduce_app_stat(
     D_END
   };
 
-  double d_red[D_END] = {[TOTAL_TM] = local->total_tm,
+  double d_red[D_END] = { [TOTAL_TM] = local->total_tm,
     [RK3_TM] = local->rk3_tm,
     [FL_EM_TM] = local->fl_em_tm,
     [INIT_SPECIES_TM] = local->init_species_tm,
@@ -1107,7 +1105,7 @@ comm_reduce_app_stat(
     [IO_TM] = local->io_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
     [FLUID_SPECIES_BC_TM] = local->fluid_species_bc_tm,
-    [FIELD_BC_TM] = local->field_bc_tm};
+    [FIELD_BC_TM] = local->field_bc_tm };
 
   double d_red_global[D_END];
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
@@ -1261,7 +1259,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app *app)
 static struct gkyl_app_restart_status
 header_from_file(gkyl_vlasov_app *app, const char *fname)
 {
-  struct gkyl_app_restart_status rstat = {.io_status = 0};
+  struct gkyl_app_restart_status rstat = { .io_status = 0 };
 
   FILE *fp = 0;
   with_file(fp, fname, "r")
@@ -1276,7 +1274,7 @@ header_from_file(gkyl_vlasov_app *app, const char *fname)
     }
 
     struct vlasov_output_meta meta = vlasov_meta_from_mpack(
-      &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size});
+      &(struct gkyl_msgpack_data){ .meta = hdr.meta, .meta_sz = hdr.meta_size });
 
     rstat.frame = meta.frame;
     rstat.stime = meta.stime;
@@ -1292,7 +1290,8 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
 {
   if (app->has_field != 1)
     return (struct gkyl_app_restart_status){
-      .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0};
+      .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0
+    };
 
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 

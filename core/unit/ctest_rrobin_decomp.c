@@ -5,7 +5,7 @@
 static void
 test_rrobin_decomp_1_ho(void)
 {
-  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(1, 3, (int[]){1, 1, 1});
+  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(1, 3, (int[]){ 1, 1, 1 });
 
   TEST_CHECK(1 == rr->total_ranks);
   TEST_CHECK(3 == rr->nblocks);
@@ -28,7 +28,7 @@ test_rrobin_decomp_1_ho(void)
 static void
 test_rrobin_decomp_2_ho(void)
 {
-  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(4, 3, (int[]){4, 1, 1});
+  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(4, 3, (int[]){ 4, 1, 1 });
 
   TEST_CHECK(4 == rr->total_ranks);
   TEST_CHECK(3 == rr->nblocks);
@@ -54,7 +54,7 @@ test_rrobin_decomp_2_ho(void)
 static void
 test_rrobin_decomp_3_ho(void)
 {
-  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3, (int[]){4, 1, 1});
+  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3, (int[]){ 4, 1, 1 });
 
   TEST_CHECK(6 == rr->total_ranks);
   TEST_CHECK(3 == rr->nblocks);
@@ -80,7 +80,7 @@ test_rrobin_decomp_3_ho(void)
 static void
 test_rrobin_decomp_4_ho(void)
 {
-  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3, (int[]){4, 2, 3});
+  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3, (int[]){ 4, 2, 3 });
 
   TEST_CHECK(6 == rr->total_ranks);
   TEST_CHECK(3 == rr->nblocks);
@@ -109,7 +109,7 @@ test_rrobin_decomp_4_ho(void)
 static void
 test_rrobin_decomp_5_ho(void)
 {
-  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(9, 3, (int[]){4, 2, 3});
+  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(9, 3, (int[]){ 4, 2, 3 });
 
   TEST_CHECK(9 == rr->total_ranks);
   TEST_CHECK(3 == rr->nblocks);
@@ -138,7 +138,7 @@ test_rrobin_decomp_5_ho(void)
 static void
 test_rrobin_decomp_6_ho(void)
 {
-  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3, (int[]){2, 4, 3});
+  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3, (int[]){ 2, 4, 3 });
 
   TEST_CHECK(6 == rr->total_ranks);
   TEST_CHECK(3 == rr->nblocks);
@@ -170,7 +170,7 @@ test_rrobin_decomp_7_ho(void)
   // this is a rather strange decomposition: only 2 ranks while the
   // largest block needs 4 ranks for full concurrency
 
-  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(2, 3, (int[]){2, 4, 3});
+  const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(2, 3, (int[]){ 2, 4, 3 });
 
   TEST_CHECK(2 == rr->total_ranks);
   TEST_CHECK(3 == rr->nblocks);
@@ -196,13 +196,10 @@ test_rrobin_decomp_7_ho(void)
   gkyl_rrobin_decomp_release(rr);
 }
 
-TEST_LIST = {
-  {"test_rrobin_decomp_1_ho", test_rrobin_decomp_1_ho},
-  {"test_rrobin_decomp_2_ho", test_rrobin_decomp_2_ho},
-  {"test_rrobin_decomp_3_ho", test_rrobin_decomp_3_ho},
-  {"test_rrobin_decomp_4_ho", test_rrobin_decomp_4_ho},
-  {"test_rrobin_decomp_5_ho", test_rrobin_decomp_5_ho},
-  {"test_rrobin_decomp_6_ho", test_rrobin_decomp_6_ho},
-  {"test_rrobin_decomp_7_ho", test_rrobin_decomp_7_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_rrobin_decomp_1_ho", test_rrobin_decomp_1_ho },
+  { "test_rrobin_decomp_2_ho", test_rrobin_decomp_2_ho },
+  { "test_rrobin_decomp_3_ho", test_rrobin_decomp_3_ho },
+  { "test_rrobin_decomp_4_ho", test_rrobin_decomp_4_ho },
+  { "test_rrobin_decomp_5_ho", test_rrobin_decomp_5_ho },
+  { "test_rrobin_decomp_6_ho", test_rrobin_decomp_6_ho },
+  { "test_rrobin_decomp_7_ho", test_rrobin_decomp_7_ho }, { NULL, NULL } };

@@ -38,9 +38,9 @@ gkyl_deflated_dg_bin_ops_new(struct gkyl_rect_grid grid, struct gkyl_basis *basi
   gkyl_range_init_from_shape(&up->nrange, up->cdim, nodes);
 
   // Create deflated 1d/2d grid, ranges, basis, and nodal range
-  double deflated_lower[GKYL_MAX_DIM] = {0.0};
-  double deflated_upper[GKYL_MAX_DIM] = {0.0};
-  int deflated_cells[GKYL_MAX_DIM] = {0};
+  double deflated_lower[GKYL_MAX_DIM] = { 0.0 };
+  double deflated_upper[GKYL_MAX_DIM] = { 0.0 };
+  int deflated_cells[GKYL_MAX_DIM] = { 0 };
   for (int i = 0; i < up->cdim - 1; i++) {
     deflated_lower[i] = up->grid.lower[i];
     deflated_upper[i] = up->grid.upper[i];
@@ -49,7 +49,7 @@ gkyl_deflated_dg_bin_ops_new(struct gkyl_rect_grid grid, struct gkyl_basis *basi
 
   gkyl_rect_grid_init(
     &up->deflated_grid, up->cdim - 1, deflated_lower, deflated_upper, deflated_cells);
-  int deflated_nghost[GKYL_MAX_CDIM] = {1};
+  int deflated_nghost[GKYL_MAX_CDIM] = { 1 };
   gkyl_create_grid_ranges(
     &up->deflated_grid, deflated_nghost, &up->deflated_local_ext, &up->deflated_local);
   gkyl_cart_modal_serendip(&up->deflated_basis, up->cdim - 1, poly_order);

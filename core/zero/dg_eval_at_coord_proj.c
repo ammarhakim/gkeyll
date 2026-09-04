@@ -85,7 +85,7 @@ gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up, const 
     eval_coords_log[i] = GKYL_MAX2(-1.0, GKYL_MIN2(eval_coords_log[i], 1.0));
   }
 
-  int idx_do[GKYL_MAX_DIM] = {0};
+  int idx_do[GKYL_MAX_DIM] = { 0 };
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, rng_tar);

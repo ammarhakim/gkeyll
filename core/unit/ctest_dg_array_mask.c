@@ -26,15 +26,15 @@ mkarr(bool use_gpu, long nc, long size)
 void
 test_mask_new(bool use_gpu)
 {
-  int shape[] = {10, 20};
+  int shape[] = { 10, 20 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
 
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = 1e-10,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -63,7 +63,7 @@ test_mask_new(bool use_gpu)
 void
 test_mask_none_type(bool use_gpu)
 {
-  struct gkyl_dg_array_mask_inp mask_inp = {.use_gpu = use_gpu};
+  struct gkyl_dg_array_mask_inp mask_inp = { .use_gpu = use_gpu };
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   TEST_CHECK(mask->type == GKYL_DG_ARRAY_MASK_NONE);
@@ -77,16 +77,16 @@ test_mask_none_type(bool use_gpu)
 void
 test_mask_advance_threshold(bool use_gpu)
 {
-  int shape[] = {10};
+  int shape[] = { 10 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, shape);
 
   double threshold = 0.5;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -134,16 +134,16 @@ test_mask_advance_threshold(bool use_gpu)
 void
 test_mask_advance_all_below(bool use_gpu)
 {
-  int shape[] = {5, 5};
+  int shape[] = { 5, 5 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
 
   double threshold = 10.0;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -179,16 +179,16 @@ test_mask_advance_all_below(bool use_gpu)
 void
 test_mask_advance_all_above(bool use_gpu)
 {
-  int shape[] = {5, 5};
+  int shape[] = { 5, 5 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
 
   double threshold = 1e-15;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -224,23 +224,23 @@ test_mask_advance_all_above(bool use_gpu)
 void
 test_mask_advance_negative_values(bool use_gpu)
 {
-  int shape[] = {8};
+  int shape[] = { 8 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, shape);
 
   double threshold = 0.5;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   // Create test array with negative and positive values
   struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
-  double vals[] = {0.1, -0.1, 1.0, -1.0, 0.3, -0.3, 2.0, -2.0};
+  double vals[] = { 0.1, -0.1, 1.0, -1.0, 0.3, -0.3, 2.0, -2.0 };
   for (unsigned i = 0; i < range.volume; ++i) {
     double *arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = vals[i];
@@ -279,16 +279,16 @@ test_mask_advance_negative_values(bool use_gpu)
 void
 test_mask_advance_greater_than_threshold(bool use_gpu)
 {
-  int shape[] = {10};
+  int shape[] = { 10 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, shape);
 
   double threshold = 0.5;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_GREATER,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_GREATER,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -334,16 +334,16 @@ test_mask_advance_greater_than_threshold(bool use_gpu)
 void
 test_mask_advance_greater_than_all_above(bool use_gpu)
 {
-  int shape[] = {5, 5};
+  int shape[] = { 5, 5 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
 
   double threshold = 1e-15;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_GREATER,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_GREATER,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -379,16 +379,16 @@ test_mask_advance_greater_than_all_above(bool use_gpu)
 void
 test_mask_advance_greater_than_all_below(bool use_gpu)
 {
-  int shape[] = {5, 5};
+  int shape[] = { 5, 5 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
 
   double threshold = 10.0;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_GREATER,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_GREATER,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -424,23 +424,23 @@ test_mask_advance_greater_than_all_below(bool use_gpu)
 void
 test_mask_advance_greater_than_negative_values(bool use_gpu)
 {
-  int shape[] = {8};
+  int shape[] = { 8 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, shape);
 
   double threshold = 0.5;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_GREATER,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_GREATER,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   // Create test array with negative and positive values
   struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
-  double vals[] = {0.1, -0.1, 1.0, -1.0, 0.3, -0.3, 2.0, -2.0};
+  double vals[] = { 0.1, -0.1, 1.0, -1.0, 0.3, -0.3, 2.0, -2.0 };
   for (unsigned i = 0; i < range.volume; ++i) {
     double *arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = vals[i];
@@ -479,16 +479,16 @@ test_mask_advance_greater_than_negative_values(bool use_gpu)
 void
 test_mask_eval(bool use_gpu)
 {
-  int shape[] = {6};
+  int shape[] = { 6 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, shape);
 
   double threshold = 0.5;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -497,7 +497,7 @@ test_mask_eval(bool use_gpu)
   struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
   // Set up values so that mask will be: true, false, true, false, true, false
   double *arr_d;
-  double vals[] = {0.1, 1.0, 0.2, 2.0, 0.3, 5.0};
+  double vals[] = { 0.1, 1.0, 0.2, 2.0, 0.3, 5.0 };
   for (int i = 0; i < shape[0]; i++) {
     arr_d = gkyl_array_fetch(arr_ho, i);
     arr_d[0] = vals[i];
@@ -519,7 +519,7 @@ test_mask_eval(bool use_gpu)
   else
     mask_cond = gkyl_malloc(sizeof(bool));
 
-  bool mask_cond_ref[] = {true, false, true, false, true, false};
+  bool mask_cond_ref[] = { true, false, true, false, true, false };
   for (int i = 0; i < shape[0]; i++) {
     gkyl_dg_array_mask_eval_idx(mask, &i, mask_cond);
     if (use_gpu)
@@ -546,7 +546,7 @@ test_mask_eval(bool use_gpu)
 void
 test_mask_eval_none_type(bool use_gpu)
 {
-  struct gkyl_dg_array_mask_inp mask_inp = {.use_gpu = use_gpu};
+  struct gkyl_dg_array_mask_inp mask_inp = { .use_gpu = use_gpu };
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   // For NONE type, eval should always return false regardless of index
@@ -557,8 +557,8 @@ test_mask_eval_none_type(bool use_gpu)
   else
     mask_cond = gkyl_malloc(sizeof(bool));
 
-  bool mask_cond_ref[] = {false, false, false, false, false};
-  int idx[] = {0, 1, 2, 3, 100};
+  bool mask_cond_ref[] = { false, false, false, false, false };
+  int idx[] = { 0, 1, 2, 3, 100 };
   for (int i = 0; i < 5; i++) {
     gkyl_dg_array_mask_eval_idx(mask, &idx[i], mask_cond);
     if (use_gpu)
@@ -583,15 +583,15 @@ test_mask_eval_none_type(bool use_gpu)
 void
 test_mask_scale_by_cell(bool use_gpu)
 {
-  int shape[] = {5};
+  int shape[] = { 5 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, shape);
 
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = 0.5,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -655,15 +655,15 @@ test_mask_scale_by_cell(bool use_gpu)
 void
 test_mask_acquire_release(bool use_gpu)
 {
-  int shape[] = {3, 3};
+  int shape[] = { 3, 3 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 2, shape);
 
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = 1.0,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -681,16 +681,16 @@ void
 test_mask_threshold_scaling(bool use_gpu)
 {
   // Test 1D
-  int shape1d[] = {10};
+  int shape1d[] = { 10 };
   struct gkyl_range range1d;
   gkyl_range_init_from_shape(&range1d, 1, shape1d);
 
   double threshold = 1.0;
-  struct gkyl_dg_array_mask_inp mask_inp1d = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp1d = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &range1d,
     .conf_rng_ext = &range1d,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask1d = gkyl_dg_array_mask_new(mask_inp1d);
   double expected1d = threshold * sqrt(2.0);
@@ -698,15 +698,15 @@ test_mask_threshold_scaling(bool use_gpu)
   gkyl_dg_array_mask_release(mask1d);
 
   // Test 2D
-  int shape2d[] = {5, 5};
+  int shape2d[] = { 5, 5 };
   struct gkyl_range range2d;
   gkyl_range_init_from_shape(&range2d, 2, shape2d);
 
-  struct gkyl_dg_array_mask_inp mask_inp2d = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp2d = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &range2d,
     .conf_rng_ext = &range2d,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask2d = gkyl_dg_array_mask_new(mask_inp2d);
   double expected2d = threshold * pow(sqrt(2.0), 2);
@@ -714,15 +714,15 @@ test_mask_threshold_scaling(bool use_gpu)
   gkyl_dg_array_mask_release(mask2d);
 
   // Test 3D
-  int shape3d[] = {3, 3, 3};
+  int shape3d[] = { 3, 3, 3 };
   struct gkyl_range range3d;
   gkyl_range_init_from_shape(&range3d, 3, shape3d);
 
-  struct gkyl_dg_array_mask_inp mask_inp3d = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp3d = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &range3d,
     .conf_rng_ext = &range3d,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask3d = gkyl_dg_array_mask_new(mask_inp3d);
   double expected3d = threshold * pow(sqrt(2.0), 3);
@@ -734,16 +734,16 @@ test_mask_threshold_scaling(bool use_gpu)
 void
 test_mask_advance_frac_threshold(bool use_gpu)
 {
-  int shape[] = {10};
+  int shape[] = { 10 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, shape);
 
   double frac_threshold = 0.5; // 50% of max value
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS_FRAC,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS_FRAC,
     .threshold = frac_threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -788,23 +788,23 @@ test_mask_advance_frac_threshold(bool use_gpu)
 void
 test_mask_advance_frac_threshold_greater(bool use_gpu)
 {
-  int shape[] = {8};
+  int shape[] = { 8 };
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, shape);
 
   double frac_threshold = 0.3; // 30% of max value
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC,
     .threshold = frac_threshold,
     .conf_rng = &range,
     .conf_rng_ext = &range,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
   // Create test array with varying values
   struct gkyl_array *arr = mkarr(use_gpu, 1, range.volume);
   struct gkyl_array *arr_ho = mkarr(false, arr->ncomp, arr->size);
-  double vals[] = {1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0};
+  double vals[] = { 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0 };
   double max_val = 8.0;
   for (unsigned i = 0; i < range.volume; ++i) {
     double *arr_d = gkyl_array_fetch(arr_ho, i);
@@ -845,9 +845,9 @@ void
 test_mask_advance_frac_threshold_spatial(bool use_gpu)
 {
   // Set up 2x2 configuration space, 3x3 velocity space
-  int conf_shape[] = {2, 2};
-  int vel_shape[] = {3, 3};
-  int phase_shape[] = {2, 2, 3, 3};
+  int conf_shape[] = { 2, 2 };
+  int vel_shape[] = { 3, 3 };
+  int phase_shape[] = { 2, 2, 3, 3 };
 
   struct gkyl_range conf_rng, vel_rng, phase_rng;
   gkyl_range_init_from_shape(&conf_rng, 2, conf_shape);
@@ -855,14 +855,14 @@ test_mask_advance_frac_threshold_spatial(bool use_gpu)
   gkyl_range_init_from_shape(&phase_rng, 4, phase_shape);
 
   double frac_threshold = 0.5; // 50% of local max
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF,
     .threshold = frac_threshold,
     .phase_rng = &phase_rng,
     .phase_rng_ext = &phase_rng,
     .conf_rng = &conf_rng,
     .conf_rng_ext = &conf_rng,
     .vel_rng = &vel_rng,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -950,9 +950,9 @@ void
 test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
 {
   // Simpler test: 2 config cells, 4 velocity cells
-  int conf_shape[] = {2};
-  int vel_shape[] = {4};
-  int phase_shape[] = {2, 4};
+  int conf_shape[] = { 2 };
+  int vel_shape[] = { 4 };
+  int phase_shape[] = { 2, 4 };
 
   struct gkyl_range conf_rng, vel_rng, phase_rng;
   gkyl_range_init_from_shape(&conf_rng, 1, conf_shape);
@@ -960,14 +960,14 @@ test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
   gkyl_range_init_from_shape(&phase_rng, 2, phase_shape);
 
   double frac_threshold = 0.6; // 60% of local max
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF,
     .threshold = frac_threshold,
     .phase_rng = &phase_rng,
     .phase_rng_ext = &phase_rng,
     .conf_rng = &conf_rng,
     .conf_rng_ext = &conf_rng,
     .vel_rng = &vel_rng,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -978,7 +978,7 @@ test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
   for (int ic = 0; ic < 2; ic++) {
     double local_max = (ic + 1) * 10.0;
     for (int iv = 0; iv < 4; iv++) {
-      int pidx[2] = {ic, iv};
+      int pidx[2] = { ic, iv };
       long phase_idx = gkyl_range_idx(&phase_rng, pidx);
       double *arr_d = gkyl_array_fetch(arr_ho, phase_idx);
       // Values: 2.5, 5.0, 7.5, 10.0 for ic=0 and 5.0, 10.0, 15.0, 20.0 for ic=1
@@ -1004,7 +1004,7 @@ test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
     double expected_threshold = frac_threshold * local_max; // 6.0 and 12.0
 
     for (int iv = 0; iv < 4; iv++) {
-      int pidx[2] = {ic, iv};
+      int pidx[2] = { ic, iv };
       long phase_idx = gkyl_range_idx(&phase_rng, pidx);
 
       const double *mask_d = gkyl_array_cfetch(mask_ho, phase_idx);
@@ -1030,9 +1030,9 @@ test_mask_advance_frac_threshold_spatial_greater(bool use_gpu)
 void
 test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_cell)
 {
-  double lower[] = {0.0};
-  double upper[] = {8.0};
-  int cells[] = {ncell};
+  double lower[] = { 0.0 };
+  double upper[] = { 8.0 };
+  int cells[] = { ncell };
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   struct gkyl_rect_grid grid;
@@ -1047,11 +1047,11 @@ test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_cell)
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   double threshold = 0.5;
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS,
     .threshold = threshold,
     .conf_rng = &local,
     .conf_rng_ext = &local_ext,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -1121,9 +1121,9 @@ test_mask_advance_threshold_ext_range(bool use_gpu, int ncell, int nghost_cell)
 void
 test_mask_advance_frac_threshold_ext_range(bool use_gpu)
 {
-  double lower[] = {0.0};
-  double upper[] = {10.0};
-  int cells[] = {10};
+  double lower[] = { 0.0 };
+  double upper[] = { 10.0 };
+  int cells[] = { 10 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
   struct gkyl_rect_grid grid;
@@ -1138,11 +1138,11 @@ test_mask_advance_frac_threshold_ext_range(bool use_gpu)
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   double frac_threshold = 0.5; // 50% of max value
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS_FRAC,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS_FRAC,
     .threshold = frac_threshold,
     .conf_rng = &local,
     .conf_rng_ext = &local_ext,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -1228,9 +1228,9 @@ test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
   // Using gkyl_create_grid_ranges for both config and phase space
   // to ensure consistent indexing
 
-  double conf_lower[] = {0.0};
-  double conf_upper[] = {4.0};
-  int conf_cells[] = {4};
+  double conf_lower[] = { 0.0 };
+  double conf_upper[] = { 4.0 };
+  int conf_cells[] = { 4 };
   int conf_ndim = 1;
 
   struct gkyl_rect_grid conf_grid;
@@ -1245,9 +1245,9 @@ test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
   gkyl_create_grid_ranges(&conf_grid, conf_nghost, &conf_local_ext, &conf_local);
 
   // Velocity space using grid ranges as well for consistency
-  double vel_lower[] = {0.0};
-  double vel_upper[] = {4.0};
-  int vel_cells[] = {4};
+  double vel_lower[] = { 0.0 };
+  double vel_upper[] = { 4.0 };
+  int vel_cells[] = { 4 };
   int vel_ndim = 1;
 
   struct gkyl_rect_grid vel_grid;
@@ -1260,9 +1260,9 @@ test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
   gkyl_create_grid_ranges(&vel_grid, vel_nghost, &vel_local_ext, &vel_local);
 
   // Phase space = config x velocity, with ghost cells in config direction only
-  double phase_lower[] = {0.0, 0.0};
-  double phase_upper[] = {4.0, 4.0};
-  int phase_cells[] = {4, 4};
+  double phase_lower[] = { 0.0, 0.0 };
+  double phase_upper[] = { 4.0, 4.0 };
+  int phase_cells[] = { 4, 4 };
   int phase_ndim = 2;
 
   struct gkyl_rect_grid phase_grid;
@@ -1276,14 +1276,14 @@ test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
   gkyl_create_grid_ranges(&phase_grid, phase_nghost, &phase_local_ext, &phase_local);
 
   double frac_threshold = 0.5; // 50% of local max
-  struct gkyl_dg_array_mask_inp mask_inp = {.type = GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF,
+  struct gkyl_dg_array_mask_inp mask_inp = { .type = GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF,
     .threshold = frac_threshold,
     .phase_rng = &phase_local,
     .phase_rng_ext = &phase_local_ext,
     .conf_rng = &conf_local,
     .conf_rng_ext = &conf_local_ext,
     .vel_rng = &vel_local,
-    .use_gpu = use_gpu};
+    .use_gpu = use_gpu };
 
   struct gkyl_dg_array_mask *mask = gkyl_dg_array_mask_new(mask_inp);
 
@@ -1303,7 +1303,7 @@ test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
 
     gkyl_range_iter_init(&iter_vel, &vel_local);
     while (gkyl_range_iter_next(&iter_vel)) {
-      int pidx[2] = {iter_conf.idx[0], iter_vel.idx[0]};
+      int pidx[2] = { iter_conf.idx[0], iter_vel.idx[0] };
       long phase_idx = gkyl_range_idx(&phase_local_ext, pidx);
 
       int vel_pos = iter_vel.idx[0] - vel_local.lower[0];
@@ -1335,7 +1335,7 @@ test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
 
     gkyl_range_iter_init(&iter_vel, &vel_local);
     while (gkyl_range_iter_next(&iter_vel)) {
-      int pidx[2] = {iter_conf.idx[0], iter_vel.idx[0]};
+      int pidx[2] = { iter_conf.idx[0], iter_vel.idx[0] };
       long phase_idx = gkyl_range_idx(&phase_local_ext, pidx);
 
       const double *mask_d = gkyl_array_cfetch(mask_ho, phase_idx);
@@ -1361,7 +1361,7 @@ test_mask_advance_frac_threshold_spatial_ext_range(bool use_gpu)
 
       gkyl_range_iter_init(&iter_vel, &vel_local);
       while (gkyl_range_iter_next(&iter_vel)) {
-        int pidx[2] = {iter_conf.idx[0], iter_vel.idx[0]};
+        int pidx[2] = { iter_conf.idx[0], iter_vel.idx[0] };
         long phase_idx = gkyl_range_idx(&phase_local_ext, pidx);
 
         const double *arr_d = gkyl_array_cfetch(arr_ho, phase_idx);
@@ -1679,61 +1679,56 @@ test_mask_advance_frac_threshold_spatial_ext_range_dev()
 
 #endif
 
-TEST_LIST = {
-  {"mask_new_ho", test_mask_new_ho},
-  {"mask_none_type_ho", test_mask_none_type_ho},
-  {"mask_advance_threshold_ho", test_mask_advance_threshold_ho},
-  {"mask_advance_all_below_ho", test_mask_advance_all_below_ho},
-  {"mask_advance_all_above_ho", test_mask_advance_all_above_ho},
-  {"mask_advance_negative_values_ho", test_mask_advance_negative_values_ho},
-  {"mask_advance_greater_than_threshold_ho", test_mask_advance_greater_than_threshold_ho},
-  {"mask_advance_greater_than_all_above_ho", test_mask_advance_greater_than_all_above_ho},
-  {"mask_advance_greater_than_all_below_ho", test_mask_advance_greater_than_all_below_ho},
-  {"mask_advance_greater_than_neg_vals_ho", test_mask_advance_greater_than_negative_values_ho},
-  {"mask_eval_ho", test_mask_eval_ho},
-  {"mask_eval_none_type_ho", test_mask_eval_none_type_ho},
-  {"mask_scale_by_cell_ho", test_mask_scale_by_cell_ho},
-  {"mask_acquire_release_ho", test_mask_acquire_release_ho},
-  {"mask_threshold_scaling_ho", test_mask_threshold_scaling_ho},
-  {"mask_advance_frac_threshold_ho", test_mask_advance_frac_threshold_ho},
-  {"mask_advance_frac_threshold_greater_ho", test_mask_advance_frac_threshold_greater_ho},
-  {"mask_advance_frac_threshold_spatial_ho", test_mask_advance_frac_threshold_spatial_ho},
-  {"mask_advance_frac_threshold_spatial_greater_ho",
-    test_mask_advance_frac_threshold_spatial_greater_ho},
-  {"mask_advance_threshold_ext_range_1_ho", test_mask_advance_threshold_ext_range_1_ho},
-  {"mask_advance_threshold_ext_range_2_ho", test_mask_advance_threshold_ext_range_2_ho},
-  {"mask_advance_threshold_ext_range_3_ho", test_mask_advance_threshold_ext_range_3_ho},
-  {"mask_advance_threshold_ext_range_4_ho", test_mask_advance_threshold_ext_range_4_ho},
-  {"mask_advance_frac_threshold_ext_range_ho", test_mask_advance_frac_threshold_ext_range_ho},
-  {"mask_advance_frac_threshold_spatial_ext_range_ho",
-    test_mask_advance_frac_threshold_spatial_ext_range_ho},
+TEST_LIST = { { "mask_new_ho", test_mask_new_ho }, { "mask_none_type_ho", test_mask_none_type_ho },
+  { "mask_advance_threshold_ho", test_mask_advance_threshold_ho },
+  { "mask_advance_all_below_ho", test_mask_advance_all_below_ho },
+  { "mask_advance_all_above_ho", test_mask_advance_all_above_ho },
+  { "mask_advance_negative_values_ho", test_mask_advance_negative_values_ho },
+  { "mask_advance_greater_than_threshold_ho", test_mask_advance_greater_than_threshold_ho },
+  { "mask_advance_greater_than_all_above_ho", test_mask_advance_greater_than_all_above_ho },
+  { "mask_advance_greater_than_all_below_ho", test_mask_advance_greater_than_all_below_ho },
+  { "mask_advance_greater_than_neg_vals_ho", test_mask_advance_greater_than_negative_values_ho },
+  { "mask_eval_ho", test_mask_eval_ho }, { "mask_eval_none_type_ho", test_mask_eval_none_type_ho },
+  { "mask_scale_by_cell_ho", test_mask_scale_by_cell_ho },
+  { "mask_acquire_release_ho", test_mask_acquire_release_ho },
+  { "mask_threshold_scaling_ho", test_mask_threshold_scaling_ho },
+  { "mask_advance_frac_threshold_ho", test_mask_advance_frac_threshold_ho },
+  { "mask_advance_frac_threshold_greater_ho", test_mask_advance_frac_threshold_greater_ho },
+  { "mask_advance_frac_threshold_spatial_ho", test_mask_advance_frac_threshold_spatial_ho },
+  { "mask_advance_frac_threshold_spatial_greater_ho",
+    test_mask_advance_frac_threshold_spatial_greater_ho },
+  { "mask_advance_threshold_ext_range_1_ho", test_mask_advance_threshold_ext_range_1_ho },
+  { "mask_advance_threshold_ext_range_2_ho", test_mask_advance_threshold_ext_range_2_ho },
+  { "mask_advance_threshold_ext_range_3_ho", test_mask_advance_threshold_ext_range_3_ho },
+  { "mask_advance_threshold_ext_range_4_ho", test_mask_advance_threshold_ext_range_4_ho },
+  { "mask_advance_frac_threshold_ext_range_ho", test_mask_advance_frac_threshold_ext_range_ho },
+  { "mask_advance_frac_threshold_spatial_ext_range_ho",
+    test_mask_advance_frac_threshold_spatial_ext_range_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"mask_new_dev", test_mask_new_dev},
-  {"mask_none_type_dev", test_mask_none_type_dev},
-  {"mask_advance_threshold_dev", test_mask_advance_threshold_dev},
-  {"mask_advance_all_below_dev", test_mask_advance_all_below_dev},
-  {"mask_advance_all_above_dev", test_mask_advance_all_above_dev},
-  {"mask_advance_negative_values_dev", test_mask_advance_negative_values_dev},
-  {"mask_advance_greater_than_threshold_dev", test_mask_advance_greater_than_threshold_dev},
-  {"mask_advance_greater_than_all_above_dev", test_mask_advance_greater_than_all_above_dev},
-  {"mask_advance_greater_than_all_below_dev", test_mask_advance_greater_than_all_below_dev},
-  {"mask_advance_greater_than_neg_vals_dev", test_mask_advance_greater_than_negative_values_dev},
-  {"mask_eval_none_type_dev", test_mask_eval_none_type_dev},
-  {"mask_scale_by_cell_dev", test_mask_scale_by_cell_dev},
-  {"mask_acquire_release_dev", test_mask_acquire_release_dev},
-  {"mask_threshold_scaling_dev", test_mask_threshold_scaling_dev},
-  {"mask_advance_frac_threshold_dev", test_mask_advance_frac_threshold_dev},
-  {"mask_advance_frac_threshold_greater_dev", test_mask_advance_frac_threshold_greater_dev},
-  {"mask_advance_frac_threshold_spatial_dev", test_mask_advance_frac_threshold_spatial_dev},
-  {"mask_advance_frac_threshold_spatial_greater_dev",
-    test_mask_advance_frac_threshold_spatial_greater_dev},
-  {"mask_advance_threshold_ext_range_1_dev", test_mask_advance_threshold_ext_range_1_dev},
-  {"mask_advance_threshold_ext_range_2_dev", test_mask_advance_threshold_ext_range_2_dev},
-  {"mask_advance_threshold_ext_range_3_dev", test_mask_advance_threshold_ext_range_3_dev},
-  {"mask_advance_threshold_ext_range_4_dev", test_mask_advance_threshold_ext_range_4_dev},
-  {"mask_advance_frac_threshold_ext_range_dev", test_mask_advance_frac_threshold_ext_range_dev},
-  {"mask_advance_frac_threshold_spatial_ext_range_dev",
-    test_mask_advance_frac_threshold_spatial_ext_range_dev},
+  { "mask_new_dev", test_mask_new_dev }, { "mask_none_type_dev", test_mask_none_type_dev },
+  { "mask_advance_threshold_dev", test_mask_advance_threshold_dev },
+  { "mask_advance_all_below_dev", test_mask_advance_all_below_dev },
+  { "mask_advance_all_above_dev", test_mask_advance_all_above_dev },
+  { "mask_advance_negative_values_dev", test_mask_advance_negative_values_dev },
+  { "mask_advance_greater_than_threshold_dev", test_mask_advance_greater_than_threshold_dev },
+  { "mask_advance_greater_than_all_above_dev", test_mask_advance_greater_than_all_above_dev },
+  { "mask_advance_greater_than_all_below_dev", test_mask_advance_greater_than_all_below_dev },
+  { "mask_advance_greater_than_neg_vals_dev", test_mask_advance_greater_than_negative_values_dev },
+  { "mask_eval_none_type_dev", test_mask_eval_none_type_dev },
+  { "mask_scale_by_cell_dev", test_mask_scale_by_cell_dev },
+  { "mask_acquire_release_dev", test_mask_acquire_release_dev },
+  { "mask_threshold_scaling_dev", test_mask_threshold_scaling_dev },
+  { "mask_advance_frac_threshold_dev", test_mask_advance_frac_threshold_dev },
+  { "mask_advance_frac_threshold_greater_dev", test_mask_advance_frac_threshold_greater_dev },
+  { "mask_advance_frac_threshold_spatial_dev", test_mask_advance_frac_threshold_spatial_dev },
+  { "mask_advance_frac_threshold_spatial_greater_dev",
+    test_mask_advance_frac_threshold_spatial_greater_dev },
+  { "mask_advance_threshold_ext_range_1_dev", test_mask_advance_threshold_ext_range_1_dev },
+  { "mask_advance_threshold_ext_range_2_dev", test_mask_advance_threshold_ext_range_2_dev },
+  { "mask_advance_threshold_ext_range_3_dev", test_mask_advance_threshold_ext_range_3_dev },
+  { "mask_advance_threshold_ext_range_4_dev", test_mask_advance_threshold_ext_range_4_dev },
+  { "mask_advance_frac_threshold_ext_range_dev", test_mask_advance_frac_threshold_ext_range_dev },
+  { "mask_advance_frac_threshold_spatial_ext_range_dev",
+    test_mask_advance_frac_threshold_spatial_ext_range_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

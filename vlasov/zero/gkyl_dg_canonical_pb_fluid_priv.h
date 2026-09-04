@@ -62,21 +62,21 @@ kernel_canonical_pb_fluid_vol_2x_ser_p2(const struct gkyl_dg_eqn *eqn, const dou
 // Volume kernel list (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, kernel_canonical_pb_fluid_vol_2x_ser_p1, kernel_canonical_pb_fluid_vol_2x_ser_p2}, // 1
+  { NULL, kernel_canonical_pb_fluid_vol_2x_ser_p1, kernel_canonical_pb_fluid_vol_2x_ser_p2 }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Volume kernel list (Tensor basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_vol_kern_list tensor_vol_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, kernel_canonical_pb_fluid_vol_2x_ser_p1, NULL}, // 1
+  { NULL, kernel_canonical_pb_fluid_vol_2x_ser_p1, NULL }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 //
@@ -110,105 +110,105 @@ kernel_canonical_pb_two_fluid_vol_2x_ser_p2(const struct gkyl_dg_eqn *eqn, const
 // Volume kernel list (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_vol_kern_list ser_two_fluid_vol_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, kernel_canonical_pb_two_fluid_vol_2x_ser_p1,
-    kernel_canonical_pb_two_fluid_vol_2x_ser_p2}, // 1
+  { NULL, kernel_canonical_pb_two_fluid_vol_2x_ser_p1,
+    kernel_canonical_pb_two_fluid_vol_2x_ser_p2 }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Volume kernel list (Tensor basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_vol_kern_list tensor_two_fluid_vol_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, kernel_canonical_pb_two_fluid_vol_2x_ser_p1, NULL}, // 1
+  { NULL, kernel_canonical_pb_two_fluid_vol_2x_ser_p1, NULL }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list ser_surf_x_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, canonical_pb_surfx_2x_ser_p1, canonical_pb_surfx_2x_ser_p2}, // 1
+  { NULL, canonical_pb_surfx_2x_ser_p1, canonical_pb_surfx_2x_ser_p2 }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Surface kernel list: x-direction (Tensor basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list tensor_surf_x_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, canonical_pb_surfx_2x_ser_p1, NULL}, // 1
+  { NULL, canonical_pb_surfx_2x_ser_p1, NULL }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list ser_surf_y_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, canonical_pb_surfy_2x_ser_p1, canonical_pb_surfy_2x_ser_p2}, // 1
+  { NULL, canonical_pb_surfy_2x_ser_p1, canonical_pb_surfy_2x_ser_p2 }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Surface kernel list: y-direction (Tensor basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list tensor_surf_y_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, canonical_pb_surfy_2x_ser_p1, NULL}, // 1
+  { NULL, canonical_pb_surfy_2x_ser_p1, NULL }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Surface two fluid kernel list: x-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list ser_two_fluid_surf_x_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, canonical_pb_two_fluid_surfx_2x_ser_p1, canonical_pb_two_fluid_surfx_2x_ser_p2}, // 1
+  { NULL, canonical_pb_two_fluid_surfx_2x_ser_p1, canonical_pb_two_fluid_surfx_2x_ser_p2 }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Surface two fluid kernel list: x-direction (Tensor basis)
-GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list tensor_two_fluid_surf_x_kernels[] =
-  {
+GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list
+  tensor_two_fluid_surf_x_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_two_fluid_surfx_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_two_fluid_surfx_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Surface two fluid kernel list: y-direction (Serendipity basis)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list ser_two_fluid_surf_y_kernels[] = {
   // 1x kernels
-  {NULL, NULL, NULL}, // 0
+  { NULL, NULL, NULL }, // 0
   // 2x kernels
-  {NULL, canonical_pb_two_fluid_surfy_2x_ser_p1, canonical_pb_two_fluid_surfy_2x_ser_p2}, // 1
+  { NULL, canonical_pb_two_fluid_surfy_2x_ser_p1, canonical_pb_two_fluid_surfy_2x_ser_p2 }, // 1
   // 3x kernels
-  {NULL, NULL, NULL}, // 2
+  { NULL, NULL, NULL } // 2
 };
 
 // Surface two fluid kernel list: y-direction (Tensor basis)
-GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list tensor_two_fluid_surf_y_kernels[] =
-  {
+GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_surf_kern_list
+  tensor_two_fluid_surf_y_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_two_fluid_surfy_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_two_fluid_surfy_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 /**
  * Free canonical PB for fluids eqn object.

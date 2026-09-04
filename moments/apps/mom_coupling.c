@@ -5,8 +5,7 @@
 void
 moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *src)
 {
-  struct gkyl_moment_em_coupling_inp src_inp = {
-    .grid = &app->grid,
+  struct gkyl_moment_em_coupling_inp src_inp = { .grid = &app->grid,
     .nfluids = app->num_species,
     // if there is a field, need to update electric field too, otherwise just updating fluid
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0,
@@ -15,18 +14,15 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .static_field = app->field.is_static,
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
     .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
-    .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
-  };
+    .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0 };
 
   for (int i = 0; i < app->num_species; ++i)
-    src_inp.param[i] = (struct gkyl_moment_em_coupling_data){
-      .type = app->species[i].eqn_type,
+    src_inp.param[i] = (struct gkyl_moment_em_coupling_data){ .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
       // The gradient-based closure defines its heat flux through k0, so k0=0.0 in the source solve to avoid double-applying it.
       // The neural-network closure supplies the heat flux directly, so k0 is retained here as the integrating-factor relaxation rate.
-      .k0 = (app->species[i].has_grad_closure) ? 0.0 : app->species[i].k0,
-    };
+      .k0 = (app->species[i].has_grad_closure) ? 0.0 : app->species[i].k0 };
 
   src_inp.has_collision = app->has_collision;
   for (int s = 0; s < app->num_species; ++s)
@@ -219,7 +215,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     src->non_ideal_cflrate[n] = mkarr(false, 1, app->local_ext.volume);
   }
 
-  int ghost[3] = {1, 1, 1};
+  int ghost[3] = { 1, 1, 1 };
   // create non-ideal local extended range from local range
   // has one additional cell in each direction because non-ideal
   // variables are stored at cell vertices
@@ -228,17 +224,15 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // check if gradient-closure is present
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
-      int nadj[3] = {1, 4, 8}; // cells adjacent to a vertex
+      int nadj[3] = { 1, 4, 8 }; // cells adjacent to a vertex
       src->non_ideal_vars[i] =
         mkarr(false, nadj[app->ndim - 1] * 10, src->non_ideal_local_ext.volume);
-      struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = {
-        .grid = &app->grid,
+      struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = { .grid = &app->grid,
         .k0 = app->species[i].k0,
         .cfl = app->cfl,
         .comm = app->comm,
         .update_range = &app->local,
-        .heat_flux_range = &src->non_ideal_local,
-      };
+        .heat_flux_range = &src->non_ideal_local };
       src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(&grad_closure_inp);
     }
   }
@@ -246,25 +240,21 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // Check whether neural network-based closure is present.
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_nn_closure) {
-      struct gkyl_ten_moment_nn_closure_inp nn_closure_inp = {
-        .grid = &app->grid,
+      struct gkyl_ten_moment_nn_closure_inp nn_closure_inp = { .grid = &app->grid,
         .k0 = app->species[i].k0,
         .poly_order = app->species[i].poly_order,
-        .ann = app->species[i].ann,
-      };
+        .ann = app->species[i].ann };
       src->nn_closure_slvr[i] = gkyl_ten_moment_nn_closure_new(nn_closure_inp);
     }
   }
 
   // check if braginskii terms are present
   if (app->has_braginskii) {
-    struct gkyl_moment_braginskii_inp brag_inp = {
-      .grid = &app->grid,
+    struct gkyl_moment_braginskii_inp brag_inp = { .grid = &app->grid,
       .nfluids = app->num_species,
       .epsilon0 = app->field.epsilon0,
       // Check for multiplicative collisionality factor, default is 1.0
-      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac,
-    };
+      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac };
     for (int i = 0; i < app->num_species; ++i) {
       // Braginskii coefficients depend on pressure and coefficient to obtain
       // pressure is different for different equation systems (gasGamma, vt, Tr(P))
@@ -274,13 +264,12 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       } else if (app->species[i].eqn_type == GKYL_EQN_ISO_EULER) {
         p_fac = gkyl_wv_iso_euler_vt(app->species[i].equation);
       }
-      brag_inp.param[i] = (struct gkyl_moment_braginskii_data){
-        .type_eqn = app->species[i].eqn_type,
-        .type_brag = app->species[i].type_brag,
-        .charge = app->species[i].charge,
-        .mass = app->species[i].mass,
-        .p_fac = p_fac,
-      };
+      brag_inp.param[i] =
+        (struct gkyl_moment_braginskii_data){ .type_eqn = app->species[i].eqn_type,
+          .type_brag = app->species[i].type_brag,
+          .charge = app->species[i].charge,
+          .mass = app->species[i].mass,
+          .p_fac = p_fac };
     }
     src->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
   }
@@ -292,7 +281,7 @@ struct gkyl_update_status
 moment_coupling_update(
   gkyl_moment_app *app, struct moment_coupling *src, int nstrang, double tcurr, double dt)
 {
-  int sidx[] = {0, app->ndim};
+  int sidx[] = { 0, app->ndim };
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
@@ -318,7 +307,7 @@ moment_coupling_update(
         src->non_ideal_cflrate[i], dt, src->non_ideal_vars[i], src->pr_rhs[i]);
 
       if (!stat.success)
-        return (struct gkyl_update_status){.success = false, .dt_suggested = stat.dt_suggested};
+        return (struct gkyl_update_status){ .success = false, .dt_suggested = stat.dt_suggested };
 
       dt_suggested = fmin(dt_suggested, stat.dt_suggested);
     }
@@ -384,7 +373,7 @@ moment_coupling_update(
   if (app->has_field) {
     moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
   }
-  return (struct gkyl_update_status){.success = true, .dt_suggested = dt_suggested};
+  return (struct gkyl_update_status){ .success = true, .dt_suggested = dt_suggested };
 }
 
 // free sources

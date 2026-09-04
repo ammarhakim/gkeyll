@@ -36,60 +36,57 @@ typedef struct {
 } array_integrate_epsgradperpsq_kern_list;
 
 GKYL_CU_D static const array_integrate_none_kern_list gkyl_array_integrate_none_ker_list_ser[] = {
-  {gkyl_array_integrate_op_none_1x_ser_p1, gkyl_array_integrate_op_none_1x_ser_p2},
-  {gkyl_array_integrate_op_none_2x_ser_p1, gkyl_array_integrate_op_none_2x_ser_p2},
-  {gkyl_array_integrate_op_none_3x_ser_p1, gkyl_array_integrate_op_none_3x_ser_p2},
+  { gkyl_array_integrate_op_none_1x_ser_p1, gkyl_array_integrate_op_none_1x_ser_p2 },
+  { gkyl_array_integrate_op_none_2x_ser_p1, gkyl_array_integrate_op_none_2x_ser_p2 },
+  { gkyl_array_integrate_op_none_3x_ser_p1, gkyl_array_integrate_op_none_3x_ser_p2 }
 };
 
 GKYL_CU_D static const array_integrate_abs_kern_list gkyl_array_integrate_abs_ker_list_ser[] = {
-  {gkyl_array_integrate_op_abs_1x_ser_p1, gkyl_array_integrate_op_abs_1x_ser_p2},
-  {gkyl_array_integrate_op_abs_2x_ser_p1, gkyl_array_integrate_op_abs_2x_ser_p2},
-  {gkyl_array_integrate_op_abs_3x_ser_p1, gkyl_array_integrate_op_abs_3x_ser_p2},
+  { gkyl_array_integrate_op_abs_1x_ser_p1, gkyl_array_integrate_op_abs_1x_ser_p2 },
+  { gkyl_array_integrate_op_abs_2x_ser_p1, gkyl_array_integrate_op_abs_2x_ser_p2 },
+  { gkyl_array_integrate_op_abs_3x_ser_p1, gkyl_array_integrate_op_abs_3x_ser_p2 }
 };
 
 GKYL_CU_D static const array_integrate_sq_kern_list gkyl_array_integrate_sq_ker_list_ser[] = {
-  {gkyl_array_integrate_op_sq_1x_ser_p1, gkyl_array_integrate_op_sq_1x_ser_p2},
-  {gkyl_array_integrate_op_sq_2x_ser_p1, gkyl_array_integrate_op_sq_2x_ser_p2},
-  {gkyl_array_integrate_op_sq_3x_ser_p1, gkyl_array_integrate_op_sq_3x_ser_p2},
+  { gkyl_array_integrate_op_sq_1x_ser_p1, gkyl_array_integrate_op_sq_1x_ser_p2 },
+  { gkyl_array_integrate_op_sq_2x_ser_p1, gkyl_array_integrate_op_sq_2x_ser_p2 },
+  { gkyl_array_integrate_op_sq_3x_ser_p1, gkyl_array_integrate_op_sq_3x_ser_p2 }
 };
 
 GKYL_CU_D static const array_integrate_sq_weighted_kern_list
   gkyl_array_integrate_sq_weighted_ker_list_ser[] = {
-    {gkyl_array_integrate_op_sq_weighted_1x_ser_p1, gkyl_array_integrate_op_sq_weighted_1x_ser_p2},
-    {gkyl_array_integrate_op_sq_weighted_2x_ser_p1, gkyl_array_integrate_op_sq_weighted_2x_ser_p2},
-    {gkyl_array_integrate_op_sq_weighted_3x_ser_p1, gkyl_array_integrate_op_sq_weighted_3x_ser_p2},
-};
+    { gkyl_array_integrate_op_sq_weighted_1x_ser_p1,
+      gkyl_array_integrate_op_sq_weighted_1x_ser_p2 },
+    { gkyl_array_integrate_op_sq_weighted_2x_ser_p1,
+      gkyl_array_integrate_op_sq_weighted_2x_ser_p2 },
+    { gkyl_array_integrate_op_sq_weighted_3x_ser_p1, gkyl_array_integrate_op_sq_weighted_3x_ser_p2 }
+  };
 
 GKYL_CU_D static const array_integrate_sq_weighted_kern_list
-  gkyl_array_integrate_sq_weighted_ker_list_gkhyb[] = {
-    {NULL, NULL},
-    {gkyl_array_integrate_op_sq_weighted_1x1v_gkhyb_p1, NULL},
-    {gkyl_array_integrate_op_sq_weighted_1x2v_gkhyb_p1, NULL},
-    {gkyl_array_integrate_op_sq_weighted_2x2v_gkhyb_p1, NULL},
-    {gkyl_array_integrate_op_sq_weighted_3x2v_gkhyb_p1, NULL},
-};
+  gkyl_array_integrate_sq_weighted_ker_list_gkhyb[] = { { NULL, NULL },
+    { gkyl_array_integrate_op_sq_weighted_1x1v_gkhyb_p1, NULL },
+    { gkyl_array_integrate_op_sq_weighted_1x2v_gkhyb_p1, NULL },
+    { gkyl_array_integrate_op_sq_weighted_2x2v_gkhyb_p1, NULL },
+    { gkyl_array_integrate_op_sq_weighted_3x2v_gkhyb_p1, NULL } };
 
 GKYL_CU_D static const array_integrate_gradsq_kern_list gkyl_array_integrate_gradsq_ker_list[] = {
-  {gkyl_array_integrate_op_grad_sq_1x_ser_p1, gkyl_array_integrate_op_grad_sq_1x_ser_p2},
-  {gkyl_array_integrate_op_grad_sq_2x_ser_p1, gkyl_array_integrate_op_grad_sq_2x_ser_p2},
-  {gkyl_array_integrate_op_grad_sq_3x_ser_p1, NULL},
+  { gkyl_array_integrate_op_grad_sq_1x_ser_p1, gkyl_array_integrate_op_grad_sq_1x_ser_p2 },
+  { gkyl_array_integrate_op_grad_sq_2x_ser_p1, gkyl_array_integrate_op_grad_sq_2x_ser_p2 },
+  { gkyl_array_integrate_op_grad_sq_3x_ser_p1, NULL }
 };
 
 GKYL_CU_D static const array_integrate_gradperpsq_kern_list
-  gkyl_array_integrate_gradperpsq_ker_list[] = {
-    {NULL, NULL},
-    {gkyl_array_integrate_op_grad_sq_2x_ser_p1, gkyl_array_integrate_op_grad_sq_2x_ser_p2},
-    {gkyl_array_integrate_op_gradperp_sq_3x_ser_p1, gkyl_array_integrate_op_gradperp_sq_3x_ser_p2},
-};
+  gkyl_array_integrate_gradperpsq_ker_list[] = { { NULL, NULL },
+    { gkyl_array_integrate_op_grad_sq_2x_ser_p1, gkyl_array_integrate_op_grad_sq_2x_ser_p2 },
+    { gkyl_array_integrate_op_gradperp_sq_3x_ser_p1,
+      gkyl_array_integrate_op_gradperp_sq_3x_ser_p2 } };
 
 GKYL_CU_D static const array_integrate_epsgradperpsq_kern_list
-  gkyl_array_integrate_epsgradperpsq_ker_list[] = {
-    {NULL, NULL},
-    {gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p1,
-      gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p2},
-    {gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p1,
-      gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p2},
-};
+  gkyl_array_integrate_epsgradperpsq_ker_list[] = { { NULL, NULL },
+    { gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p1,
+      gkyl_array_integrate_op_eps_gradperp_sq_2x_ser_p2 },
+    { gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p1,
+      gkyl_array_integrate_op_eps_gradperp_sq_3x_ser_p2 } };
 
 // Primary struct in this updater.
 struct gkyl_array_integrate {

@@ -25,8 +25,9 @@
 #include <string.h>
 
 /** Map Gkyl flags to CBLAS flags */
-static int cblas_trans_flags[] =
-  {[GKYL_NO_TRANS] = CblasNoTrans, [GKYL_TRANS] = CblasTrans, [GKYL_CONJ_TRANS] = CblasConjTrans};
+static int cblas_trans_flags[] = { [GKYL_NO_TRANS] = CblasNoTrans,
+  [GKYL_TRANS] = CblasTrans,
+  [GKYL_CONJ_TRANS] = CblasConjTrans };
 
 struct gkyl_nmat_mem {
   bool on_gpu; // flag to indicate if we are on GPU
@@ -55,8 +56,8 @@ static inline struct mat_sizes
 get_mat_sizes(enum gkyl_mat_trans trans, const struct gkyl_mat *A)
 {
   if (trans == GKYL_NO_TRANS)
-    return (struct mat_sizes){.nr = A->nr, .nc = A->nc};
-  return (struct mat_sizes){.nr = A->nc, .nc = A->nr};
+    return (struct mat_sizes){ .nr = A->nr, .nc = A->nc };
+  return (struct mat_sizes){ .nr = A->nc, .nc = A->nr };
 }
 
 struct gkyl_mat *

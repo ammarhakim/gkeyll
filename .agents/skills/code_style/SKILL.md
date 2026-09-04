@@ -34,3 +34,13 @@ to "match" the style either -- leave them exactly as they are:
   kann, pcg_basic, STC), not Gkeyll's own code.
 
 The pre-commit hook and CI already exclude both for this reason.
+
+## Trailing commas in initializer lists are stripped automatically
+
+Don't add a trailing comma after the last element of a struct/array
+initializer expecting it to force (or preserve) a multi-line layout --
+clang-format expands every element onto its own line whenever one is
+present, which is rarely what's wanted. `ci/strip-trailing-commas.py` removes
+any comma directly before a closing `}` before clang-format runs, via the
+same pre-commit hook and CI check as clang-format itself, so there's also no
+need to manually remove existing ones -- the tooling already does it.

@@ -70,7 +70,7 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
       inp->vel_basis, inp->conf_range, inp->vel_range, inp->use_gpu);
 
     // Set auxiliary fields for moment updates.
-    struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.gamma = inp->gamma};
+    struct gkyl_mom_vlasov_sr_auxfields sr_inp = { .gamma = inp->gamma };
     // Moment calculator for needed moments (M0, M1i)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis, inp->phase_basis,
       inp->conf_range, inp->vel_range, inp->phase_range, up->model_id, &sr_inp, GKYL_F_MOMENT_M0,
@@ -98,7 +98,7 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     }
     up->can_pb_vars = gkyl_dg_calc_canonical_pb_vars_new(
       inp->phase_grid, inp->conf_basis, inp->phase_basis, inp->use_gpu);
-    struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = inp->hamil};
+    struct gkyl_mom_canonical_pb_auxfields can_pb_inp = { .hamil = inp->hamil };
 
     // Moment calculator for needed moments (M0, M1i, and M2)
     // Temperature moment is modified by can-pb, requires computing g^{ij}w_iw_j kernel

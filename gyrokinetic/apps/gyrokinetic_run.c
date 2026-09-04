@@ -185,13 +185,15 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   // the same nominal time works for trig_write_conf and trig_write_phase.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write_conf = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
-  struct gkyl_tm_trigger trig_write_phase = {
-    .dt = t_end / (time_stepping.write_phase_freq * num_frames),
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
+  struct gkyl_tm_trigger trig_write_phase = { .dt = t_end /
+      (time_stepping.write_phase_freq * num_frames),
     .tcurr = frame_curr * (t_end / num_frames),
-    .curr = frame_curr};
+    .curr = frame_curr };
   struct gkyl_tm_trigger trig_calc_intdiag = {
-    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr
+  };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_singleb(
@@ -212,18 +214,16 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   int num_failures = 0, num_failures_max = time_stepping.num_failures_max;
 
   // Set up function pointers based on verbosity mode
-  struct message_trigs m_trig = {
-    .log_count = 0,
+  struct message_trigs m_trig = { .log_count = 0,
     .tenth = t_curr > 0.0 ? (int)floor(t_curr / t_end * 10.0) : 0.0,
     .p1c = t_curr > 0.0 ? (int)floor(t_curr / t_end * 100.0) % 10 : 0.0,
-    .log_trig = {.dt = t_end / 10.0, .tcurr = t_curr},
-    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr},
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
     .io_period = (long)(1 / verbose.frequency),
     .t_end = t_end,
     .estimate_completion_time = verbose.estimate_completion_time,
     .tm_loop_start = gkyl_wall_clock(),
-    .t_loop_start = t_curr,
-  };
+    .t_loop_start = t_curr };
 
   write_message_pre_update_singleb_t write_message_pre_update;
   write_message_post_update_singleb_t write_message_post_update;
@@ -469,13 +469,15 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   // the same nominal time works for trig_write_conf and trig_write_phase.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write_conf = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
-  struct gkyl_tm_trigger trig_write_phase = {
-    .dt = t_end / (time_stepping.write_phase_freq * num_frames),
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
+  struct gkyl_tm_trigger trig_write_phase = { .dt = t_end /
+      (time_stepping.write_phase_freq * num_frames),
     .tcurr = frame_curr * (t_end / num_frames),
-    .curr = frame_curr};
+    .curr = frame_curr };
   struct gkyl_tm_trigger trig_calc_intdiag = {
-    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / GKYL_MAX2(num_frames, num_int_diag_calc), .tcurr = t_curr, .curr = frame_curr
+  };
 
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_multib(
@@ -496,16 +498,16 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp *inp)
   int num_failures = 0, num_failures_max = time_stepping.num_failures_max;
 
   // Set up function pointers based on verbosity mode
-  struct message_trigs m_trig = {.log_count = 0,
+  struct message_trigs m_trig = { .log_count = 0,
     .tenth = t_curr > 0.0 ? (int)floor(t_curr / t_end * 10.0) : 0.0,
     .p1c = t_curr > 0.0 ? (int)floor(t_curr / t_end * 100.0) % 10 : 0.0,
-    .log_trig = {.dt = t_end / 10.0, .tcurr = t_curr},
-    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr},
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr },
     .io_period = (long)(1 / verbose.frequency),
     .t_end = t_end,
     .estimate_completion_time = verbose.estimate_completion_time,
     .tm_loop_start = gkyl_wall_clock(),
-    .t_loop_start = t_curr};
+    .t_loop_start = t_curr };
 
   write_message_pre_update_multib_t write_message_pre_update;
   write_message_post_update_multib_t write_message_post_update;

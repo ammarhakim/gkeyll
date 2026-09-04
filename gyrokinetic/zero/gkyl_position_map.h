@@ -12,7 +12,7 @@ enum gkyl_position_map_id {
   GKYL_PMAP_USER_INPUT_W_DERIVATIVE, // Function projection and derivative user specified
   GKYL_PMAP_CONSTANT_DB_POLYNOMIAL, // Makes a uniform dB in each cell. Polynomial approximation, assuming 2 local maxima in Bmag
   GKYL_PMAP_CONSTANT_DB_NUMERIC, // Makes a uniform dB in each cell, but calculates the dB numerically
-  GKYL_PMAP_XPT_COMPRESSION, // Compresses cells near X-point (For use in MB Tokamaks)
+  GKYL_PMAP_XPT_COMPRESSION // Compresses cells near X-point (For use in MB Tokamaks)
 };
 
 typedef void (*mc2nu_t)(

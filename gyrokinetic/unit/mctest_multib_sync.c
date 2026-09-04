@@ -26,22 +26,18 @@ comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
 #ifdef GKYL_HAVE_MPI
   if (use_gpu && use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
 #else
     fprintf(iostream, " Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = use_gpu });
 #endif
 
   return comm;
@@ -778,8 +774,8 @@ test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_ord
     //gkyl_array_shiftc(app->f, bid+1+100.0*(my_rank+1), k);
     //printf("bid = %d\n", bid);
 
-    int sublower[2] = {app->local.lower[0], app->local.lower[1]};
-    int subupper[2] = {app->local.upper[0], app->local.upper[1] / 2};
+    int sublower[2] = { app->local.lower[0], app->local.lower[1] };
+    int subupper[2] = { app->local.upper[0], app->local.upper[1] / 2 };
     struct gkyl_range lower_range;
     gkyl_sub_range_init(&lower_range, &app->local_ext, sublower, subupper);
     sublower[1] = app->local.upper[1] / 2;
@@ -960,7 +956,7 @@ test_L_domain_sync_ho(void)
   int cuts_flat1[] = {
     1, 1, // Block 0.
     1, 1, // Block 1.
-    1, 1, // Block 2.
+    1, 1 // Block 2.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
   test_L_domain_sync(false, true, cuts1, 1);
@@ -975,7 +971,7 @@ test_cyclic_domain_sync_ho(void)
 
   int cuts_flat1[] = {
     1, 2, // Block 0.
-    1, 2, // Block 1.
+    1, 2 // Block 1.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
   test_cyclic_domain_sync(false, true, cuts1, 1);
@@ -990,7 +986,7 @@ test_cyclic_domain_sync_ser_ho(void)
 
   int cuts_flat1[] = {
     1, 1, // Block 0.
-    1, 1, // Block 1.
+    1, 1 // Block 1.
   };
   int **cuts1 = cuts_array_new(num_blocks, ndim, cuts_flat1);
   // Test using MPI
@@ -1010,7 +1006,7 @@ test_L_domain_sync_dev(void)
   int cuts_flat0[] = {
     1, 1, // Block 0.
     1, 1, // Block 1.
-    1, 1, // Block 2.
+    1, 1 // Block 2.
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
 #ifdef GKYL_HAVE_NCCL
@@ -1027,7 +1023,7 @@ test_cyclic_domain_sync_dev(void)
 
   int cuts_flat0[] = {
     1, 2, // Block 0.
-    1, 2, // Block 1.
+    1, 2 // Block 1.
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
 #ifdef GKYL_HAVE_NCCL
@@ -1044,7 +1040,7 @@ test_cyclic_domain_sync_ser_dev(void)
 
   int cuts_flat0[] = {
     1, 1, // Block 0.
-    1, 1, // Block 1.
+    1, 1 // Block 1.
   };
   int **cuts0 = cuts_array_new(num_blocks, ndim, cuts_flat0);
   // Test using MPI
@@ -1058,14 +1054,12 @@ test_cyclic_domain_sync_ser_dev(void)
 }
 #endif
 
-TEST_LIST = {
-  {"test_L_domain_sync_ho", test_L_domain_sync_ho},
-  {"test_cyclic_domain_sync_ho", test_cyclic_domain_sync_ho},
-  {"test_cyclic_domain_sync_ser_ho", test_cyclic_domain_sync_ser_ho},
+TEST_LIST = { { "test_L_domain_sync_ho", test_L_domain_sync_ho },
+  { "test_cyclic_domain_sync_ho", test_cyclic_domain_sync_ho },
+  { "test_cyclic_domain_sync_ser_ho", test_cyclic_domain_sync_ser_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_L_domain_sync_dev", test_L_domain_sync_dev},
-  {"test_cyclic_domain_sync_dev", test_cyclic_domain_sync_dev},
-  {"test_cyclic_domain_sync_ser_dev", test_cyclic_domain_sync_ser_dev},
+  { "test_L_domain_sync_dev", test_L_domain_sync_dev },
+  { "test_cyclic_domain_sync_dev", test_cyclic_domain_sync_dev },
+  { "test_cyclic_domain_sync_ser_dev", test_cyclic_domain_sync_ser_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

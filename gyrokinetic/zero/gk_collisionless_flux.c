@@ -95,8 +95,8 @@ gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
   double xc[GKYL_MAX_DIM];
 
   struct gkyl_range vpar_range;
-  int extend_lo[GKYL_MAX_DIM] = {0};
-  int extend_up[GKYL_MAX_DIM] = {0};
+  int extend_lo[GKYL_MAX_DIM] = { 0 };
+  int extend_up[GKYL_MAX_DIM] = { 0 };
   extend_lo[cdim] = -1;
   gkyl_range_extend(&vpar_range, phase_range, extend_lo, extend_up);
 

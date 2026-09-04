@@ -79,7 +79,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app *app, doubl
   struct gkyl_array **bflux_in_neut[ns_neut * nblocks_local];
   struct gkyl_array **bflux_out_neut[ns_neut * nblocks_local];
 
-  struct gkyl_update_status st = {.success = true};
+  struct gkyl_update_status st = { .success = true };
 
   // time-stepper state
   enum { RK_STAGE_1, RK_STAGE_2, RK_STAGE_3, RK_COMPLETE } state = RK_STAGE_1;

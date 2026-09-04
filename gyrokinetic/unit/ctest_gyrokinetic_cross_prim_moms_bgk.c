@@ -132,13 +132,13 @@ test_1x1v(int poly_order, bool use_gpu)
   double betaGreenep1 = 1.0;
   double vt = sqrt(Te / me);
 
-  double lower[] = {-0.5, -5.0 * vt}, upper[] = {0.5, 5.0 * vt};
-  int cells[] = {2, 32};
+  double lower[] = { -0.5, -5.0 * vt }, upper[] = { 0.5, 5.0 * vt };
+  int cells[] = { 2, 32 };
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  int confCells[] = { cells[0] };
 
   // Grids
   struct gkyl_rect_grid grid;
@@ -155,14 +155,14 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Configuration space range
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost;
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   // Phase space range
-  int ghost[] = {confGhost[0], 0};
+  int ghost[] = { confGhost[0], 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost;
@@ -262,7 +262,7 @@ test_1x1v(int poly_order, bool use_gpu)
 
   // Compare with the expected cross moments
   for (int k = 0; k < cells[0]; k++) {
-    int idx[] = {k + 1};
+    int idx[] = { k + 1 };
     long linidx = gkyl_range_idx(&confLocal, idx);
     const double *primMomsCross_e = gkyl_array_cfetch(prim_moms_cross_e, linidx);
     const double *primMomsCross_i = gkyl_array_cfetch(prim_moms_cross_i, linidx);
@@ -326,13 +326,13 @@ test_1x2v(int poly_order, bool use_gpu)
   double betaGreenep1 = 1.0;
   double vt = sqrt(Te / me);
 
-  double lower[] = {-0.5, -5.0 * vt, 0.0}, upper[] = {0.5, 5.0 * vt, 5.0 * vt};
-  int cells[] = {2, 32, 32};
+  double lower[] = { -0.5, -5.0 * vt, 0.0 }, upper[] = { 0.5, 5.0 * vt, 5.0 * vt };
+  int cells[] = { 2, 32, 32 };
   int vdim = 2, cdim = 1;
   int ndim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  int confCells[] = {cells[0]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  int confCells[] = { cells[0] };
 
   // Grids
   struct gkyl_rect_grid grid;
@@ -349,14 +349,14 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Configuration space range
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
   struct skin_ghost_ranges confSkin_ghost;
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   // Phase space range
-  int ghost[] = {confGhost[0], 0, 0};
+  int ghost[] = { confGhost[0], 0, 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
   struct skin_ghost_ranges skin_ghost;
@@ -456,7 +456,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Compare with the expected cross moments
   for (int k = 0; k < cells[0]; k++) {
-    int idx[] = {k + 1};
+    int idx[] = { k + 1 };
     long linidx = gkyl_range_idx(&confLocal, idx);
     const double *primMomsCross_e = gkyl_array_cfetch(prim_moms_cross_e, linidx);
     const double *primMomsCross_i = gkyl_array_cfetch(prim_moms_cross_i, linidx);
@@ -517,8 +517,5 @@ test_cross_prim_moms_bgk_1x2v_p1_ho()
 {
   test_1x2v(1, false);
 }
-TEST_LIST = {
-  {"test_cross_prim_moms_bgk_1x1v_p1_ho", test_cross_prim_moms_bgk_1x1v_p1_ho},
-  {"test_cross_prim_moms_bgk_1x2v_p1_ho", test_cross_prim_moms_bgk_1x2v_p1_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_cross_prim_moms_bgk_1x1v_p1_ho", test_cross_prim_moms_bgk_1x1v_p1_ho },
+  { "test_cross_prim_moms_bgk_1x2v_p1_ho", test_cross_prim_moms_bgk_1x2v_p1_ho }, { NULL, NULL } };

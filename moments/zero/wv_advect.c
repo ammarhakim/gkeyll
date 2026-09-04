@@ -265,11 +265,8 @@ gkyl_advect_free(const struct gkyl_ref_count *ref)
 struct gkyl_wv_eqn *
 gkyl_wv_advect_new(double a, bool use_gpu)
 {
-  return gkyl_wv_advect_inew(&(struct gkyl_wv_advect_inp){
-    .a = a,
-    .rp_type = WV_ADVECT_RP_ROE,
-    .use_gpu = use_gpu,
-  });
+  return gkyl_wv_advect_inew(
+    &(struct gkyl_wv_advect_inp){ .a = a, .rp_type = WV_ADVECT_RP_ROE, .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

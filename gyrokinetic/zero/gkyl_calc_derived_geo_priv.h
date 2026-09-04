@@ -15,14 +15,14 @@ typedef struct {
 } derived_geo_node_list; // For use in kernel tables.
 
 GKYL_CU_DH static const derived_geo_node_list ser_derived_geo_kernel_list[] = {
-  {.list = {{NULL, NULL, NULL}, // 0x No 0D basis functions
-     {NULL, NULL, NULL}, // 1x Not tested yet
-     {NULL, NULL, NULL}, // 2x Not tested yet
-     {NULL, derived_geo_3x_Ser_p1, derived_geo_3x_Ser_p2}}},
-  {.list = {{NULL, NULL, NULL}, // 0x No 0D basis functions
-     {NULL, NULL, NULL}, // 1x Not tested yet
-     {NULL, NULL, NULL}, // 2x Not tested yet
-     {NULL, derived_geo_quad_3x_Ser_p1, NULL}}},
+  { .list = { { NULL, NULL, NULL }, // 0x No 0D basis functions
+      { NULL, NULL, NULL }, // 1x Not tested yet
+      { NULL, NULL, NULL }, // 2x Not tested yet
+      { NULL, derived_geo_3x_Ser_p1, derived_geo_3x_Ser_p2 } } },
+  { .list = { { NULL, NULL, NULL }, // 0x No 0D basis functions
+      { NULL, NULL, NULL }, // 1x Not tested yet
+      { NULL, NULL, NULL }, // 2x Not tested yet
+      { NULL, derived_geo_quad_3x_Ser_p1, NULL } } }
 
 };
 

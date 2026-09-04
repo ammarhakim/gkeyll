@@ -9,7 +9,7 @@
 
 // flags and corresponding bit-masks
 enum range_flags { R_IS_SUB_RANGE };
-static const uint32_t masks[] = {0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80};
+static const uint32_t masks[] = { 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80 };
 
 // sub-range flags
 #define SET_SUB_RANGE(flags) (flags) |= masks[R_IS_SUB_RANGE]
@@ -300,7 +300,7 @@ gkyl_range_shorten_from_above(
   struct gkyl_range *rng, const struct gkyl_range *range, int dir, int len)
 {
   int ndim = range->ndim;
-  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+  int lo[GKYL_MAX_DIM] = { 0 }, up[GKYL_MAX_DIM] = { 0 };
 
   for (int i = 0; i < ndim; ++i) {
     lo[i] = range->lower[i];
@@ -315,7 +315,7 @@ gkyl_range_shorten_from_below(
   struct gkyl_range *rng, const struct gkyl_range *range, int dir, int len)
 {
   int ndim = range->ndim;
-  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+  int lo[GKYL_MAX_DIM] = { 0 }, up[GKYL_MAX_DIM] = { 0 };
 
   for (int i = 0; i < ndim; ++i) {
     lo[i] = range->lower[i];
@@ -330,7 +330,7 @@ gkyl_range_extend(
   struct gkyl_range *erng, const struct gkyl_range *range, const int *elo, const int *eup)
 {
   int ndim = range->ndim;
-  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+  int lo[GKYL_MAX_DIM] = { 0 }, up[GKYL_MAX_DIM] = { 0 };
 
   for (int i = 0; i < ndim; ++i) {
     lo[i] = range->lower[i] - elo[i];
@@ -344,7 +344,7 @@ gkyl_range_perp_extend(
   struct gkyl_range *erng, int dir, const struct gkyl_range *rng, const int *elo, const int *eup)
 {
   int ndim = rng->ndim;
-  int elo_p[GKYL_MAX_DIM] = {0}, eup_p[GKYL_MAX_DIM] = {0};
+  int elo_p[GKYL_MAX_DIM] = { 0 }, eup_p[GKYL_MAX_DIM] = { 0 };
   for (int i = 0; i < ndim; ++i) {
     elo_p[i] = elo[i];
     eup_p[i] = eup[i];
@@ -403,7 +403,7 @@ gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost, int di
   enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
 {
   int ndim = parent->ndim;
-  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+  int lo[GKYL_MAX_DIM] = { 0 }, up[GKYL_MAX_DIM] = { 0 };
 
   if (edge == GKYL_LOWER_EDGE) {
     incr_int_array(ndim, 1, nghost, parent->lower, lo);
@@ -439,7 +439,7 @@ gkyl_skin_ghost_with_corners_ranges(struct gkyl_range *skin, struct gkyl_range *
   enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
 {
   int ndim = parent->ndim;
-  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+  int lo[GKYL_MAX_DIM] = { 0 }, up[GKYL_MAX_DIM] = { 0 };
 
   for (int i = 0; i < ndim; ++i) {
     lo[i] = parent->lower[i];
@@ -520,7 +520,7 @@ gkyl_range_is_on_upper_edge(
 struct gkyl_range_dir_edge
 gkyl_range_edge_match(const struct gkyl_range *base, const struct gkyl_range *targ)
 {
-  struct gkyl_range_dir_edge no_dir_ed = {.dir = 0, .eloc = GKYL_NO_EDGE};
+  struct gkyl_range_dir_edge no_dir_ed = { .dir = 0, .eloc = GKYL_NO_EDGE };
 
   if (base->ndim != targ->ndim)
     return no_dir_ed; // different dimensions do not count
@@ -531,24 +531,24 @@ gkyl_range_edge_match(const struct gkyl_range *base, const struct gkyl_range *ta
 
   for (int d = 0; d < base->ndim; ++d) {
     do {
-      int elo[GKYL_MAX_DIM] = {0}, eup[GKYL_MAX_DIM] = {0};
+      int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
 
       // check lower-edge overlap
       elo[d] = 1;
       struct gkyl_range erng;
       gkyl_range_extend(&erng, base, elo, eup);
       if (gkyl_range_intersect(&irng, &erng, targ))
-        return (struct gkyl_range_dir_edge){.dir = d, .eloc = GKYL_LOWER_EDGE};
+        return (struct gkyl_range_dir_edge){ .dir = d, .eloc = GKYL_LOWER_EDGE };
     } while (0);
 
     do {
-      int elo[GKYL_MAX_DIM] = {0}, eup[GKYL_MAX_DIM] = {0};
+      int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
       // check upper-edge overlap
       eup[d] = 1;
       struct gkyl_range erng;
       gkyl_range_extend(&erng, base, elo, eup);
       if (gkyl_range_intersect(&irng, &erng, targ))
-        return (struct gkyl_range_dir_edge){.dir = d, .eloc = GKYL_UPPER_EDGE};
+        return (struct gkyl_range_dir_edge){ .dir = d, .eloc = GKYL_UPPER_EDGE };
     } while (0);
   }
 

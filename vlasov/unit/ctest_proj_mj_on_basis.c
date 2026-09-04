@@ -97,15 +97,15 @@ eval_M2_3v(double t, const double *xn, double *restrict fout, void *ctx)
 void
 test_1x1v_no_drift(int poly_order)
 {
-  double lower[] = {0.1, -15.0}, upper[] = {1.0, 15.0};
-  int cells[] = {2, 32};
+  double lower[] = { 0.1, -15.0 }, upper[] = { 1.0, 15.0 };
+  int cells[] = { 2, 32 };
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
-  int confCells[] = {cells[0]};
-  int velCells[] = {cells[1]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  double velLower[] = { lower[1] }, velUpper[] = { upper[1] };
+  int confCells[] = { cells[0] };
+  int velCells[] = { cells[1] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -115,7 +115,7 @@ test_1x1v_no_drift(int poly_order)
   struct gkyl_rect_grid vel_grid;
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
-  int velGhost[] = {0};
+  int velGhost[] = { 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -124,11 +124,11 @@ test_1x1v_no_drift(int poly_order)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0};
+  int ghost[] = { confGhost[0], 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -168,8 +168,7 @@ test_1x1v_no_drift(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
-    .phase_grid = &grid,
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = { .phase_grid = &grid,
     .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
     .vel_basis = &velBasis,
@@ -181,19 +180,18 @@ test_1x1v_no_drift(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false,
-  };
+    .use_gpu = false };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p1_vals[] = {5.3918752026566863e-01, -1.0910243387206232e-17, -6.0196985297046972e-02,
-    5.0006050167249552e-18};
-  double p2_vals[] = {5.3922143701031633e-01, -9.6625223288531320e-18, -5.7898881215132203e-02,
+  double p1_vals[] = { 5.3918752026566863e-01, -1.0910243387206232e-17, -6.0196985297046972e-02,
+    5.0006050167249552e-18 };
+  double p2_vals[] = { 5.3922143701031633e-01, -9.6625223288531320e-18, -5.7898881215132203e-02,
     7.8842251929957589e-18, 1.9166441863144966e-17, -1.0173903909543560e-02, 1.7916734900988946e-17,
-    1.4245174569363429e-18};
+    1.4245174569363429e-18 };
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 17}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){ 1, 17 }));
 
   if (poly_order == 1)
     for (int i = 0; i < basis.num_basis; ++i)
@@ -231,15 +229,15 @@ test_proj_mj_on_basis_1x1v_no_drift_p2_ho()
 void
 test_1x1v(int poly_order)
 {
-  double lower[] = {0.1, -15.0}, upper[] = {1.0, 15.0}; // +/- 15 on velocity
-  int cells[] = {2, 32}; // default {2, 32}
+  double lower[] = { 0.1, -15.0 }, upper[] = { 1.0, 15.0 }; // +/- 15 on velocity
+  int cells[] = { 2, 32 }; // default {2, 32}
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
-  int confCells[] = {cells[0]};
-  int velCells[] = {cells[1]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  double velLower[] = { lower[1] }, velUpper[] = { upper[1] };
+  int confCells[] = { cells[0] };
+  int velCells[] = { cells[1] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -250,7 +248,7 @@ test_1x1v(int poly_order)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = { 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -259,11 +257,11 @@ test_1x1v(int poly_order)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0};
+  int ghost[] = { confGhost[0], 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -303,8 +301,7 @@ test_1x1v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
-    .phase_grid = &grid,
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = { .phase_grid = &grid,
     .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
     .vel_basis = &velBasis,
@@ -316,14 +313,12 @@ test_1x1v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false,
-  };
+    .use_gpu = false };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // test accuracy of the projection:
-  struct gkyl_vlasov_lte_moments_inp inp_mom = {
-    .phase_grid = &grid,
+  struct gkyl_vlasov_lte_moments_inp inp_mom = { .phase_grid = &grid,
     .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
     .vel_basis = &velBasis,
@@ -335,8 +330,7 @@ test_1x1v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false,
-  };
+    .use_gpu = false };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0 * confBasis.num_basis, &confLocal);
@@ -344,11 +338,11 @@ test_1x1v(int poly_order)
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim + 1) * confBasis.num_basis, &confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {5.9297594654488650e-01, -4.1867292592431142e-18, 7.1286851491369927e-03,
+  double p2_vals[] = { 5.9297594654488650e-01, -4.1867292592431142e-18, 7.1286851491369927e-03,
     6.9143629007589357e-18, 1.0932899315657513e-17, -1.6063381083048084e-02,
-    -5.5123762524241300e-18, -3.3195546731973899e-18};
+    -5.5123762524241300e-18, -3.3195546731973899e-18 };
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 17}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){ 1, 17 }));
 
   if (poly_order == 2) {
     for (int i = 0; i < basis.num_basis; ++i) {
@@ -387,15 +381,15 @@ test_proj_mj_on_basis_1x1v_p2_ho()
 void
 test_1x2v(int poly_order)
 {
-  double lower[] = {0.1, -15.0, -15.0}, upper[] = {1.0, 15.0, 15.0};
-  int cells[] = {2, 16, 16};
+  double lower[] = { 0.1, -15.0, -15.0 }, upper[] = { 1.0, 15.0, 15.0 };
+  int cells[] = { 2, 16, 16 };
   int vdim = 2, cdim = 1;
   int ndim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1], lower[2]}, velUpper[] = {upper[1], upper[2]};
-  int confCells[] = {cells[0]};
-  int velCells[] = {cells[1], cells[2]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  double velLower[] = { lower[1], lower[2] }, velUpper[] = { upper[1], upper[2] };
+  int confCells[] = { cells[0] };
+  int velCells[] = { cells[1], cells[2] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -406,7 +400,7 @@ test_1x2v(int poly_order)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0, 0};
+  int velGhost[] = { 0, 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -416,11 +410,11 @@ test_1x2v(int poly_order)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0, 0};
+  int ghost[] = { confGhost[0], 0, 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -460,8 +454,7 @@ test_1x2v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
-    .phase_grid = &grid,
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = { .phase_grid = &grid,
     .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
     .vel_basis = &velBasis,
@@ -473,20 +466,19 @@ test_1x2v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false,
-  };
+    .use_gpu = false };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p2_vals[] = {1.6408879023240103e-01, -1.3576896184824113e-17, -9.8151809581183153e-03,
+  double p2_vals[] = { 1.6408879023240103e-01, -1.3576896184824113e-17, -9.8151809581183153e-03,
     -2.9682559802577287e-02, 1.2829937358239629e-18, 3.8215290052990313e-19, 8.6596866231148772e-03,
     -2.9507573862413946e-18, -9.7332674540940786e-03, -7.2599184095971433e-03,
     6.4445077190172000e-19, 1.4972406793044089e-17, 1.6202061433993536e-20, 1.0653781194370923e-17,
     1.7475225696783907e-03, -5.7723245596542925e-19, -4.1851388419497057e-04,
-    -4.9153245858838362e-19, 5.5404332026569672e-19, 5.9845689181369784e-19};
+    -4.9153245858838362e-19, 5.5404332026569672e-19, 5.9845689181369784e-19 };
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){1, 9, 9}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){ 1, 9, 9 }));
 
   if (poly_order == 2) {
     for (int i = 0; i < basis.num_basis; ++i) {
@@ -523,15 +515,16 @@ test_proj_mj_on_basis_1x2v_p2_ho()
 void
 test_1x3v(int poly_order)
 {
-  double lower[] = {0.1, -15.0, -15.0, -15.0}, upper[] = {1.0, 15.0, 15.0, 15.0};
-  int cells[] = {2, 16, 16, 16};
+  double lower[] = { 0.1, -15.0, -15.0, -15.0 }, upper[] = { 1.0, 15.0, 15.0, 15.0 };
+  int cells[] = { 2, 16, 16, 16 };
   int vdim = 3, cdim = 1;
   int ndim = cdim + vdim;
 
-  double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1], lower[2], lower[3]}, velUpper[] = {upper[1], upper[2], upper[3]};
-  int confCells[] = {cells[0]};
-  int velCells[] = {cells[1], cells[2], cells[3]};
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  double velLower[] = { lower[1], lower[2], lower[3] },
+         velUpper[] = { upper[1], upper[2], upper[3] };
+  int confCells[] = { cells[0] };
+  int velCells[] = { cells[1], cells[2], cells[3] };
 
   // grids
   struct gkyl_rect_grid grid;
@@ -542,7 +535,7 @@ test_1x3v(int poly_order)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0, 0, 0};
+  int velGhost[] = { 0, 0, 0 };
   struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -552,11 +545,11 @@ test_1x3v(int poly_order)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0, 0, 0};
+  int ghost[] = { confGhost[0], 0, 0, 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -596,8 +589,7 @@ test_1x3v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
-    .phase_grid = &grid,
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = { .phase_grid = &grid,
     .vel_grid = &vel_grid,
     .conf_basis = &confBasis,
     .vel_basis = &velBasis,
@@ -609,13 +601,12 @@ test_1x3v(int poly_order)
     .gamma = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
-    .use_gpu = false,
-  };
+    .use_gpu = false };
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 9, 9, 9) [remember, lower-left index is (1,1,1,1)]
-  double p2_vals[] = {2.2004825355599965e-02, 7.1324343268494727e-19, -1.2968205139278119e-03,
+  double p2_vals[] = { 2.2004825355599965e-02, 7.1324343268494727e-19, -1.2968205139278119e-03,
     -3.9683045523914544e-03, -1.1492140196787010e-02, 2.0065506128885464e-19,
     2.6863348725598927e-19, 1.0399887120789773e-03, 6.2237804549528725e-19, 1.2878059167286534e-03,
     2.6451147610928889e-03, -6.3077058326192259e-18, -1.3820826308538342e-03,
@@ -629,9 +620,9 @@ test_1x3v(int poly_order)
     2.4164727245648497e-19, -1.7030071204748659e-18, -1.4254568013549241e-04,
     1.2495807446563311e-19, 3.8839940617297632e-05, -5.3617945589348144e-20,
     -4.8911545428669850e-20, 2.5014295050500632e-04, 2.0619708529882749e-19,
-    -6.1276211233163564e-20, -6.5891739087463357e-20, -1.0199525829477060e-19};
+    -6.1276211233163564e-20, -6.5891739087463357e-20, -1.0199525829477060e-19 };
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){1, 9, 9, 9}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){ 1, 9, 9, 9 }));
 
   if (poly_order == 2) {
     for (int i = 0; i < basis.num_basis; ++i) {
@@ -665,10 +656,8 @@ test_proj_mj_on_basis_1x3v_p2_ho()
   test_1x3v(2);
 }
 
-TEST_LIST = {
-  {"test_proj_mj_on_basis_1x1v_no_drift_p2_ho", test_proj_mj_on_basis_1x1v_no_drift_p2_ho},
-  {"test_proj_mj_on_basis_1x1v_p2_ho", test_proj_mj_on_basis_1x1v_p2_ho},
-  {"test_proj_mj_on_basis_1x2v_p2_ho", test_proj_mj_on_basis_1x2v_p2_ho},
-  {"test_proj_mj_on_basis_1x3v_p2_ho", test_proj_mj_on_basis_1x3v_p2_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_proj_mj_on_basis_1x1v_no_drift_p2_ho",
+                test_proj_mj_on_basis_1x1v_no_drift_p2_ho },
+  { "test_proj_mj_on_basis_1x1v_p2_ho", test_proj_mj_on_basis_1x1v_p2_ho },
+  { "test_proj_mj_on_basis_1x2v_p2_ho", test_proj_mj_on_basis_1x2v_p2_ho },
+  { "test_proj_mj_on_basis_1x3v_p2_ho", test_proj_mj_on_basis_1x3v_p2_ho }, { NULL, NULL } };

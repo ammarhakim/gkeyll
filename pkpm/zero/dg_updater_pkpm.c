@@ -75,10 +75,8 @@ gkyl_dg_updater_pkpm_advance(gkyl_dg_updater_pkpm *pkpm, const struct gkyl_range
 struct gkyl_dg_updater_pkpm_tm
 gkyl_dg_updater_pkpm_get_tm(const gkyl_dg_updater_pkpm *pkpm)
 {
-  return (struct gkyl_dg_updater_pkpm_tm){
-    .vlasov_tm = pkpm->vlasov_tm,
-    .fluid_tm = pkpm->fluid_tm,
-  };
+  return (
+    struct gkyl_dg_updater_pkpm_tm){ .vlasov_tm = pkpm->vlasov_tm, .fluid_tm = pkpm->fluid_tm };
 }
 
 void

@@ -99,7 +99,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   struct gkyl_dg_eqn *eqn;
   eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
 
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2 * GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
+  int up_dirs[GKYL_MAX_DIM] = { 0, 1, 2 }, zero_flux_flags[2 * GKYL_MAX_DIM] = { 0, 0, 0, 0, 0, 0 };
 
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(
@@ -117,7 +117,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   gkyl_wv_eqn_release(maxwell);
 
   // determine which directions are not periodic
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = { 1, 1, 1 };
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np[app->periodic_dirs[d]] = 0;
 
@@ -351,7 +351,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
   gkyl_comm_array_per_sync(
     app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, f);
 
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
 
@@ -395,7 +395,7 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
     gkyl_dg_calc_l2_range(&app->confBasis, i, field->em_energy, i, field->em, app->local);
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &app->local);
 
-  double energy[6] = {0.0};
+  double energy[6] = { 0.0 };
   if (app->use_gpu) {
     gkyl_array_reduce_range(field->em_energy_red, field->em_energy, GKYL_SUM, &app->local);
     gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
@@ -403,7 +403,7 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
     gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, &app->local);
   }
 
-  double energy_global[6] = {0.0};
+  double energy_global[6] = { 0.0 };
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
 
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);

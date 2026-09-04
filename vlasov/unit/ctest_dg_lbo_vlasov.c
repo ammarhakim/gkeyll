@@ -64,10 +64,10 @@ test_dg_lbo_vlasov_1x1v_p2_ho()
   int cdim = 1, vdim = 1;
   int pdim = cdim + vdim;
 
-  int cells[] = {2, 4};
-  int ghost[] = {0, 0};
-  double lower[] = {0., -1.};
-  double upper[] = {1., 1.};
+  int cells[] = { 2, 4 };
+  int ghost[] = { 0, 0 };
+  double lower[] = { 0., -1. };
+  double upper[] = { 1., 1. };
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -111,15 +111,15 @@ test_dg_lbo_vlasov_1x1v_p2_ho()
   gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuVtSqSum, vdim * confBasis.num_basis);
 
   // initialize hyper_dg slvr
-  int up_dirs[] = {1};
-  int zero_flux_flags[] = {1};
+  int up_dirs[] = { 1 };
+  int zero_flux_flags[] = { 1 };
 
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
-  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = {
-    .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum};
-  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = {
-    .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum};
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum,
+    .nuPrimMomsSum = nuPrimMomsSum };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum,
+    .nuPrimMomsSum = nuPrimMomsSum };
   slvr = gkyl_dg_updater_lbo_vlasov_new(
     &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, false);
 
@@ -133,7 +133,7 @@ test_dg_lbo_vlasov_1x1v_p2_ho()
 
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx[] = {1, 1, 1, 1, 1};
+  int idx[] = { 1, 1, 1, 1, 1 };
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -149,8 +149,8 @@ test_dg_lbo_vlasov_1x1v_p2_ho()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {1, 1};
-  int idx2[] = {2, 3};
+  int idx1[] = { 1, 1 };
+  int idx2[] = { 2, 3 };
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -190,10 +190,10 @@ test_dg_lbo_vlasov_1x2v_p2_ho()
   int cdim = 1, vdim = 2;
   int pdim = cdim + vdim;
 
-  int cells[] = {24, 12, 12};
-  int ghost[] = {0, 0, 0};
-  double lower[] = {0., -1., -1.};
-  double upper[] = {1., 1., 1.};
+  int cells[] = { 24, 12, 12 };
+  int ghost[] = { 0, 0, 0 };
+  double lower[] = { 0., -1., -1. };
+  double upper[] = { 1., 1., 1. };
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -237,15 +237,15 @@ test_dg_lbo_vlasov_1x2v_p2_ho()
   gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuVtSqSum, vdim * confBasis.num_basis);
 
   // initialize hyper_dg slvr
-  int up_dirs[] = {1, 2};
-  int zero_flux_flags[] = {1, 1};
+  int up_dirs[] = { 1, 2 };
+  int zero_flux_flags[] = { 1, 1 };
 
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
-  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = {
-    .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum};
-  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = {
-    .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum};
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum,
+    .nuPrimMomsSum = nuPrimMomsSum };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum,
+    .nuPrimMomsSum = nuPrimMomsSum };
   slvr = gkyl_dg_updater_lbo_vlasov_new(
     &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, false);
 
@@ -260,7 +260,7 @@ test_dg_lbo_vlasov_1x2v_p2_ho()
 
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx[] = {1, 1, 1, 1, 1};
+  int idx[] = { 1, 1, 1, 1, 1 };
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -276,8 +276,8 @@ test_dg_lbo_vlasov_1x2v_p2_ho()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {1, 1, 1};
-  int idx2[] = {3, 3, 3};
+  int idx1[] = { 1, 1, 1 };
+  int idx2[] = { 3, 3, 3 };
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -343,10 +343,10 @@ test_dg_lbo_vlasov_1x1v_p2_dev()
   int cdim = 1, vdim = 1;
   int pdim = cdim + vdim;
 
-  int cells[] = {2, 4};
-  int ghost[] = {0, 0};
-  double lower[] = {0., -1.};
-  double upper[] = {1., 1.};
+  int cells[] = { 2, 4 };
+  int ghost[] = { 0, 0 };
+  double lower[] = { 0., -1. };
+  double upper[] = { 1., 1. };
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -397,15 +397,15 @@ test_dg_lbo_vlasov_1x1v_p2_dev()
   gkyl_array_copy(nuSum_cu, nuSum);
 
   // initialize hyper_dg slvr
-  int up_dirs[] = {1};
-  int zero_flux_flags[] = {1};
+  int up_dirs[] = { 1 };
+  int zero_flux_flags[] = { 1 };
 
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
-  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = {
-    .nuSum = nuSum_cu, .nuPrimMomsSum = nuPrimMomsSum_cu};
-  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = {
-    .nuSum = nuSum_cu, .nuPrimMomsSum = nuPrimMomsSum_cu};
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum_cu,
+    .nuPrimMomsSum = nuPrimMomsSum_cu };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum_cu,
+    .nuPrimMomsSum = nuPrimMomsSum_cu };
   slvr = gkyl_dg_updater_lbo_vlasov_new(
     &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
 
@@ -420,7 +420,7 @@ test_dg_lbo_vlasov_1x1v_p2_dev()
 
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx[] = {1, 1, 1, 1, 1};
+  int idx[] = { 1, 1, 1, 1, 1 };
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -436,8 +436,8 @@ test_dg_lbo_vlasov_1x1v_p2_dev()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {1, 1};
-  int idx2[] = {2, 3};
+  int idx1[] = { 1, 1 };
+  int idx2[] = { 2, 3 };
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -480,10 +480,10 @@ test_dg_lbo_vlasov_1x2v_p2_dev()
   int cdim = 1, vdim = 2;
   int pdim = cdim + vdim;
 
-  int cells[] = {24, 12, 12};
-  int ghost[] = {0, 0, 0};
-  double lower[] = {0., -1., -1.};
-  double upper[] = {1., 1., 1.};
+  int cells[] = { 24, 12, 12 };
+  int ghost[] = { 0, 0, 0 };
+  double lower[] = { 0., -1., -1. };
+  double upper[] = { 1., 1., 1. };
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -534,15 +534,15 @@ test_dg_lbo_vlasov_1x2v_p2_dev()
   gkyl_array_set_offset(nuPrimMomsSum_cu, 1.0, nuVtSqSum_cu, vdim * confBasis.num_basis);
 
   // initialize hyper_dg slvr
-  int up_dirs[] = {1, 2};
-  int zero_flux_flags[] = {1, 1};
+  int up_dirs[] = { 1, 2 };
+  int zero_flux_flags[] = { 1, 1 };
 
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
-  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = {
-    .nuSum = nuSum_cu, .nuPrimMomsSum = nuPrimMomsSum_cu};
-  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = {
-    .nuSum = nuSum_cu, .nuPrimMomsSum = nuPrimMomsSum_cu};
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum_cu,
+    .nuPrimMomsSum = nuPrimMomsSum_cu };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum_cu,
+    .nuPrimMomsSum = nuPrimMomsSum_cu };
   slvr = gkyl_dg_updater_lbo_vlasov_new(
     &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
 
@@ -558,7 +558,7 @@ test_dg_lbo_vlasov_1x2v_p2_dev()
 
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
-  int idx[] = {1, 1, 1, 1, 1};
+  int idx[] = { 1, 1, 1, 1, 1 };
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   // check that ghost cells are empty
@@ -574,8 +574,8 @@ test_dg_lbo_vlasov_1x2v_p2_dev()
   TEST_CHECK(i == linl);
 
   // get linear index of some other cell
-  int idx1[] = {1, 1, 1};
-  int idx2[] = {3, 3, 3};
+  int idx1[] = { 1, 1, 1 };
+  int idx2[] = { 3, 3, 3 };
   int linl1 = gkyl_range_idx(&phaseRange, idx1);
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d1 = gkyl_array_fetch(rhs, linl1);
@@ -636,12 +636,10 @@ test_dg_lbo_vlasov_1x2v_p2_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_dg_lbo_vlasov_1x1v_p2_ho", test_dg_lbo_vlasov_1x1v_p2_ho},
-  {"test_dg_lbo_vlasov_1x2v_p2_ho", test_dg_lbo_vlasov_1x2v_p2_ho},
+TEST_LIST = { { "test_dg_lbo_vlasov_1x1v_p2_ho", test_dg_lbo_vlasov_1x1v_p2_ho },
+  { "test_dg_lbo_vlasov_1x2v_p2_ho", test_dg_lbo_vlasov_1x2v_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_dg_lbo_vlasov_1x1v_p2_dev", test_dg_lbo_vlasov_1x1v_p2_dev},
-  {"test_dg_lbo_vlasov_1x2v_p2_dev", test_dg_lbo_vlasov_1x2v_p2_dev},
+  { "test_dg_lbo_vlasov_1x1v_p2_dev", test_dg_lbo_vlasov_1x1v_p2_dev },
+  { "test_dg_lbo_vlasov_1x2v_p2_dev", test_dg_lbo_vlasov_1x2v_p2_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

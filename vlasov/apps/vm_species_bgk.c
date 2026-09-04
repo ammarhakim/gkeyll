@@ -45,10 +45,10 @@ vm_species_bgk_init(
   }
 
   // Allocate everything needed to make f_lte
-  struct correct_all_moms_inp corr_inp = {.correct_all_moms = s->info.collisions.correct_all_moms,
+  struct correct_all_moms_inp corr_inp = { .correct_all_moms = s->info.collisions.correct_all_moms,
     .max_iter = s->info.collisions.max_iter,
     .iter_eps = s->info.collisions.iter_eps,
-    .use_last_converged = s->info.collisions.use_last_converged};
+    .use_last_converged = s->info.collisions.use_last_converged };
   vm_species_lte_init(app, s, &bgk->lte, corr_inp);
 
   // Is the temperature being relaxed to fixed in time?

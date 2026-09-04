@@ -88,7 +88,7 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species, st
   if (src->calc_bflux) {
     src->scale_factor = 0.0;
     double z[app->confBasis.num_basis];
-    double red_mom[1] = {0.0};
+    double red_mom[1] = { 0.0 };
 
     for (int d = 0; d < app->cdim; ++d) {
       gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2 * d], GKYL_SUM);
@@ -97,7 +97,7 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species, st
       } else {
         red_mom[0] = src->scale_ptr[0];
       }
-      double red_mom_global[1] = {0.0};
+      double red_mom_global[1] = { 0.0 };
       gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, red_mom, red_mom_global);
       src->scale_factor += red_mom_global[0];
       gkyl_array_reduce(src->scale_ptr, src->source_species->bflux.mom_arr[2 * d + 1], GKYL_SUM);

@@ -255,10 +255,8 @@ gkyl_burgers_free(const struct gkyl_ref_count *ref)
 struct gkyl_wv_eqn *
 gkyl_wv_burgers_new(bool use_gpu)
 {
-  return gkyl_wv_burgers_inew(&(struct gkyl_wv_burgers_inp){
-    .rp_type = WV_BURGERS_RP_ROE,
-    .use_gpu = use_gpu,
-  });
+  return gkyl_wv_burgers_inew(
+    &(struct gkyl_wv_burgers_inp){ .rp_type = WV_BURGERS_RP_ROE, .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

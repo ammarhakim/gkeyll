@@ -147,8 +147,8 @@ check_dot_product_1d(const double *fv1_d, const double *gv1_d, const double *fvd
 void
 test_1d(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0}, upper[] = {1.0};
-  int cells[] = {2};
+  double lower[] = { 0.0 }, upper[] = { 1.0 };
+  int cells[] = { 2 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -173,7 +173,7 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 3, gv3_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -472,8 +472,8 @@ test_1d(int poly_order, bool use_gpu)
 void
 test_inv_1d(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0}, upper[] = {1.0};
-  int cells[] = {2};
+  double lower[] = { 0.0 }, upper[] = { 1.0 };
+  int cells[] = { 2 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -487,7 +487,7 @@ test_inv_1d(int poly_order, bool use_gpu)
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, f_1d, NULL);
 
   // Create array range.
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
@@ -943,8 +943,8 @@ check_dot_product_2d(const double *fv2_d, const double *gv2_d, const double *fvd
 void
 test_2d(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
-  int cells[] = {2, 2};
+  double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 2, 2 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -969,7 +969,7 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 3, gv3_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -993,8 +993,8 @@ test_2d(int poly_order, bool use_gpu)
   }
 
   // create conf-space grid:
-  double clower[] = {lower[0]}, cupper[] = {upper[0]};
-  int ccells[] = {cells[0]};
+  double clower[] = { lower[0] }, cupper[] = { upper[0] };
+  int ccells[] = { cells[0] };
   int cdim = sizeof(clower) / sizeof(clower[0]);
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, cdim, clower, cupper, ccells);
@@ -1371,8 +1371,8 @@ test_2d(int poly_order, bool use_gpu)
 void
 test_inv_2d(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0, 0.0}, upper[] = {1.0, 1.0};
-  int cells[] = {2, 2};
+  double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 2, 2 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -1386,7 +1386,7 @@ test_inv_2d(int poly_order, bool use_gpu)
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, f_2d, NULL);
 
   // Create array range.
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
@@ -1691,8 +1691,8 @@ check_dot_product_3d(
 void
 test_3d(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
-  int cells[] = {2, 2, 2};
+  double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
+  int cells[] = { 2, 2, 2 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -1713,7 +1713,7 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 3, gv3_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -1737,8 +1737,8 @@ test_3d(int poly_order, bool use_gpu)
   }
 
   // create conf-space grid:
-  double clower[] = {lower[0]}, cupper[] = {upper[0]};
-  int ccells[] = {cells[0]};
+  double clower[] = { lower[0] }, cupper[] = { upper[0] };
+  int ccells[] = { cells[0] };
   int cdim = sizeof(clower) / sizeof(clower[0]);
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, cdim, clower, cupper, ccells);
@@ -2232,8 +2232,8 @@ f_4d(double t, const double *xn, double *restrict fout, void *ctx)
 void
 test_4d(int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0, 0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0, 1.0};
-  int cells[] = {2, 2, 2, 2};
+  double lower[] = { 0.0, 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0, 1.0 };
+  int cells[] = { 2, 2, 2, 2 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -2247,7 +2247,7 @@ test_4d(int poly_order, bool use_gpu)
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, f_4d, NULL);
 
   // create array range: no ghost-cells in velocity space
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -2267,8 +2267,8 @@ test_4d(int poly_order, bool use_gpu)
   }
 
   // create conf-space grid:
-  double clower[] = {lower[0], lower[1]}, cupper[] = {upper[0], upper[1]};
-  int ccells[] = {cells[0], cells[1]};
+  double clower[] = { lower[0], lower[1] }, cupper[] = { upper[0], upper[1] };
+  int ccells[] = { cells[0], cells[1] };
   int cdim = sizeof(clower) / sizeof(clower[0]);
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, cdim, clower, cupper, ccells);
@@ -2779,8 +2779,8 @@ void
 test_bin_ops_3d_p3_ho()
 {
   int poly_order = 3;
-  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
-  int cells[] = {2, 2, 2};
+  double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
+  int cells[] = { 2, 2, 2 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -2794,7 +2794,7 @@ test_bin_ops_3d_p3_ho()
   struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -2907,13 +2907,13 @@ test_subspace_accumulate(int poly_order, bool use_gpu)
 {
   // Main dimension
   int dim = 3;
-  double lower[] = {0.0, -M_PI / 2.0, -M_PI / 2.0};
-  double upper[] = {M_PI, M_PI / 2.0, M_PI / 2.0};
-  int cells[] = {8, 4, 4};
+  double lower[] = { 0.0, -M_PI / 2.0, -M_PI / 2.0 };
+  double upper[] = { M_PI, M_PI / 2.0, M_PI / 2.0 };
+  int cells[] = { 8, 4, 4 };
   // Sub dimension: 1D, x in [0, pi]
   int subdim = 1;
-  double sublower[] = {0.0}, subupper[] = {M_PI};
-  int ccells[] = {8};
+  double sublower[] = { 0.0 }, subupper[] = { M_PI };
+  int ccells[] = { 8 };
 
   // grids
   struct gkyl_rect_grid fullgrid, subgrid;
@@ -2926,7 +2926,7 @@ test_subspace_accumulate(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&subbasis, subdim, poly_order);
 
   // ranges (no ghost cells)
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&fullgrid, nghost, &local_ext, &local);
 
@@ -3082,8 +3082,8 @@ void
 test_bin_ops_3d_p3_dev()
 {
   int poly_order = 3;
-  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
-  int cells[] = {2, 2, 2};
+  double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
+  int cells[] = { 2, 2, 2 };
   int ndim = sizeof(lower) / sizeof(lower[0]);
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -3097,7 +3097,7 @@ test_bin_ops_3d_p3_dev()
   struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
-  int nghost[GKYL_MAX_DIM] = {0};
+  int nghost[GKYL_MAX_DIM] = { 0 };
   struct gkyl_range arr_range, arr_ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &arr_ext_range, &arr_range);
 
@@ -3213,40 +3213,38 @@ test_bin_ops_conf_phase_accumulate_subtract_p2_dev()
 
 #endif
 
-TEST_LIST = {
-  {"test_bin_ops_1d_p1_ho", test_bin_ops_1d_p1_ho},
-  {"test_bin_ops_inv_1d_p1_ho", test_bin_ops_inv_1d_p1_ho},
-  {"test_bin_ops_1d_p2_ho", test_bin_ops_1d_p2_ho},
-  {"test_bin_ops_1d_p3_ho", test_bin_ops_1d_p3_ho},
-  {"test_bin_ops_2d_p1_ho", test_bin_ops_2d_p1_ho},
-  {"test_bin_ops_inv_2d_p1_ho", test_bin_ops_inv_2d_p1_ho},
-  {"test_bin_ops_2d_p2_ho", test_bin_ops_2d_p2_ho},
-  {"test_bin_ops_2d_p3_ho", test_bin_ops_2d_p3_ho},
-  {"test_bin_ops_3d_p1_ho", test_bin_ops_3d_p1_ho},
-  {"test_bin_ops_3d_p2_ho", test_bin_ops_3d_p2_ho},
-  {"test_bin_ops_3d_p3_ho", test_bin_ops_3d_p3_ho},
-  {"test_bin_ops_4d_p1_ho", test_bin_ops_4d_p1_ho},
-  {"test_bin_ops_4d_p2_ho", test_bin_ops_4d_p2_ho},
-  {"test_bin_ops_conf_phase_accumulate_subtract_p1_ho",
-    test_bin_ops_conf_phase_accumulate_subtract_p1_ho},
-  {"test_bin_ops_conf_phase_accumulate_subtract_p2_ho",
-    test_bin_ops_conf_phase_accumulate_subtract_p2_ho},
+TEST_LIST = { { "test_bin_ops_1d_p1_ho", test_bin_ops_1d_p1_ho },
+  { "test_bin_ops_inv_1d_p1_ho", test_bin_ops_inv_1d_p1_ho },
+  { "test_bin_ops_1d_p2_ho", test_bin_ops_1d_p2_ho },
+  { "test_bin_ops_1d_p3_ho", test_bin_ops_1d_p3_ho },
+  { "test_bin_ops_2d_p1_ho", test_bin_ops_2d_p1_ho },
+  { "test_bin_ops_inv_2d_p1_ho", test_bin_ops_inv_2d_p1_ho },
+  { "test_bin_ops_2d_p2_ho", test_bin_ops_2d_p2_ho },
+  { "test_bin_ops_2d_p3_ho", test_bin_ops_2d_p3_ho },
+  { "test_bin_ops_3d_p1_ho", test_bin_ops_3d_p1_ho },
+  { "test_bin_ops_3d_p2_ho", test_bin_ops_3d_p2_ho },
+  { "test_bin_ops_3d_p3_ho", test_bin_ops_3d_p3_ho },
+  { "test_bin_ops_4d_p1_ho", test_bin_ops_4d_p1_ho },
+  { "test_bin_ops_4d_p2_ho", test_bin_ops_4d_p2_ho },
+  { "test_bin_ops_conf_phase_accumulate_subtract_p1_ho",
+    test_bin_ops_conf_phase_accumulate_subtract_p1_ho },
+  { "test_bin_ops_conf_phase_accumulate_subtract_p2_ho",
+    test_bin_ops_conf_phase_accumulate_subtract_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_bin_ops_1d_p1_dev", test_bin_ops_1d_p1_dev},
-  {"test_bin_ops_inv_1d_p1_dev", test_bin_ops_inv_1d_p1_dev},
-  {"test_bin_ops_1d_p2_dev", test_bin_ops_1d_p2_dev},
-  {"test_bin_ops_1d_p3_dev", test_bin_ops_1d_p3_dev},
-  {"test_bin_ops_2d_p1_dev", test_bin_ops_2d_p1_dev},
-  {"test_bin_ops_inv_2d_p1_dev", test_bin_ops_inv_2d_p1_dev},
-  {"test_bin_ops_2d_p2_dev", test_bin_ops_2d_p2_dev},
-  {"test_bin_ops_2d_p3_dev", test_bin_ops_2d_p3_dev},
-  {"test_bin_ops_3d_p1_dev", test_bin_ops_3d_p1_dev},
-  {"test_bin_ops_3d_p2_dev", test_bin_ops_3d_p2_dev},
-  {"test_bin_ops_3d_p3_dev", test_bin_ops_3d_p3_dev},
-  {"test_bin_ops_conf_phase_accumulate_subtract_p1_dev",
-    test_bin_ops_conf_phase_accumulate_subtract_p1_dev},
-  {"test_bin_ops_conf_phase_accumulate_subtract_p2_dev",
-    test_bin_ops_conf_phase_accumulate_subtract_p2_dev},
+  { "test_bin_ops_1d_p1_dev", test_bin_ops_1d_p1_dev },
+  { "test_bin_ops_inv_1d_p1_dev", test_bin_ops_inv_1d_p1_dev },
+  { "test_bin_ops_1d_p2_dev", test_bin_ops_1d_p2_dev },
+  { "test_bin_ops_1d_p3_dev", test_bin_ops_1d_p3_dev },
+  { "test_bin_ops_2d_p1_dev", test_bin_ops_2d_p1_dev },
+  { "test_bin_ops_inv_2d_p1_dev", test_bin_ops_inv_2d_p1_dev },
+  { "test_bin_ops_2d_p2_dev", test_bin_ops_2d_p2_dev },
+  { "test_bin_ops_2d_p3_dev", test_bin_ops_2d_p3_dev },
+  { "test_bin_ops_3d_p1_dev", test_bin_ops_3d_p1_dev },
+  { "test_bin_ops_3d_p2_dev", test_bin_ops_3d_p2_dev },
+  { "test_bin_ops_3d_p3_dev", test_bin_ops_3d_p3_dev },
+  { "test_bin_ops_conf_phase_accumulate_subtract_p1_dev",
+    test_bin_ops_conf_phase_accumulate_subtract_p1_dev },
+  { "test_bin_ops_conf_phase_accumulate_subtract_p2_dev",
+    test_bin_ops_conf_phase_accumulate_subtract_p2_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

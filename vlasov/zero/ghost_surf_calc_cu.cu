@@ -47,7 +47,7 @@ gkyl_ghost_surf_calc_advance_cu(struct gkyl_ghost_surf_calc *gcalc,
   struct gkyl_range edge_rng;
   int nblocks, nthreads;
   int edge;
-  int clower_idx[GKYL_MAX_DIM], cupper_idx[GKYL_MAX_DIM] = {0};
+  int clower_idx[GKYL_MAX_DIM], cupper_idx[GKYL_MAX_DIM] = { 0 };
   for (int dim = 0; dim < phase_rng->ndim; ++dim) {
     clower_idx[dim] = phase_rng->lower[dim];
     cupper_idx[dim] = phase_rng->upper[dim];

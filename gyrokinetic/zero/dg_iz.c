@@ -66,12 +66,12 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   }
 
   struct gkyl_range range_nodal;
-  gkyl_range_init_from_shape(&range_nodal, 2, (int[]){data.NT, data.NN});
+  gkyl_range_init_from_shape(&range_nodal, 2, (int[]){ data.NT, data.NN });
 
   // Allocate grid and DG array.
   struct gkyl_rect_grid tn_grid;
-  gkyl_rect_grid_init(&tn_grid, 2, (double[]){logTmin, logNmin}, (double[]){logTmax, logNmax},
-    (int[]){data.NT - 1, data.NN - 1});
+  gkyl_rect_grid_init(&tn_grid, 2, (double[]){ logTmin, logNmin }, (double[]){ logTmax, logNmax },
+    (int[]){ data.NT - 1, data.NN - 1 });
 
   if (use_gpu) {
     // Allocate device basis if we are using GPUs.
@@ -83,7 +83,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   if (use_gpu)
     gkyl_cart_modal_serendip_cu_dev(up->basis_on_dev, 2, 1);
 
-  int ghost[GKYL_MAX_DIM] = {1, 1};
+  int ghost[GKYL_MAX_DIM] = { 1, 1 };
   struct gkyl_range modal_range;
   struct gkyl_range modal_range_ext;
   gkyl_create_grid_ranges(&tn_grid, ghost, &modal_range_ext, &modal_range);
@@ -136,7 +136,7 @@ gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *prim_vars_
 #endif
 
   struct gkyl_range_iter conf_iter, vel_iter;
-  int rem_dir[GKYL_MAX_DIM] = {0};
+  int rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < up->conf_rng->ndim; ++d)
     rem_dir[d] = 1;
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
@@ -187,7 +187,7 @@ gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *prim_vars_
       coef_iz_d[0] = 0.0;
     } else {
       double *iz_dat_d =
-        gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]){t_idx, m0_idx}));
+        gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]){ t_idx, m0_idx }));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0, adas_eval) / cell_av_fac;
 

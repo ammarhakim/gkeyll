@@ -15,7 +15,7 @@ extern "C" {
 static int
 v_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 {
-  int m3ijk_count[] = {1, 4, 10};
+  int m3ijk_count[] = { 1, 4, 10 };
   int num_mom = 0;
 
   switch (mom_type) {
@@ -54,7 +54,7 @@ __global__ static void
 set_cu_ptrs(struct mom_type_vlasov *momt, enum gkyl_distribution_moments mom_type,
   enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
 {
-  int m3ijk_count[] = {1, 4, 10};
+  int m3ijk_count[] = { 1, 4, 10 };
 
   momt->momt.kernel = kernel;
 

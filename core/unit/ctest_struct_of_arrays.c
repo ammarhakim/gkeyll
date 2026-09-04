@@ -540,14 +540,12 @@ test_array_bag_accumulate_dev()
 
 #endif
 
-TEST_LIST = {
-  {"array_container_accumulate_ho", test_array_container_accumulate_ho},
-  {"container_pack_accumulate_ho", test_container_pack_accumulate_ho},
-  {"array_bag_accumulate_ho", test_array_bag_accumulate_ho},
+TEST_LIST = { { "array_container_accumulate_ho", test_array_container_accumulate_ho },
+  { "container_pack_accumulate_ho", test_container_pack_accumulate_ho },
+  { "array_bag_accumulate_ho", test_array_bag_accumulate_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"array_container_accumulate_dev", test_array_container_accumulate_dev},
-  {"container_pack_accumulate_dev", test_container_pack_accumulate_dev},
-  {"array_bag_accumulate_dev", test_array_bag_accumulate_dev},
+  { "array_container_accumulate_dev", test_array_container_accumulate_dev },
+  { "container_pack_accumulate_dev", test_container_pack_accumulate_dev },
+  { "array_bag_accumulate_dev", test_array_bag_accumulate_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

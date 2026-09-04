@@ -45,7 +45,7 @@ test_vmap_1x2v_p1_mapc2p_vel_mu(double t, const double *zc, double *GKYL_RESTRIC
 void
 test_vmap_1x2v_p1_mapc2p_vel(double t, const double *zc, double *GKYL_RESTRICT vp, void *ctx)
 {
-  double vparc[] = {zc[0]}, muc[] = {zc[1]};
+  double vparc[] = { zc[0] }, muc[] = { zc[1] };
   double vparp[1], mup[1];
   test_vmap_1x2v_p1_mapc2p_vel_vpar(t, vparc, vparp, ctx);
   test_vmap_1x2v_p1_mapc2p_vel_mu(t, muc, mup, ctx);
@@ -58,8 +58,8 @@ void
 test_vmap_1x2v_p1(bool use_gpu)
 {
   int poly_order = 1;
-  double lower[] = {-M_PI, -1.0, 0.0}, upper[] = {M_PI, 1.0, 1.0};
-  int cells[] = {2, 12, 6};
+  double lower[] = { -M_PI, -1.0, 0.0 }, upper[] = { M_PI, 1.0, 1.0 };
+  int cells[] = { 2, 12, 6 };
   int vdim = 2;
   int pdim = sizeof(lower) / sizeof(lower[0]);
   int cdim = pdim - vdim;
@@ -109,10 +109,7 @@ test_vmap_1x2v_p1(bool use_gpu)
   struct gkyl_range local_vel, local_ext_vel; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_ext_vel, &local_vel);
 
-  struct gkyl_mapc2p_inp c2p_in = {
-    .mapping = test_vmap_1x2v_p1_mapc2p_vel,
-    .ctx = NULL,
-  };
+  struct gkyl_mapc2p_inp c2p_in = { .mapping = test_vmap_1x2v_p1_mapc2p_vel, .ctx = NULL };
 
   // Velocity space mapping.
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
@@ -145,7 +142,7 @@ test_vmap_1x2v_p1(bool use_gpu)
 
   gkyl_range_iter_init(&iter, &local_vel);
   while (gkyl_range_iter_next(&iter)) {
-    int idx_ref[] = {iter.idx[0]};
+    int idx_ref[] = { iter.idx[0] };
     long loc = gkyl_range_idx(&local_vel, iter.idx);
     long loc_ref = gkyl_range_idx(&local_ref, idx_ref);
     double *vm = gkyl_array_fetch(vmap_ho, loc);
@@ -172,7 +169,7 @@ test_vmap_1x2v_p1(bool use_gpu)
 
   gkyl_range_iter_init(&iter, &local_vel);
   while (gkyl_range_iter_next(&iter)) {
-    int idx_ref[] = {iter.idx[1]};
+    int idx_ref[] = { iter.idx[1] };
     long loc = gkyl_range_idx(&local_vel, iter.idx);
     long loc_ref = gkyl_range_idx(&local_ref, idx_ref);
     double *vm = gkyl_array_fetch(vmap_ho, loc);
@@ -240,11 +237,9 @@ test_vmap_1x2v_p1_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_vmap_1x2v_p1_ho", test_vmap_1x2v_p1_ho},
+TEST_LIST = { { "test_vmap_1x2v_p1_ho", test_vmap_1x2v_p1_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  {"test_vmap_1x2v_p1_dev", test_vmap_1x2v_p1_dev},
+  { "test_vmap_1x2v_p1_dev", test_vmap_1x2v_p1_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

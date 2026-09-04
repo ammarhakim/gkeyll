@@ -6,7 +6,7 @@
 // Type of Riemann-solver to use:
 enum gkyl_wv_gr_maxwell_rp {
   WV_GR_MAXWELL_RP_ROE = 0, // Default (Roe fluxes).
-  WV_GR_MAXWELL_RP_LAX,
+  WV_GR_MAXWELL_RP_LAX
 };
 
 // Input context, packaged as a struct.

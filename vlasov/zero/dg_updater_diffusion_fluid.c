@@ -63,7 +63,7 @@ gkyl_dg_updater_diffusion_fluid_advance(struct gkyl_dg_updater_diffusion_fluid *
   struct timespec wst = gkyl_wall_clock();
   // Set arrays needed and call the specific advance method required
   gkyl_dg_diffusion_fluid_set_auxfields(
-    up->dgeqn, (struct gkyl_dg_diffusion_fluid_auxfields){.D = coeff});
+    up->dgeqn, (struct gkyl_dg_diffusion_fluid_auxfields){ .D = coeff });
   gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -71,9 +71,7 @@ gkyl_dg_updater_diffusion_fluid_advance(struct gkyl_dg_updater_diffusion_fluid *
 struct gkyl_dg_updater_diffusion_fluid_tm
 gkyl_dg_updater_diffusion_fluid_get_tm(const struct gkyl_dg_updater_diffusion_fluid *up)
 {
-  return (struct gkyl_dg_updater_diffusion_fluid_tm){
-    .diffusion_tm = up->diffusion_tm,
-  };
+  return (struct gkyl_dg_updater_diffusion_fluid_tm){ .diffusion_tm = up->diffusion_tm };
 }
 
 void

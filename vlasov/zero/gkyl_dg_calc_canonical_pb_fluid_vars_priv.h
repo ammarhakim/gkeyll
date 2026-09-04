@@ -69,158 +69,158 @@ struct gkyl_dg_calc_canonical_pb_fluid_vars {
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list
   ser_canonical_pb_fluid_alpha_surfx_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_alpha_surfx_2x_ser_p1, canonical_pb_alpha_surfx_2x_ser_p2}, // 1
+    { NULL, canonical_pb_alpha_surfx_2x_ser_p1, canonical_pb_alpha_surfx_2x_ser_p2 }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB fluid alpha upper edge of configuration space surface expansions in x (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list
   ser_canonical_pb_fluid_alpha_edge_surfx_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_alpha_edge_surfx_2x_ser_p1, canonical_pb_alpha_edge_surfx_2x_ser_p2}, // 1
+    { NULL, canonical_pb_alpha_edge_surfx_2x_ser_p1, canonical_pb_alpha_edge_surfx_2x_ser_p2 }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB fluid alpha surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list
   ser_canonical_pb_fluid_alpha_surfy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_alpha_surfy_2x_ser_p1, canonical_pb_alpha_surfy_2x_ser_p2}, // 1
+    { NULL, canonical_pb_alpha_surfy_2x_ser_p1, canonical_pb_alpha_surfy_2x_ser_p2 }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB fluid alpha upper edge of configuration space surface expansions in y (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list
   ser_canonical_pb_fluid_alpha_edge_surfy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_alpha_edge_surfy_2x_ser_p1, canonical_pb_alpha_edge_surfy_2x_ser_p2}, // 1
+    { NULL, canonical_pb_alpha_edge_surfy_2x_ser_p1, canonical_pb_alpha_edge_surfy_2x_ser_p2 }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB fluid alpha surface expansions in x (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list
   tensor_canonical_pb_fluid_alpha_surfx_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_alpha_surfx_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_alpha_surfx_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB fluid alpha upper edge of configuration space surface expansions in x (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list
   tensor_canonical_pb_fluid_alpha_edge_surfx_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_alpha_edge_surfx_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_alpha_edge_surfx_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB fluid alpha surface expansions in y (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list
   tensor_canonical_pb_fluid_alpha_surfy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_alpha_surfy_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_alpha_surfy_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB fluid alpha upper edge of configuration space surface expansions in y (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_alpha_surf_kern_list
   tensor_canonical_pb_fluid_alpha_edge_surfy_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_alpha_edge_surfy_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_alpha_edge_surfy_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB Hasegawa-Mima source update (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_source_kern_list
   ser_canonical_pb_fluid_hasegawa_mima_source_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_fluid_hasegawa_mima_source_2x_ser_p1,
-      canonical_pb_fluid_hasegawa_mima_source_2x_ser_p2}, // 1
+    { NULL, canonical_pb_fluid_hasegawa_mima_source_2x_ser_p1,
+      canonical_pb_fluid_hasegawa_mima_source_2x_ser_p2 }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB Hasegawa-Mima source update (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_source_kern_list
   tensor_canonical_pb_fluid_hasegawa_mima_source_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_fluid_hasegawa_mima_source_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_fluid_hasegawa_mima_source_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB Hasegawa-Wakatani source update (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_source_kern_list
   ser_canonical_pb_fluid_hasegawa_wakatani_source_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_fluid_hasegawa_wakatani_source_2x_ser_p1,
-      canonical_pb_fluid_hasegawa_wakatani_source_2x_ser_p2}, // 1
+    { NULL, canonical_pb_fluid_hasegawa_wakatani_source_2x_ser_p1,
+      canonical_pb_fluid_hasegawa_wakatani_source_2x_ser_p2 }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB Hasegawa-Wakatani source update (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_source_kern_list
   tensor_canonical_pb_fluid_hasegawa_wakatani_source_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_fluid_hasegawa_wakatani_source_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_fluid_hasegawa_wakatani_source_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB Hasegawa-Wakatani subtract zonal component update (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_subtract_zonal_kern_list
   ser_canonical_pb_fluid_subtract_zonal_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_fluid_subtract_zonal_2x_ser_p1,
-      canonical_pb_fluid_subtract_zonal_2x_ser_p2}, // 1
+    { NULL, canonical_pb_fluid_subtract_zonal_2x_ser_p1,
+      canonical_pb_fluid_subtract_zonal_2x_ser_p2 }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 // Canonical PB Hasegawa-Wakatani subtract zonal componente update (Tensor kernels)
 GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_subtract_zonal_kern_list
   tensor_canonical_pb_fluid_subtract_zonal_kernels[] = {
     // 1x kernels
-    {NULL, NULL, NULL}, // 0
+    { NULL, NULL, NULL }, // 0
     // 2x kernels
-    {NULL, canonical_pb_fluid_subtract_zonal_2x_ser_p1, NULL}, // 1
+    { NULL, canonical_pb_fluid_subtract_zonal_2x_ser_p1, NULL }, // 1
     // 3x kernels
-    {NULL, NULL, NULL}, // 2
-};
+    { NULL, NULL, NULL } // 2
+  };
 
 GKYL_CU_D static canonical_pb_fluid_alpha_surf_t
 choose_canonical_pb_fluid_alpha_surf_kern(

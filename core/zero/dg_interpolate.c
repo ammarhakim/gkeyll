@@ -200,7 +200,7 @@ dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl_range *rang
 
   gkyl_array_clear_range(ftar, 0.0, range_tar);
 
-  int idx_tar[GKYL_MAX_DIM] = {-1};
+  int idx_tar[GKYL_MAX_DIM] = { -1 };
   int idx_tar_lo;
   double xc_do[GKYL_MAX_DIM];
   double xc_tar[GKYL_MAX_DIM];

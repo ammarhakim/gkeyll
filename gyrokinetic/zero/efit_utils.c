@@ -49,8 +49,8 @@ bool
 newton_raphson(struct gkyl_efit *up, const double *coeffs, double *xsol, bool cubics)
 {
   int n = 2;
-  double x[2] = {0.0, 0.0};
-  double dx[2] = {0.0, 0.0};
+  double x[2] = { 0.0, 0.0 };
+  double dx[2] = { 0.0, 0.0 };
   double fjac[2][2];
   double fjac_inv[2][2];
   double fvec[2];

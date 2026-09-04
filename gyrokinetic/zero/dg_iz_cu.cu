@@ -73,7 +73,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     if ((temp_elc_av <= 0.) || (m0_elc_av <= 0.)) {
       coef_iz_d[0] = 0.0;
     } else {
-      int ad_idx[2] = {t_idx, m0_idx};
+      int ad_idx[2] = { t_idx, m0_idx };
       double *iz_dat_d = (double *)gkyl_array_fetch(ioniz_data, gkyl_range_idx(&adas_rng, ad_idx));
       double adas_eval = adas_basis->eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0, adas_eval) / cell_av_fac;

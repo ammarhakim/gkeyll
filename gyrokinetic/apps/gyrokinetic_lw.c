@@ -28,81 +28,84 @@
 #endif
 
 // Gyrokinetic FEM boundary conditions -> enum map.
-static const struct gkyl_str_int_pair parproj_type[] = {{"None", GKYL_FEM_PARPROJ_NONE},
-  {"Periodic", GKYL_FEM_PARPROJ_PERIODIC}, {"DirichletGhost", GKYL_FEM_PARPROJ_DIRICHLET_GHOST},
-  {"DirichletSkin", GKYL_FEM_PARPROJ_DIRICHLET_SKIN}, {0, 0}};
+static const struct gkyl_str_int_pair parproj_type[] = { { "None", GKYL_FEM_PARPROJ_NONE },
+  { "Periodic", GKYL_FEM_PARPROJ_PERIODIC }, { "DirichletGhost", GKYL_FEM_PARPROJ_DIRICHLET_GHOST },
+  { "DirichletSkin", GKYL_FEM_PARPROJ_DIRICHLET_SKIN }, { 0, 0 } };
 
 // Gyrokinetic geometry type -> enum map.
-static const struct gkyl_str_int_pair geometry_type[] = {{"Tokamak", GKYL_GEOMETRY_TOKAMAK},
-  {"Mirror", GKYL_GEOMETRY_MIRROR}, {"MapC2P", GKYL_GEOMETRY_MAPC2P},
-  {"FromFile", GKYL_GEOMETRY_FROMFILE}, {0, 0}};
+static const struct gkyl_str_int_pair geometry_type[] = { { "Tokamak", GKYL_GEOMETRY_TOKAMAK },
+  { "Mirror", GKYL_GEOMETRY_MIRROR }, { "MapC2P", GKYL_GEOMETRY_MAPC2P },
+  { "FromFile", GKYL_GEOMETRY_FROMFILE }, { 0, 0 } };
 
 // Gyrokinetic position map type -> enum map.
-static const struct gkyl_str_int_pair position_map_type[] = {{"UserInput", GKYL_PMAP_USER_INPUT},
-  {"ConstantPolynomial", GKYL_PMAP_CONSTANT_DB_POLYNOMIAL},
-  {"ConstantNumeric", GKYL_PMAP_CONSTANT_DB_NUMERIC}, {0, 0}};
+static const struct gkyl_str_int_pair position_map_type[] = { { "UserInput", GKYL_PMAP_USER_INPUT },
+  { "ConstantPolynomial", GKYL_PMAP_CONSTANT_DB_POLYNOMIAL },
+  { "ConstantNumeric", GKYL_PMAP_CONSTANT_DB_NUMERIC }, { 0, 0 } };
 
 // Gyrokinetic collisionless type -> enum map.
 static const struct gkyl_str_int_pair gk_collisionless_type[] = {
-  {"None", GKYL_GK_COLLISIONLESS_NONE}, {"GKCollisionlessES", GKYL_GK_COLLISIONLESS_ES},
-  {"GKCollisionlessES_no_by", GKYL_GK_COLLISIONLESS_ES_NO_BY},
-  {"GKCollisionlessEM_Bperp", GKYL_GK_COLLISIONLESS_EM_BPERP},
-  {"GKCollisionlessEM_Bpar", GKYL_GK_COLLISIONLESS_EM_BPAR},
-  {"GKCollisionlessEM", GKYL_GK_COLLISIONLESS_EM}, {0, 0}};
+  { "None", GKYL_GK_COLLISIONLESS_NONE }, { "GKCollisionlessES", GKYL_GK_COLLISIONLESS_ES },
+  { "GKCollisionlessES_no_by", GKYL_GK_COLLISIONLESS_ES_NO_BY },
+  { "GKCollisionlessEM_Bperp", GKYL_GK_COLLISIONLESS_EM_BPERP },
+  { "GKCollisionlessEM_Bpar", GKYL_GK_COLLISIONLESS_EM_BPAR },
+  { "GKCollisionlessEM", GKYL_GK_COLLISIONLESS_EM }, { 0, 0 }
+};
 
 // Gyrokinetic field type -> enum map.
-static const struct gkyl_str_int_pair gk_field_type[] = {{"Electrostatic", GKYL_GK_FIELD_ES},
-  {"Boltzmann", GKYL_GK_FIELD_BOLTZMANN}, {"Adiabatic", GKYL_GK_FIELD_ADIABATIC},
-  {"Electromagnetic", GKYL_GK_FIELD_EM}, {0, 0}};
+static const struct gkyl_str_int_pair gk_field_type[] = { { "Electrostatic", GKYL_GK_FIELD_ES },
+  { "Boltzmann", GKYL_GK_FIELD_BOLTZMANN }, { "Adiabatic", GKYL_GK_FIELD_ADIABATIC },
+  { "Electromagnetic", GKYL_GK_FIELD_EM }, { 0, 0 } };
 
 // Gyrokinetic radiation type -> enum map.
-static const struct gkyl_str_int_pair gk_radiation_type[] = {{"None", GKYL_NO_RADIATION},
-  {"GKRadiation", GKYL_GK_RADIATION}, {"VMComptonRadiation", GKYL_VM_COMPTON_RADIATION}, {0, 0}};
+static const struct gkyl_str_int_pair gk_radiation_type[] = { { "None", GKYL_NO_RADIATION },
+  { "GKRadiation", GKYL_GK_RADIATION }, { "VMComptonRadiation", GKYL_VM_COMPTON_RADIATION },
+  { 0, 0 } };
 
 // Gyrokinetic radiation Te model type -> enum map.
-static const struct gkyl_str_int_pair gk_radiation_te_type[] = {
-  {"Conservative", GKYL_VARY_TE_CONSERVATIVE}, {"Aggressive", GKYL_VARY_TE_AGGRESSIVE},
-  {"Const", GKYL_CONST_TE}, {0, 0}};
+static const struct gkyl_str_int_pair gk_radiation_te_type[] = { { "Conservative",
+                                                                   GKYL_VARY_TE_CONSERVATIVE },
+  { "Aggressive", GKYL_VARY_TE_AGGRESSIVE }, { "Const", GKYL_CONST_TE }, { 0, 0 } };
 
 // Gyrokinetic reaction type -> enum map.
-static const struct gkyl_str_int_pair gk_react_type[] = {{"None", GKYL_NO_REACT},
-  {"Ionization", GKYL_REACT_IZ}, {"ChargeExchange", GKYL_REACT_CX},
-  {"Recombination", GKYL_REACT_RECOMB}, {0, 0}};
+static const struct gkyl_str_int_pair gk_react_type[] = { { "None", GKYL_NO_REACT },
+  { "Ionization", GKYL_REACT_IZ }, { "ChargeExchange", GKYL_REACT_CX },
+  { "Recombination", GKYL_REACT_RECOMB }, { 0, 0 } };
 
 // Gyrokinetic ion type -> enum map.
-static const struct gkyl_str_int_pair gk_ion_type[] = {{"Hydrogen", GKYL_ION_H},
-  {"Deuterium", GKYL_ION_D}, {"Helium", GKYL_ION_HE}, {"Lithium", GKYL_ION_LI},
-  {"Beryllium", GKYL_ION_BE}, {"Boron", GKYL_ION_B}, {"Carbon", GKYL_ION_C},
-  {"Nitrogen", GKYL_ION_N}, {"Oxygen", GKYL_ION_O}, {"Neon", GKYL_ION_NE}, {"Argon", GKYL_ION_AR},
-  {0, 0}};
+static const struct gkyl_str_int_pair gk_ion_type[] = { { "Hydrogen", GKYL_ION_H },
+  { "Deuterium", GKYL_ION_D }, { "Helium", GKYL_ION_HE }, { "Lithium", GKYL_ION_LI },
+  { "Beryllium", GKYL_ION_BE }, { "Boron", GKYL_ION_B }, { "Carbon", GKYL_ION_C },
+  { "Nitrogen", GKYL_ION_N }, { "Oxygen", GKYL_ION_O }, { "Neon", GKYL_ION_NE },
+  { "Argon", GKYL_ION_AR }, { 0, 0 } };
 
 // Gyrokinetic self-reaction type -> enum map.
-static const struct gkyl_str_int_pair gk_react_self_type[] = {{"Electron", GKYL_SELF_ELC},
-  {"Ion", GKYL_SELF_ION}, {"Donor", GKYL_SELF_DONOR}, {"Receiver", GKYL_SELF_RECVR},
-  {"Partner", GKYL_SELF_PARTNER}, {0, 0}};
+static const struct gkyl_str_int_pair gk_react_self_type[] = { { "Electron", GKYL_SELF_ELC },
+  { "Ion", GKYL_SELF_ION }, { "Donor", GKYL_SELF_DONOR }, { "Receiver", GKYL_SELF_RECVR },
+  { "Partner", GKYL_SELF_PARTNER }, { 0, 0 } };
 
 // Species boundary conditions -> enum map.
 static const struct gkyl_str_int_pair gk_bcs[] = {
   // Particle BCs.
-  {"speciesSkip", GKYL_BC_GK_SKIP}, // Do not apply any BCs
-  {"speciesCopy", GKYL_BC_GK_SPECIES_COPY}, // Copy skin into ghost.
-  {"speciesReflect", GKYL_BC_GK_SPECIES_REFLECT}, // Reflect particles.
-  {"speciesAbsorb", GKYL_BC_GK_SPECIES_ABSORB}, // Absorbing BCs.
-  {"speciesFunc", GKYL_BC_GK_SPECIES_FUNC}, // Fill ghost cell using a user-function.
-  {"speciesFixedFunc", GKYL_BC_GK_SPECIES_FIXED_FUNC}, // Fixed function, time-independent.
-  {"speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX}, // Zero flux.
-  {"speciesSheath", GKYL_BC_GK_SPECIES_SHEATH}, // Sheath.
-  {"speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE}, // Recycling.
-  {"speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC}, // Periodic.
-  {"speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT}, // Twist-shift.
+  { "speciesSkip", GKYL_BC_GK_SKIP }, // Do not apply any BCs
+  { "speciesCopy", GKYL_BC_GK_SPECIES_COPY }, // Copy skin into ghost.
+  { "speciesReflect", GKYL_BC_GK_SPECIES_REFLECT }, // Reflect particles.
+  { "speciesAbsorb", GKYL_BC_GK_SPECIES_ABSORB }, // Absorbing BCs.
+  { "speciesFunc", GKYL_BC_GK_SPECIES_FUNC }, // Fill ghost cell using a user-function.
+  { "speciesFixedFunc", GKYL_BC_GK_SPECIES_FIXED_FUNC }, // Fixed function, time-independent.
+  { "speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX }, // Zero flux.
+  { "speciesSheath", GKYL_BC_GK_SPECIES_SHEATH }, // Sheath.
+  { "speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE }, // Recycling.
+  { "speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC }, // Periodic.
+  { "speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT }, // Twist-shift.
   // Field BCs.
-  {"fieldPeriodic", GKYL_BC_GK_FIELD_PERIODIC}, // Periodic.
-  {"fieldDirichlet", GKYL_BC_GK_FIELD_DIRICHLET}, // Dirichlet.
-  {"fieldNeumann", GKYL_BC_GK_FIELD_NEUMANN}, // Nemann.
-  {"fieldDirichletVarying", GKYL_BC_GK_FIELD_DIRICHLET_VARYING}, // Spatially varying Dirichlet.
-  {"fieldBoundaryValue", GKYL_BC_GK_FIELD_BOUNDARY_VALUE}, // Skin value at the boundary.
-  {"fieldTwistshift", GKYL_BC_GK_FIELD_TWISTSHIFT}, // Twist-shift.
-  {0, 0}};
+  { "fieldPeriodic", GKYL_BC_GK_FIELD_PERIODIC }, // Periodic.
+  { "fieldDirichlet", GKYL_BC_GK_FIELD_DIRICHLET }, // Dirichlet.
+  { "fieldNeumann", GKYL_BC_GK_FIELD_NEUMANN }, // Nemann.
+  { "fieldDirichletVarying", GKYL_BC_GK_FIELD_DIRICHLET_VARYING }, // Spatially varying Dirichlet.
+  { "fieldBoundaryValue", GKYL_BC_GK_FIELD_BOUNDARY_VALUE }, // Skin value at the boundary.
+  { "fieldTwistshift", GKYL_BC_GK_FIELD_TWISTSHIFT }, // Twist-shift.
+  { 0, 0 }
+};
 
 void
 gkyl_register_gyrokinetic_fem_bc_types(lua_State *L)
@@ -174,7 +177,7 @@ gkyl_register_gyrokinetic_bc_types(lua_State *L)
 enum gyrokinetic_magic_ids {
   GYROKINETIC_SPECIES_DEFAULT = 100, // Standard gyrokinetic species.
   GYROKINETIC_NEUTRAL_SPECIES_DEFAULT, // Neutral gyrokinetic species.
-  GYROKINETIC_FIELD_DEFAULT, // Gyrokinetic Poisson equation.
+  GYROKINETIC_FIELD_DEFAULT // Gyrokinetic Poisson equation.
 };
 
 /* *************** */
@@ -736,62 +739,46 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->gk_species = gk_species;
 
   gks_lw->has_mapc2p_mapping_func = has_mapc2p_mapping_func;
-  gks_lw->mapc2p_mapping_func_ref = (struct lua_func_ctx){
-    .func_ref = mapc2p_mapping_func_ref,
-    .ndim = 2,
-    .nret = 2,
-    .L = L,
-  };
+  gks_lw->mapc2p_mapping_func_ref =
+    (struct lua_func_ctx){ .func_ref = mapc2p_mapping_func_ref, .ndim = 2, .nret = 2, .L = L };
 
   gks_lw->proj_id = proj_id;
 
   gks_lw->has_init_func = has_init_func;
-  gks_lw->init_func_ref = (struct lua_func_ctx){
-    .func_ref = init_func_ref,
+  gks_lw->init_func_ref = (struct lua_func_ctx){ .func_ref = init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   gks_lw->has_density_init_func = has_density_init_func;
-  gks_lw->density_init_func_ref = (struct lua_func_ctx){
-    .func_ref = density_init_func_ref,
+  gks_lw->density_init_func_ref = (struct lua_func_ctx){ .func_ref = density_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   gks_lw->has_Upar_init_func = has_Upar_init_func;
-  gks_lw->Upar_init_func_ref = (struct lua_func_ctx){
-    .func_ref = Upar_init_func_ref,
+  gks_lw->Upar_init_func_ref = (struct lua_func_ctx){ .func_ref = Upar_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   gks_lw->has_temp_init_func = has_temp_init_func;
-  gks_lw->temp_init_func_ref = (struct lua_func_ctx){
-    .func_ref = temp_init_func_ref,
+  gks_lw->temp_init_func_ref = (struct lua_func_ctx){ .func_ref = temp_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   gks_lw->has_par_temp_init_func = has_par_temp_init_func;
-  gks_lw->par_temp_init_func_ref = (struct lua_func_ctx){
-    .func_ref = par_temp_init_func_ref,
+  gks_lw->par_temp_init_func_ref = (struct lua_func_ctx){ .func_ref = par_temp_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   gks_lw->has_perp_temp_init_func = has_perp_temp_init_func;
-  gks_lw->perp_temp_init_func_ref = (struct lua_func_ctx){
-    .func_ref = perp_temp_init_func_ref,
+  gks_lw->perp_temp_init_func_ref = (struct lua_func_ctx){ .func_ref = perp_temp_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   gks_lw->proj_correct_all_moms = proj_correct_all_moms;
 
@@ -802,36 +789,31 @@ gyrokinetic_species_lw_new(lua_State *L)
     gks_lw->source_proj_id[i] = source_proj_id[i];
 
     gks_lw->source_has_init_func[i] = source_has_init_func[i];
-    gks_lw->source_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = source_init_func_ref[i],
+    gks_lw->source_init_func_ref[i] = (struct lua_func_ctx){ .func_ref = source_init_func_ref[i],
       .ndim = 0, // This will be set later.
       .nret = 1,
-      .L = L,
-    };
+      .L = L };
 
     gks_lw->source_has_density_init_func[i] = source_has_density_init_func[i];
-    gks_lw->source_density_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = source_density_init_func_ref[i],
-      .ndim = 0, // This will be set later.
-      .nret = 1,
-      .L = L,
-    };
+    gks_lw->source_density_init_func_ref[i] =
+      (struct lua_func_ctx){ .func_ref = source_density_init_func_ref[i],
+        .ndim = 0, // This will be set later.
+        .nret = 1,
+        .L = L };
 
     gks_lw->source_has_Upar_init_func[i] = source_has_Upar_init_func[i];
-    gks_lw->source_Upar_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = source_Upar_init_func_ref[i],
-      .ndim = 0, // This will be set later.
-      .nret = 1,
-      .L = L,
-    };
+    gks_lw->source_Upar_init_func_ref[i] =
+      (struct lua_func_ctx){ .func_ref = source_Upar_init_func_ref[i],
+        .ndim = 0, // This will be set later.
+        .nret = 1,
+        .L = L };
 
     gks_lw->source_has_temp_init_func[i] = source_has_temp_init_func[i];
-    gks_lw->source_temp_init_func_ref[i] = (struct lua_func_ctx){
-      .func_ref = source_temp_init_func_ref[i],
-      .ndim = 0, // This will be set later.
-      .nret = 1,
-      .L = L,
-    };
+    gks_lw->source_temp_init_func_ref[i] =
+      (struct lua_func_ctx){ .func_ref = source_temp_init_func_ref[i],
+        .ndim = 0, // This will be set later.
+        .nret = 1,
+        .L = L };
   }
 
   gks_lw->correct_all_moms = correct_all_moms;
@@ -844,12 +826,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   gks_lw->collision_id = collision_id;
 
   gks_lw->has_self_nu_func = has_self_nu_func;
-  gks_lw->self_nu_func_ref = (struct lua_func_ctx){
-    .func_ref = self_nu_func_ref,
-    .ndim = 0,
-    .nret = 1,
-    .L = L,
-  };
+  gks_lw->self_nu_func_ref =
+    (struct lua_func_ctx){ .func_ref = self_nu_func_ref, .ndim = 0, .nret = 1, .L = L };
 
   gks_lw->num_cross_collisions = num_cross_collisions;
   for (int i = 0; i < num_cross_collisions; i++) {
@@ -920,7 +898,7 @@ gyrokinetic_species_lw_new(lua_State *L)
 }
 
 // Species constructor.
-static struct luaL_Reg gk_species_ctor[] = {{"new", gyrokinetic_species_lw_new}, {0, 0}};
+static struct luaL_Reg gk_species_ctor[] = { { "new", gyrokinetic_species_lw_new }, { 0, 0 } };
 
 /* *********************** */
 /* Neutral Species methods */
@@ -1047,28 +1025,22 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
   gkns_lw->proj_id = proj_id;
 
   gkns_lw->has_density_init_func = has_density_init_func;
-  gkns_lw->density_init_func_ref = (struct lua_func_ctx){
-    .func_ref = density_init_func_ref,
+  gkns_lw->density_init_func_ref = (struct lua_func_ctx){ .func_ref = density_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   gkns_lw->has_Udrift_init_func = has_Udrift_init_func;
-  gkns_lw->Udrift_init_func_ref = (struct lua_func_ctx){
-    .func_ref = Udrift_init_func_ref,
+  gkns_lw->Udrift_init_func_ref = (struct lua_func_ctx){ .func_ref = Udrift_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 3,
-    .L = L,
-  };
+    .L = L };
 
   gkns_lw->has_temp_init_func = has_temp_init_func;
-  gkns_lw->temp_init_func_ref = (struct lua_func_ctx){
-    .func_ref = temp_init_func_ref,
+  gkns_lw->temp_init_func_ref = (struct lua_func_ctx){ .func_ref = temp_init_func_ref,
     .ndim = 0, // This will be set later.
     .nret = 1,
-    .L = L,
-  };
+    .L = L };
 
   // Set metatable.
   luaL_getmetatable(L, GYROKINETIC_NEUTRAL_SPECIES_METATABLE_NM);
@@ -1078,8 +1050,8 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
 }
 
 // Species constructor.
-static struct luaL_Reg gk_neutral_species_ctor[] = {
-  {"new", gyrokinetic_neutral_species_lw_new}, {0, 0}};
+static struct luaL_Reg gk_neutral_species_ctor[] = { { "new", gyrokinetic_neutral_species_lw_new },
+  { 0, 0 } };
 
 /* ************* */
 /* Field methods */
@@ -1143,7 +1115,7 @@ gyrokinetic_field_lw_new(lua_State *L)
 }
 
 // Field constructor.
-static struct luaL_Reg gk_field_ctor[] = {{"new", gyrokinetic_field_lw_new}, {0, 0}};
+static struct luaL_Reg gk_field_ctor[] = { { "new", gyrokinetic_field_lw_new }, { 0, 0 } };
 
 /* *********** */
 /* App methods */
@@ -1529,8 +1501,7 @@ struct script_cli {
 static struct script_cli
 gk_parse_script_cli(struct gkyl_tool_args *acv)
 {
-  struct script_cli cli = {
-    .help = -false,
+  struct script_cli cli = { .help = -false,
     .step_mode = false,
     .num_steps = INT_MAX,
     .use_mpi = false,
@@ -1538,8 +1509,7 @@ gk_parse_script_cli(struct gkyl_tool_args *acv)
     .trace_mem = false,
     .use_verbose = false,
     .is_restart = false,
-    .restart_frame = 0,
-  };
+    .restart_frame = 0 };
 
 #ifdef GKYL_HAVE_MPI
   cli.use_mpi = true;
@@ -1548,7 +1518,7 @@ gk_parse_script_cli(struct gkyl_tool_args *acv)
   cli.use_gpu = true;
 #endif
 
-  coption_long longopts[] = {{0}};
+  coption_long longopts[] = { { 0 } };
   const char *shortopts = "+hVs:SGmr:";
 
   coption opt = coption_init();
@@ -1734,10 +1704,7 @@ gk_app_new(lua_State *L)
       for (int i = 0; i < 3; i++) {
         if (has_nonuniform_position_map[i]) {
           app_lw->nonuniform_position_map_ctx[i] = (struct lua_func_ctx){
-            .func_ref = nonuniform_position_map_ref[i],
-            .ndim = 1,
-            .nret = 1,
-            .L = L,
+            .func_ref = nonuniform_position_map_ref[i], .ndim = 1, .nret = 1, .L = L
           };
           gk.geometry.position_map_info.maps[i] = gkyl_lw_eval_cb;
           gk.geometry.position_map_info.ctxs[i] = &app_lw->nonuniform_position_map_ctx[i];
@@ -1746,23 +1713,15 @@ gk_app_new(lua_State *L)
     }
 
     if (has_mapc2p) {
-      app_lw->mapc2p_ctx = (struct lua_func_ctx){
-        .func_ref = mapc2p_ref,
-        .ndim = 3,
-        .nret = 3,
-        .L = L,
-      };
+      app_lw->mapc2p_ctx =
+        (struct lua_func_ctx){ .func_ref = mapc2p_ref, .ndim = 3, .nret = 3, .L = L };
       gk.geometry.mapc2p = gkyl_lw_eval_cb;
       gk.geometry.c2p_ctx = &app_lw->mapc2p_ctx;
     }
 
     if (has_bfield_func) {
-      app_lw->bfield_ctx = (struct lua_func_ctx){
-        .func_ref = bfield_func_ref,
-        .ndim = 3,
-        .nret = 3,
-        .L = L,
-      };
+      app_lw->bfield_ctx =
+        (struct lua_func_ctx){ .func_ref = bfield_func_ref, .ndim = 3, .nret = 3, .L = L };
       gk.geometry.bfield_func = gkyl_lw_eval_cb;
       gk.geometry.bfield_ctx = &app_lw->bfield_ctx;
     }
@@ -2120,9 +2079,7 @@ gk_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-          .mpi_comm = mpi_comm,
-        });
+        comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = mpi_comm });
       }
     }
 #else
@@ -2141,20 +2098,14 @@ gk_app_new(lua_State *L)
         int nrank = 1; // Number of processors in simulation.
         MPI_Comm_size(mpi_comm, &nrank);
 
-        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-          .mpi_comm = mpi_comm,
-        });
+        comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = mpi_comm });
       }
     }
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-      .use_gpu = script_cli.use_gpu,
-    });
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
-    .use_gpu = script_cli.use_gpu,
-  });
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = script_cli.use_gpu });
 #endif
 
   gk.parallelism.comm = comm;
@@ -2517,19 +2468,20 @@ gk_app_run(lua_State *L)
   int integrated_mom_calcs = app_lw->integrated_mom_calcs;
   // Triggers for IO and logging.
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
-  struct step_message_trigs m_trig = {
-    .log_count = 0,
+  struct step_message_trigs m_trig = { .log_count = 0,
     .tenth = t_curr > 0.0 ? (int)floor(t_curr / t_end * 10.0) : 0.0,
     .p1c = t_curr > 0.0 ? (int)floor(t_curr / t_end * 100.0) % 10 : 0.0,
-    .log_trig = {.dt = t_end / 10.0, .tcurr = t_curr},
-    .log_trig_1p = {.dt = t_end / 100.0, .tcurr = t_curr},
-  };
+    .log_trig = { .dt = t_end / 10.0, .tcurr = t_curr },
+    .log_trig_1p = { .dt = t_end / 100.0, .tcurr = t_curr } };
 
   struct timespec tm_ic0 = gkyl_wall_clock();
   // Initialize simulation.
@@ -2683,17 +2635,17 @@ gk_app_gc(lua_State *L)
 }
 
 // App constructor.
-static struct luaL_Reg gk_app_ctor[] = {{"new", gk_app_new}, {0, 0}};
+static struct luaL_Reg gk_app_ctor[] = { { "new", gk_app_new }, { 0, 0 } };
 
 // App methods.
-static struct luaL_Reg gk_app_funcs[] = {{"apply_ic", gk_app_apply_ic},
-  {"apply_ic_species", gk_app_apply_ic_species},
-  {"calc_integrated_mom", gk_app_calc_integrated_mom},
-  {"calc_field_energy", gk_app_calc_field_energy}, {"write", gk_app_write},
-  {"write_field", gk_app_write_field}, {"write_species", gk_app_write_species},
-  {"write_mom", gk_app_write_mom}, {"write_integrated_mom", gk_app_write_integrated_mom},
-  {"write_field_energy", gk_app_write_field_energy}, {"stat_write", gk_app_stat_write},
-  {"run", gk_app_run}, {0, 0}};
+static struct luaL_Reg gk_app_funcs[] = { { "apply_ic", gk_app_apply_ic },
+  { "apply_ic_species", gk_app_apply_ic_species },
+  { "calc_integrated_mom", gk_app_calc_integrated_mom },
+  { "calc_field_energy", gk_app_calc_field_energy }, { "write", gk_app_write },
+  { "write_field", gk_app_write_field }, { "write_species", gk_app_write_species },
+  { "write_mom", gk_app_write_mom }, { "write_integrated_mom", gk_app_write_integrated_mom },
+  { "write_field_energy", gk_app_write_field_energy }, { "stat_write", gk_app_stat_write },
+  { "run", gk_app_run }, { 0, 0 } };
 
 static void
 app_openlibs(lua_State *L)

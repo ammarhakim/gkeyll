@@ -114,7 +114,7 @@ gkyl_loss_cone_mask_gyrokinetic_ker(struct gkyl_rect_grid grid_phase, struct gky
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim - cdim;
 
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = { 0.0 };
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM], vidx[2];
 
   int tot_phase_quad = phase_ordinates->size;
@@ -186,7 +186,7 @@ gkyl_loss_cone_mask_gyrokinetic_quad_ker(struct gkyl_rect_grid grid_phase,
   int pdim = phase_range.ndim, cdim = conf_range.ndim;
   int vdim = pdim - cdim;
 
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = { 0.0 };
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM], vidx[2];
 
   // 2D thread grid

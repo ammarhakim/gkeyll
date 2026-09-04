@@ -77,15 +77,13 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
 {
   proj->proj_id = inp.proj_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &s->grid,
+    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &s->grid,
       .basis = &s->basis,
       .qtype = GKYL_GAUSS_QUAD,
       .num_quad = s->basis.poly_order + 1,
       .num_ret_vals = 1,
       .eval = inp.func,
-      .ctx = inp.ctx_func,
-    });
+      .ctx = inp.ctx_func });
     if (app->use_gpu) {
       proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
     }
@@ -104,8 +102,7 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
     proj->proj_temp = gkyl_proj_on_basis_new(
       &app->grid, &app->basis, s->basis.poly_order + 1, 1, inp.temp, inp.ctx_temp);
 
-    struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
-      .phase_grid = &s->grid,
+    struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = { .phase_grid = &s->grid,
       .conf_basis = &app->basis,
       .phase_basis = &s->basis,
       .conf_range = &app->local,
@@ -118,16 +115,14 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
       .det_h = app->gk_geom->geo_int.jacobgeo,
       .hamil = s->hamil,
       .model_id = s->model_id,
-      .use_gpu = app->use_gpu,
-    };
+      .use_gpu = app->use_gpu };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
     proj->correct_all_moms = false;
     if (inp.correct_all_moms) {
       proj->correct_all_moms = true;
 
-      struct gkyl_vlasov_lte_correct_inp inp_corr = {
-        .phase_grid = &s->grid,
+      struct gkyl_vlasov_lte_correct_inp inp_corr = { .phase_grid = &s->grid,
         .conf_basis = &app->basis,
         .phase_basis = &s->basis,
         .conf_range = &app->local,
@@ -142,8 +137,7 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
         .model_id = s->model_id,
         .use_gpu = app->use_gpu,
         .max_iter = 100,
-        .eps = 1e-12,
-      };
+        .eps = 1e-12 };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
     }
   }
@@ -229,15 +223,13 @@ gk_neut_species_projection_fluid_init(struct gkyl_gyrokinetic_app *app, struct g
 {
   proj->proj_id = inp.proj_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &ns->grid,
+    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &ns->grid,
       .basis = &ns->basis,
       .qtype = GKYL_GAUSS_QUAD,
       .num_quad = ns->basis.poly_order + 1,
       .num_ret_vals = ns->num_moments,
       .eval = inp.func,
-      .ctx = inp.ctx_func,
-    });
+      .ctx = inp.ctx_func });
     if (app->use_gpu) {
       proj->proj_host = mkarr(false, ns->num_moments * ns->basis.num_basis, ns->local_ext.volume);
     }

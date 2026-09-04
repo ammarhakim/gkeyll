@@ -23,10 +23,7 @@ struct gkyl_ref_count {
 static inline struct gkyl_ref_count
 gkyl_ref_count_init(void (*free)(const struct gkyl_ref_count *))
 {
-  return (struct gkyl_ref_count){
-    .free = free,
-    .count = 1,
-  };
+  return (struct gkyl_ref_count){ .free = free, .count = 1 };
 }
 
 /**

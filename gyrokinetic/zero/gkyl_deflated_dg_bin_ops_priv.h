@@ -15,10 +15,7 @@ struct deflated_dg_bin_ops_data {
   struct gkyl_array *deflated_out;
 };
 
-enum deflated_dg_bin_ops_type {
-  GKYL_DEFLATED_MUL = 0,
-  GKYL_DEFLATED_DIV = 1,
-};
+enum deflated_dg_bin_ops_type { GKYL_DEFLATED_MUL = 0, GKYL_DEFLATED_DIV = 1 };
 
 // Updater type
 struct gkyl_deflated_dg_bin_ops {

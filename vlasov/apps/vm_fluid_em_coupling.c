@@ -14,7 +14,7 @@ vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app)
   struct vm_fluid_em_coupling *fl_em = gkyl_malloc(sizeof(struct vm_fluid_em_coupling));
 
   int num_fluid_species = app->num_fluid_species;
-  double qbym[GKYL_MAX_SPECIES] = {0.0};
+  double qbym[GKYL_MAX_SPECIES] = { 0.0 };
   for (int i = 0; i < num_fluid_species; ++i) {
     struct vm_fluid_species *fs = &app->fluid_species[i];
     qbym[i] = fs->info.charge / fs->info.mass;

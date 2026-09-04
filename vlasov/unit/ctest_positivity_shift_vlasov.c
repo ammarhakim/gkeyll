@@ -61,8 +61,8 @@ test_1x2v(int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double vx_max = 6.0, vy_max = 6.0;
-  double lower[] = {0.0, -vx_max, -vy_max}, upper[] = {1.0, vx_max, vy_max};
-  int cells[] = {2, 12, 8};
+  double lower[] = { 0.0, -vx_max, -vy_max }, upper[] = { 1.0, vx_max, vy_max };
+  int cells[] = { 2, 12, 8 };
 
   int ndim = sizeof(cells) / sizeof(cells[0]);
   int vdim = ndim - cdim;
@@ -75,7 +75,7 @@ test_1x2v(int poly_order, bool use_gpu)
     .mass = 1.0, // Species mass.
     .vdim = vdim, // Number of velocity space dimensions.
     .vx_max = vx_max, // Maximum vx of the grid.
-    .vy_max = vy_max, // Maximum vy of the grid.
+    .vy_max = vy_max // Maximum vy of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -110,17 +110,17 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = {0};
+  int confGhost[GKYL_MAX_CDIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     confGhost[d] = 1;
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = {0};
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -275,10 +275,8 @@ test_positivity_shift_vlasov_1x2v_dev()
   test_1x2v(1, true);
 }
 
-TEST_LIST = {
-  {"test_positivity_shift_vlasov_1x2v_ho", test_positivity_shift_vlasov_1x2v_ho},
+TEST_LIST = { { "test_positivity_shift_vlasov_1x2v_ho", test_positivity_shift_vlasov_1x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev},
+  { "test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

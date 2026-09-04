@@ -39,7 +39,7 @@ tensor_field_raise_or_lower_idx_set_cu_kernel(const struct gkyl_tensor_field *me
 
     // summed over index, j
     for (int j = 0; j < ten->ndim; ++j) {
-      int idx_met[GKYL_MAX_DIM] = {index_raised, j};
+      int idx_met[GKYL_MAX_DIM] = { index_raised, j };
 
       // Get the tensor element we are indexing from
       int idx_tf[GKYL_MAX_DIM];

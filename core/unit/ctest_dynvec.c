@@ -18,7 +18,7 @@ test_dynvec_1_ho()
 
   // add some data
   for (int i = 0; i < 2000; ++i)
-    gkyl_dynvec_append(dv, 0.1 * i, (double[3]){i, i + 1, i + 2});
+    gkyl_dynvec_append(dv, 0.1 * i, (double[3]){ i, i + 1, i + 2 });
   TEST_CHECK(gkyl_dynvec_size(dv) == 2000);
 
   TEST_CHECK(gkyl_dynvec_getlast_tm(dv) == 1999 * 0.1);
@@ -74,7 +74,7 @@ test_dynvec_2_ho()
 
   // add some data
   for (int i = 0; i < 2000; ++i)
-    gkyl_dynvec_append(dv, 0.1 * i, &(struct euler){i, i + 1, i + 2});
+    gkyl_dynvec_append(dv, 0.1 * i, &(struct euler){ i, i + 1, i + 2 });
 
   TEST_CHECK(gkyl_dynvec_size(dv) == 2000);
 
@@ -102,7 +102,7 @@ test_dynvec_3_ho()
 
   // add some data
   for (int i = 0; i < 2000; ++i)
-    gkyl_dynvec_append(dv, 0.1 * i, (double[3]){i, i + 1, i + 2});
+    gkyl_dynvec_append(dv, 0.1 * i, (double[3]){ i, i + 1, i + 2 });
 
   TEST_CHECK(gkyl_dynvec_size(dv) == 2000);
 
@@ -168,7 +168,7 @@ test_dynvec_4_ho()
 
   // add some data
   for (int i = 0; i < 20; ++i)
-    gkyl_dynvec_append(dv, 0.1 * i, (double[3]){i, i + 1, i + 2});
+    gkyl_dynvec_append(dv, 0.1 * i, (double[3]){ i, i + 1, i + 2 });
 
   TEST_CHECK(gkyl_dynvec_size(dv) == 20);
 
@@ -324,7 +324,7 @@ test_dynvec_to_array_ho()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
 
-  double out[3] = {0.0};
+  double out[3] = { 0.0 };
   for (int i = 0; i < 10; ++i) {
     out[0] = 0.1 * i;
     out[1] = 0.2 * i;
@@ -353,13 +353,7 @@ test_dynvec_to_array_ho()
   gkyl_array_release(dyn_data);
 }
 
-TEST_LIST = {
-  {"test_dynvec_1_ho", test_dynvec_1_ho},
-  {"test_dynvec_2_ho", test_dynvec_2_ho},
-  {"test_dynvec_3_ho", test_dynvec_3_ho},
-  {"test_dynvec_4_ho", test_dynvec_4_ho},
-  {"test_dynvec_io_ho", test_dynvec_io_ho},
-  {"test_dynvec_io_2_ho", test_dynvec_io_2_ho},
-  {"test_dynvec_to_array_ho", test_dynvec_to_array_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_dynvec_1_ho", test_dynvec_1_ho }, { "test_dynvec_2_ho", test_dynvec_2_ho },
+  { "test_dynvec_3_ho", test_dynvec_3_ho }, { "test_dynvec_4_ho", test_dynvec_4_ho },
+  { "test_dynvec_io_ho", test_dynvec_io_ho }, { "test_dynvec_io_2_ho", test_dynvec_io_2_ho },
+  { "test_dynvec_to_array_ho", test_dynvec_to_array_ho }, { NULL, NULL } };

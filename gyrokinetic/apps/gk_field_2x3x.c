@@ -264,10 +264,9 @@ gk_field_2x3x_add_TS_updaters(
     f->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_ts_3x;
 
     int par_dir = app->cdim - 1; // Parallel direction index.
-    int ghost[] = {1, 1, 1};
+    int ghost[] = { 1, 1, 1 };
     // TS BC updater for lower edge.
-    struct gkyl_bc_twistshift_inp T_LU_lo = {
-      .bc_dir = par_dir,
+    struct gkyl_bc_twistshift_inp T_LU_lo = { .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
@@ -276,8 +275,7 @@ gk_field_2x3x_add_TS_updaters(
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
-      .use_gpu = app->use_gpu,
-    };
+      .use_gpu = app->use_gpu };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
     else {
@@ -287,8 +285,7 @@ gk_field_2x3x_add_TS_updaters(
     f->bc_ts_lo = gkyl_bc_twistshift_inew(&T_LU_lo);
 
     // TS BC updater for upper edge.
-    struct gkyl_bc_twistshift_inp T_UL_up = {
-      .bc_dir = par_dir,
+    struct gkyl_bc_twistshift_inp T_UL_up = { .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_UPPER_EDGE,
@@ -297,8 +294,7 @@ gk_field_2x3x_add_TS_updaters(
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
-      .use_gpu = app->use_gpu,
-    };
+      .use_gpu = app->use_gpu };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_UL_up.shift_dg = app->delta_ts_x_up;
     else {
@@ -361,9 +357,8 @@ gk_field_2x3x_add_IWL_updaters(
 
     int par_dir = app->cdim - 1; // Parallel direction index.
     // TS BC updater for up to low TS for the lower edge. This sets ghost_L = T_LU(ghost_L).
-    int ghost[] = {1, 1, 1};
-    struct gkyl_bc_twistshift_inp T_LU_lo = {
-      .bc_dir = par_dir,
+    int ghost[] = { 1, 1, 1 };
+    struct gkyl_bc_twistshift_inp T_LU_lo = { .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
@@ -372,8 +367,7 @@ gk_field_2x3x_add_IWL_updaters(
       .num_ghost = ghost, // one ghost per config direction
       .basis = &app->basis,
       .grid = &app->grid,
-      .use_gpu = app->use_gpu,
-    };
+      .use_gpu = app->use_gpu };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
     else {
@@ -531,8 +525,8 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     mkarr(app->use_gpu, (2 * (app->cdim / 3) + 1) * app->basis.num_basis, app->local_ext.volume);
 
   // Initialize the polarization weight.
-  struct gkyl_array *Jgij[3] = {
-    app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj, app->gk_geom->geo_int.gyyj};
+  struct gkyl_array *Jgij[3] = { app->gk_geom->geo_int.gxxj, app->gk_geom->geo_int.gxyj,
+    app->gk_geom->geo_int.gyyj };
   for (int i = 0; i < app->cdim - 2 / app->cdim; i++) {
     gkyl_array_set_offset(f->epsilon, polarization_weight, Jgij[i], i * app->basis.num_basis);
   }

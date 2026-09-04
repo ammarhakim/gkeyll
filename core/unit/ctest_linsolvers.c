@@ -601,22 +601,22 @@ test_superlu_ops_multiple_prob_update_amat_ho()
   gkyl_superlu_prob_release(prob);
 }
 
-TEST_LIST = {{"slu_example_ho", test_slu_example_ho},
-  {"superlu_ops_basic_ho", test_superlu_ops_basic_ho},
-  {"superlu_ops_basic_update_amat_ho", test_superlu_ops_basic_update_amat_ho},
-  {"superlu_ops_separateLU_ho", test_superlu_ops_separateLU_ho},
-  {"superlu_ops_multiple_prob_ho", test_superlu_ops_multiple_prob_ho},
-  {"superlu_ops_multiple_prob_update_amat_ho", test_superlu_ops_multiple_prob_update_amat_ho},
+TEST_LIST = { { "slu_example_ho", test_slu_example_ho },
+  { "superlu_ops_basic_ho", test_superlu_ops_basic_ho },
+  { "superlu_ops_basic_update_amat_ho", test_superlu_ops_basic_update_amat_ho },
+  { "superlu_ops_separateLU_ho", test_superlu_ops_separateLU_ho },
+  { "superlu_ops_multiple_prob_ho", test_superlu_ops_multiple_prob_ho },
+  { "superlu_ops_multiple_prob_update_amat_ho", test_superlu_ops_multiple_prob_update_amat_ho },
 #ifdef GKYL_HAVE_CUDA
 #ifdef GKYL_HAVE_CUDSS
-  {"cudss_simple_dev", test_cudss_simple_dev}, {"cudss_ops_dev", test_cudss_ops_dev},
-  {"cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev},
-  {"cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev},
+  { "cudss_simple_dev", test_cudss_simple_dev }, { "cudss_ops_dev", test_cudss_ops_dev },
+  { "cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev },
+  { "cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev },
 #else
-  {"cusolver_qr_dev", test_cusolver_qr_dev}, {"cusolver_rf_dev", test_cusolver_rf_dev},
-  {"cusolver_ops_dev", test_cusolver_ops_dev},
-  {"cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev},
-  {"cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev},
+  { "cusolver_qr_dev", test_cusolver_qr_dev }, { "cusolver_rf_dev", test_cusolver_rf_dev },
+  { "cusolver_ops_dev", test_cusolver_ops_dev },
+  { "cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev },
+  { "cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev },
 #endif
 #endif
-  {NULL, NULL}};
+  { NULL, NULL } };

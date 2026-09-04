@@ -17,17 +17,17 @@ gk_species_damping_write_enabled(
   struct timespec wst = gkyl_wall_clock();
   // DG metadata for damping rate.
   struct gkyl_msgpack_map_elem mpe_drate[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity"},
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Rate of the damping term."},
-    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame},
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Rate of the damping term." },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame }
   };
   int mpe_drate_len = sizeof(mpe_drate) / sizeof(mpe_drate[0]);
   // Package metadata.
-  int io_meta_len[] = {gks->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_basic_len};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_basic, mpe_drate, app->gk_geom->io_meta_basic};
+  int io_meta_len[] = { gks->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_basic_len };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic, mpe_drate,
+    app->gk_geom->io_meta_basic };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -91,16 +91,15 @@ gk_species_damping_init(
       proj_on_basis_c2p_ctx.cdim = app->cdim;
       proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
       proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-        .grid = &gks->grid,
-        .basis = &gks->basis,
-        .num_quad = num_quad,
-        .num_ret_vals = 1,
-        .eval = gks->info.damping.rate_profile,
-        .ctx = gks->info.damping.rate_profile_ctx,
-        .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &proj_on_basis_c2p_ctx,
-      });
+      gkyl_proj_on_basis *projup =
+        gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &gks->grid,
+          .basis = &gks->basis,
+          .num_quad = num_quad,
+          .num_ret_vals = 1,
+          .eval = gks->info.damping.rate_profile,
+          .ctx = gks->info.damping.rate_profile_ctx,
+          .c2p_func = proj_on_basis_c2p_phase_func,
+          .c2p_func_ctx = &proj_on_basis_c2p_ctx });
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, damp->rate_host);
       gkyl_proj_on_basis_release(projup);
       gkyl_array_copy(damp->rate, damp->rate_host);
@@ -154,8 +153,7 @@ gk_species_damping_init(
       }
 
       // Operator that projects the loss cone mask.
-      struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
-        .phase_grid = &gks->grid,
+      struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = { .phase_grid = &gks->grid,
         .conf_basis = &app->basis,
         .phase_basis = &gks->basis,
         .conf_range = &app->local,
@@ -168,8 +166,7 @@ gk_species_damping_init(
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .num_quad = num_quad,
-        .use_gpu = app->use_gpu,
-      };
+        .use_gpu = app->use_gpu };
       damp->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
       // Project the conf-space rate profile provided.

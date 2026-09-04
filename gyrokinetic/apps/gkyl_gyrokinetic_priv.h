@@ -493,7 +493,7 @@ enum gkyl_species_bflux_type {
   GK_SPECIES_BFLUX_NONE = 0, // Do nothing.
   GK_SPECIES_BFLUX_CALC_FLUX, // Put boundary fluxes in ghost of rhs.
   GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS, // Also step the moments of bflux.
-  GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS, // Also compute/write diagnostics.
+  GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS_DIAGS // Also compute/write diagnostics.
 };
 
 #define BFLUX_MAX_MOM_NAMES 12

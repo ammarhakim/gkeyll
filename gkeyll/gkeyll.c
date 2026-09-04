@@ -63,14 +63,14 @@ struct tool_description {
 };
 
 // List of available Tools
-static struct tool_description tool_list[] = {{"man", "man.lua", "Gkeyll online manual"},
-  {"woman", "man.lua", "Gkeyll online manual (Woe without man)"},
-  {"queryrdb", "queryrdb.lua", "Query/modify regression test DB"},
-  {"exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver"},
-  {"runregression", "runregression.lua", "Run regression/unit tests"},
-  {"multimomlinear", "multimomlinear.lua",
-    "Linear dispersion solver for multi-moment, multifluid equations"},
-  {"eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files"}, {0, 0}};
+static struct tool_description tool_list[] = { { "man", "man.lua", "Gkeyll online manual" },
+  { "woman", "man.lua", "Gkeyll online manual (Woe without man)" },
+  { "queryrdb", "queryrdb.lua", "Query/modify regression test DB" },
+  { "exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver" },
+  { "runregression", "runregression.lua", "Run regression/unit tests" },
+  { "multimomlinear", "multimomlinear.lua",
+    "Linear dispersion solver for multi-moment, multifluid equations" },
+  { "eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files" }, { 0, 0 } };
 
 static int
 max2(int a, int b)
@@ -392,7 +392,7 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   struct {
     MPI_Comm comm;
-  } lw_mpi_comm_world = {.comm = MPI_COMM_WORLD};
+  } lw_mpi_comm_world = { .comm = MPI_COMM_WORLD };
 #endif
 
   if (app_args->use_mpi) {

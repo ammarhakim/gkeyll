@@ -29,36 +29,30 @@ typedef struct {
 // Serendipity sheath_calc kernels.
 GKYL_CU_D static const sheath_calc_kern_edge_list ser_sheath_calc_list[] = {
   // 1x
-  {
-    .list = {{ambi_bolt_potential_sheath_calc_lower_1x_ser_p1,
-               ambi_bolt_potential_sheath_calc_upper_1x_ser_p1},
-      {ambi_bolt_potential_sheath_calc_lower_1x_ser_p2,
-        ambi_bolt_potential_sheath_calc_upper_1x_ser_p2}},
-  },
+  { .list = { { ambi_bolt_potential_sheath_calc_lower_1x_ser_p1,
+                ambi_bolt_potential_sheath_calc_upper_1x_ser_p1 },
+      { ambi_bolt_potential_sheath_calc_lower_1x_ser_p2,
+        ambi_bolt_potential_sheath_calc_upper_1x_ser_p2 } } },
   // 2x
-  {
-    .list = {{ambi_bolt_potential_sheath_calc_lower_2x_ser_p1,
-               ambi_bolt_potential_sheath_calc_upper_2x_ser_p1},
-      {ambi_bolt_potential_sheath_calc_lower_2x_ser_p2,
-        ambi_bolt_potential_sheath_calc_upper_2x_ser_p2}},
-  },
+  { .list = { { ambi_bolt_potential_sheath_calc_lower_2x_ser_p1,
+                ambi_bolt_potential_sheath_calc_upper_2x_ser_p1 },
+      { ambi_bolt_potential_sheath_calc_lower_2x_ser_p2,
+        ambi_bolt_potential_sheath_calc_upper_2x_ser_p2 } } },
   //  // 3x
-  {
-    .list = {{ambi_bolt_potential_sheath_calc_lower_3x_ser_p1,
-               ambi_bolt_potential_sheath_calc_upper_3x_ser_p1},
-      {ambi_bolt_potential_sheath_calc_lower_3x_ser_p2,
-        ambi_bolt_potential_sheath_calc_upper_3x_ser_p2}},
-  },
+  { .list = { { ambi_bolt_potential_sheath_calc_lower_3x_ser_p1,
+                ambi_bolt_potential_sheath_calc_upper_3x_ser_p1 },
+      { ambi_bolt_potential_sheath_calc_lower_3x_ser_p2,
+        ambi_bolt_potential_sheath_calc_upper_3x_ser_p2 } } }
 };
 
 // Serendipity phi_calc kernels.
 GKYL_CU_D static const phi_calc_kern_list ser_phi_calc_list[] = {
   // 1x kernels
-  {ambi_bolt_potential_phi_calc_1x_ser_p1, ambi_bolt_potential_phi_calc_1x_ser_p2},
+  { ambi_bolt_potential_phi_calc_1x_ser_p1, ambi_bolt_potential_phi_calc_1x_ser_p2 },
   // 2x kernels
-  {ambi_bolt_potential_phi_calc_2x_ser_p1, ambi_bolt_potential_phi_calc_2x_ser_p2},
+  { ambi_bolt_potential_phi_calc_2x_ser_p1, ambi_bolt_potential_phi_calc_2x_ser_p2 },
   // 3x kernels
-  {ambi_bolt_potential_phi_calc_3x_ser_p1, ambi_bolt_potential_phi_calc_3x_ser_p2},
+  { ambi_bolt_potential_phi_calc_3x_ser_p1, ambi_bolt_potential_phi_calc_3x_ser_p2 }
 };
 
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.

@@ -11,10 +11,10 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app,
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(s->io_meta_conf_len, s->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(s->io_meta_conf_len, s->io_meta_conf, "frame", frame);
-  int io_meta_len[] = {s->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  int io_meta_len[] = { s->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
 
-  const char *vars[] = {"x", "y", "z"};
-  const char *edge[] = {"lower", "upper"};
+  const char *vars[] = { "x", "y", "z" };
+  const char *edge[] = { "lower", "upper" };
 
   int dir = recyc->dir;
   int edi = recyc->edge == GKYL_LOWER_EDGE ? 0 : 1;
@@ -42,11 +42,11 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app,
     if (app->use_gpu)
       gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
 
-    struct gkyl_msgpack_map_elem desc0[] = {{.key = "Description",
+    struct gkyl_msgpack_map_elem desc0[] = { { .key = "Description",
       .elem_type = GKYL_MP_STRING,
-      .cval = "Impacting boundary particle flux."}};
-    const struct gkyl_msgpack_map_elem *io_meta[] = {
-      s->io_meta_conf, app->gk_geom->io_meta_basic, desc0};
+      .cval = "Impacting boundary particle flux." } };
+    const struct gkyl_msgpack_map_elem *io_meta[] = { s->io_meta_conf, app->gk_geom->io_meta_basic,
+      desc0 };
     struct gkyl_msgpack_data *mt0 =
       gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -83,9 +83,10 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app,
     gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
 
   struct gkyl_msgpack_map_elem desc1[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emitted boundary particle flux."}};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    s->io_meta_conf, app->gk_geom->io_meta_basic, desc1};
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emitted boundary particle flux." }
+  };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { s->io_meta_conf, app->gk_geom->io_meta_basic,
+    desc1 };
   struct gkyl_msgpack_data *mt1 =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -187,19 +188,16 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
   struct gkyl_bc_basic *bc_basic_op = gkyl_bc_basic_new(dir, edge, GKYL_BC_FIXED_FUNC,
     s->basis_on_dev, recyc->emit_skin_r, recyc->emit_ghost_r, s->f->ncomp, app->cdim, app->use_gpu);
   // Project unit Maxwellian.
-  struct gk_neut_recycling_maxwellian_params neut_max_pars = {
-    .temp =
-      e == 0 ? s->lower_bc[dir].emission.emission_temp : s->upper_bc[dir].emission.emission_temp,
-  };
-  struct gkyl_gyrokinetic_projection recyc_proj_inp = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+  struct gk_neut_recycling_maxwellian_params neut_max_pars = { .temp = e == 0
+      ? s->lower_bc[dir].emission.emission_temp
+      : s->upper_bc[dir].emission.emission_temp };
+  struct gkyl_gyrokinetic_projection recyc_proj_inp = { .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
     .ctx_density = &neut_max_pars,
     .density = gk_neut_recycling_maxwellian_den,
     .ctx_upar = &neut_max_pars,
     .udrift = gk_neut_recycling_maxwellian_udrift,
     .ctx_temp = &neut_max_pars,
-    .temp = gk_neut_recycling_maxwellian_temp,
-  };
+    .temp = gk_neut_recycling_maxwellian_temp };
   struct gk_proj proj_unit_maxwellian;
   gk_neut_species_projection_init(app, s, recyc_proj_inp, &proj_unit_maxwellian);
   gk_neut_species_projection_calc(app, s, &proj_unit_maxwellian, s->f1, 0.0); // Temporarily use f1.
@@ -262,7 +260,7 @@ gk_neut_species_recycle_cross_init(
 
   recyc->unit_m0_flux_neut = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r.volume);
 
-  struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
+  struct gkyl_mom_canonical_pb_auxfields can_pb_inp = { .hamil = s->hamil };
   recyc->m0op_neut = gkyl_dg_updater_moment_new(&recyc->emit_grid, &app->basis, &s->basis,
     &recyc->emit_cbuff_r, &s->local_vel, &recyc->emit_buff_r, s->model_id, &can_pb_inp,
     GKYL_F_MOMENT_M0, false, app->use_gpu);

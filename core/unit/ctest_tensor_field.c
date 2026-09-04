@@ -103,13 +103,13 @@ test_tensor_field_fetch_ho()
   TEST_CHECK(tfldDataUh[3] == (8.0 + 3.0));
 
   // Tensor element fetch method
-  int indxLh[GKYL_MAX_DIM] = {0.0, 0.0};
+  int indxLh[GKYL_MAX_DIM] = { 0.0, 0.0 };
   indxLh[0] = 0;
   indxLh[1] = 2;
   double tfldDataLhElem = gkyl_tensor_field_elem_fetch(tfld, 0, indxLh);
   TEST_CHECK(tfldDataLhElem == (0.0 + 2.0));
 
-  int indxUh[GKYL_MAX_DIM] = {0.0, 0.0};
+  int indxUh[GKYL_MAX_DIM] = { 0.0, 0.0 };
   indxUh[0] = 2;
   indxUh[1] = 0;
   double tfldDataUhElem = gkyl_tensor_field_elem_fetch(tfld, 5, indxUh);
@@ -141,7 +141,7 @@ test_tensor_field_set_ho()
     }
   }
 
-  int idx[GKYL_MAX_DIM] = {0.0, 0.0};
+  int idx[GKYL_MAX_DIM] = { 0.0, 0.0 };
   for (unsigned i = 0; i < size; ++i) {
     for (unsigned j = 0; j < ndim; ++j) {
       for (unsigned k = 0; k < ndim; ++k) {
@@ -173,14 +173,14 @@ test_tensor_field_set_ho()
   TEST_CHECK(tfldDataUh[3] == (8.0 + 3.0));
 
   // Tensor element fetch method
-  int indxLh[GKYL_MAX_DIM] = {0.0, 0.0};
+  int indxLh[GKYL_MAX_DIM] = { 0.0, 0.0 };
   indxLh[0] = 0;
   indxLh[1] = 2;
   double tfldDataLhElem = gkyl_tensor_field_elem_fetch(tfld, 0, indxLh);
   double tfldDataLhElem2 = gkyl_tensor_field_elem_fetch(tfld2, 0, indxLh);
   TEST_CHECK(tfldDataLhElem == tfldDataLhElem2);
 
-  int indxUh[GKYL_MAX_DIM] = {0.0, 0.0};
+  int indxUh[GKYL_MAX_DIM] = { 0.0, 0.0 };
   indxUh[0] = 2;
   indxUh[1] = 0;
   double tfldDataUhElem = gkyl_tensor_field_elem_fetch(tfld, 5, indxUh);
@@ -247,13 +247,11 @@ test_tensor_field_base_dev()
 
 #endif
 
-TEST_LIST = {
-  {"test_tensor_field_ho", test_tensor_field_ho},
-  {"test_tensor_field_base_ho", test_tensor_field_base_ho},
-  {"test_tensor_field_fetch_ho", test_tensor_field_fetch_ho},
-  {"test_tensor_field_set_ho", test_tensor_field_set_ho},
+TEST_LIST = { { "test_tensor_field_ho", test_tensor_field_ho },
+  { "test_tensor_field_base_ho", test_tensor_field_base_ho },
+  { "test_tensor_field_fetch_ho", test_tensor_field_fetch_ho },
+  { "test_tensor_field_set_ho", test_tensor_field_set_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"tensor_field_base_dev", test_tensor_field_base_dev},
+  { "tensor_field_base_dev", test_tensor_field_base_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

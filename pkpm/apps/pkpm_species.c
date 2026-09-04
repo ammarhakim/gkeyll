@@ -189,9 +189,9 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   }
 
   // by default, we do not have zero-flux boundary conditions in any direction
-  bool is_zero_flux[GKYL_MAX_DIM] = {false};
+  bool is_zero_flux[GKYL_MAX_DIM] = { false };
 
-  struct gkyl_dg_vlasov_pkpm_auxfields vlasov_pkpm_inp = {.bvar = app->field->bvar,
+  struct gkyl_dg_vlasov_pkpm_auxfields vlasov_pkpm_inp = { .bvar = app->field->bvar,
     .bvar_surf = app->field->bvar_surf,
     .pkpm_prim = s->pkpm_prim,
     .pkpm_prim_surf = s->pkpm_prim_surf,
@@ -199,13 +199,13 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     .pkpm_lax = s->pkpm_lax,
     .div_b = app->field->div_b,
     .pkpm_accel_vars = s->pkpm_accel,
-    .g_dist_source = s->g_dist_source};
-  struct gkyl_dg_euler_pkpm_auxfields euler_pkpm_inp = {.vlasov_pkpm_moms = s->pkpm_moms.marr,
+    .g_dist_source = s->g_dist_source };
+  struct gkyl_dg_euler_pkpm_auxfields euler_pkpm_inp = { .vlasov_pkpm_moms = s->pkpm_moms.marr,
     .pkpm_prim = s->pkpm_prim,
     .pkpm_prim_surf = s->pkpm_prim_surf,
     .pkpm_p_ij = s->pkpm_p_ij,
     .pkpm_lax = s->pkpm_lax,
-    .pkpm_penalization = s->pkpm_penalization};
+    .pkpm_penalization = s->pkpm_penalization };
   // create solver
   s->slvr = gkyl_dg_updater_pkpm_new(&app->grid, &s->grid, &app->confBasis, &app->basis,
     &app->local, &s->local, is_zero_flux, &vlasov_pkpm_inp, &euler_pkpm_inp, app->use_gpu);
@@ -270,14 +270,14 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
       gkyl_array_release(diffD_host);
     }
 
-    bool is_zero_flux[GKYL_MAX_CDIM] = {false};
+    bool is_zero_flux[GKYL_MAX_CDIM] = { false };
     s->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(&app->grid, &app->confBasis, true, num_eqn,
       NULL, s->info.diffusion.order, &app->local, is_zero_flux, app->use_gpu);
   }
 
   // determine which directions are not periodic and get non-periodic BC info
   // also create local skin-ghost ranges for ease of handling non-periodic BCs
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = { 1, 1, 1 };
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np[app->periodic_dirs[d]] = 0;
 
@@ -600,7 +600,7 @@ pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species, st
   gkyl_comm_array_per_sync(
     species->comm, &species->local, &species->local_ext, num_periodic_dir, app->periodic_dirs, f);
 
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
 
@@ -659,7 +659,7 @@ pkpm_fluid_species_apply_bc(
   gkyl_comm_array_per_sync(
     app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, fluid);
 
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
 
@@ -712,14 +712,14 @@ pkpm_species_calc_L2(gkyl_pkpm_app *app, double tm, const struct pkpm_species *s
   gkyl_dg_calc_l2_range(&app->basis, 0, species->L2_f, 0, species->f, species->local);
   gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
 
-  double L2[1] = {0.0};
+  double L2[1] = { 0.0 };
   if (app->use_gpu) {
     gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, &species->local);
     gkyl_cu_memcpy(L2, species->red_L2_f, sizeof(double), GKYL_CU_MEMCPY_D2H);
   } else {
     gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &species->local);
   }
-  double L2_global[1] = {0.0};
+  double L2_global[1] = { 0.0 };
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
 
   gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);

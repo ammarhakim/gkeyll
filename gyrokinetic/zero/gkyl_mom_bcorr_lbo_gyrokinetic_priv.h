@@ -17,10 +17,10 @@ typedef void (*lbo_gyrokinetic_momf_t)(const int *idx, enum gkyl_vel_edge edge,
 static struct {
   int vdim[3];
 } cv_index[] = {
-  {-1, -1, -1}, // 0x makes no sense
-  {-1, 0, 1}, // 1x kernel indices
-  {-1, -1, 2}, // 2x kernel indices
-  {-1, -1, 3}, // 3x kernel indices
+  { -1, -1, -1 }, // 0x makes no sense
+  { -1, 0, 1 }, // 1x kernel indices
+  { -1, -1, 2 }, // 2x kernel indices
+  { -1, -1, 3 } // 3x kernel indices
 };
 
 // for use in kernel tables
@@ -36,13 +36,13 @@ typedef struct {
 GKYL_CU_D static const gkyl_mom_bcorr_lbo_gyrokinetic_kern_list
   ser_mom_bcorr_lbo_gyrokinetic_kernels[] = {
     // 1x kernels
-    {NULL, mom_bcorr_lbo_gyrokinetic_1x1v_ser_p1, NULL}, // 0
-    {NULL, mom_bcorr_lbo_gyrokinetic_1x2v_ser_p1, NULL}, // 1
+    { NULL, mom_bcorr_lbo_gyrokinetic_1x1v_ser_p1, NULL }, // 0
+    { NULL, mom_bcorr_lbo_gyrokinetic_1x2v_ser_p1, NULL }, // 1
     // 2x kernels
-    {NULL, mom_bcorr_lbo_gyrokinetic_2x2v_ser_p1, NULL}, // 2
+    { NULL, mom_bcorr_lbo_gyrokinetic_2x2v_ser_p1, NULL }, // 2
     // 3x kernels
-    {NULL, mom_bcorr_lbo_gyrokinetic_3x2v_ser_p1, NULL}, // 3
-};
+    { NULL, mom_bcorr_lbo_gyrokinetic_3x2v_ser_p1, NULL } // 3
+  };
 
 //
 // Tensor-product basis kernels

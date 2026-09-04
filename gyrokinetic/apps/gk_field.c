@@ -23,7 +23,7 @@ eval_on_nodes_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
 static struct gkyl_app_restart_status
 header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
 {
-  struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_FOPEN_FAILED};
+  struct gkyl_app_restart_status rstat = { .io_status = GKYL_ARRAY_RIO_FOPEN_FAILED };
 
   FILE *fp = 0;
   with_file(fp, fname, "r")
@@ -38,12 +38,12 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
     }
 
     struct gkyl_msgpack_map_elem elem_list[] = {
-      {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0},
+      { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .cval = 0 }
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(
-      &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size}, elem_list_len,
+      &(struct gkyl_msgpack_data){ .meta = hdr.meta, .meta_sz = hdr.meta_size }, elem_list_len,
       elem_list);
 
     rstat.frame = gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "frame");
@@ -69,15 +69,13 @@ gk_field_polarization_potential_new(struct gk_field *f, struct gkyl_gyrokinetic_
                                                : gkyl_array_acquire(f->phi_pol);
 
   struct gkyl_eval_on_nodes *phi_pol_proj =
-    gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
-      .grid = &app->grid,
+    gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){ .grid = &app->grid,
       .basis = &phi_pol_basis,
       .num_ret_vals = 1,
       .eval = f->info.polarization_potential,
       .ctx = f->info.polarization_potential_ctx,
       .c2p_func = eval_on_nodes_c2p_position_func,
-      .c2p_func_ctx = app->position_map,
-    });
+      .c2p_func_ctx = app->position_map });
 
   gkyl_eval_on_nodes_advance(phi_pol_proj, 0.0, &app->local, phi_pol_ho);
   gkyl_array_copy(f->phi_pol, phi_pol_ho);
@@ -145,7 +143,7 @@ gk_field_calc_energy_enabled(
   gkyl_comm_allreduce(
     app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
 
-  double energy_global[1] = {0.0};
+  double energy_global[1] = { 0.0 };
   if (app->use_gpu) {
     gkyl_cu_memcpy(
       energy_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
@@ -162,7 +160,7 @@ gk_field_calc_energy_enabled(
   if (field->info.time_rate_diagnostics) {
     gkyl_comm_allreduce(
       app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_old, field->em_energy_red_global);
-    double energy_dot_global_old[1] = {0.0};
+    double energy_dot_global_old[1] = { 0.0 };
     if (app->use_gpu) {
       gkyl_cu_memcpy(
         energy_dot_global_old, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
@@ -175,7 +173,7 @@ gk_field_calc_energy_enabled(
 
     gkyl_comm_allreduce(
       app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red_new, field->em_energy_red_global);
-    double energy_dot_global_new[1] = {0.0};
+    double energy_dot_global_new[1] = { 0.0 };
     if (app->use_gpu) {
       gkyl_cu_memcpy(
         energy_dot_global_new, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
@@ -186,7 +184,7 @@ gk_field_calc_energy_enabled(
       energy_dot_global_new[0] *= field->es_energy_fac_1d;
     }
 
-    double energy_dot_global[1] = {0.0};
+    double energy_dot_global[1] = { 0.0 };
     energy_dot_global[0] = energy_dot_global_new[0] - energy_dot_global_old[0];
 
     gkyl_dynvec_append(field->integ_energy_dot, tm, energy_dot_global);

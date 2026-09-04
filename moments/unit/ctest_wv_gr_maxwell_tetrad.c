@@ -81,35 +81,22 @@ test_gr_maxwell_tetrad_basic_minkowski_ho()
       double Hy = (lapse * By) + ((shift[0] * Dz) - (shift[2] * Dx));
       double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
-      double fluxes[3][8] = {
-        {e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
-          -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
-          b_fact * (light_speed * light_speed) * Bx},
-        {-(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
+      double fluxes[3][8] = { { e_fact * (light_speed * light_speed) * phi,
+                                (light_speed * light_speed) * Hz, -(light_speed * light_speed) * Hy,
+                                b_fact * psi, -Ez, Ey, e_fact * Dx,
+                                b_fact * (light_speed * light_speed) * Bx },
+        { -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
           (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
-          b_fact * (light_speed * light_speed) * By},
-        {(light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
+          b_fact * (light_speed * light_speed) * By },
+        { (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
           e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
-          b_fact * (light_speed * light_speed) * Bz},
-      };
+          b_fact * (light_speed * light_speed) * Bz } };
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       double q_local[26], flux_local_sr[26], flux_local_gr[26], flux[26];
       for (int d = 0; d < 3; d++) {
@@ -234,35 +221,22 @@ test_gr_maxwell_tetrad_basic_schwarzschild_ho()
         double Hy = (lapse * By) + ((shift[0] * Dz) - (shift[2] * Dx));
         double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
-        double fluxes[3][8] = {
-          {e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
-            -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
-            b_fact * (light_speed * light_speed) * Bx},
-          {-(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
+        double fluxes[3][8] = { { e_fact * (light_speed * light_speed) * phi,
+                                  (light_speed * light_speed) * Hz,
+                                  -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey,
+                                  e_fact * Dx, b_fact * (light_speed * light_speed) * Bx },
+          { -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
             (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
-            b_fact * (light_speed * light_speed) * By},
-          {(light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
+            b_fact * (light_speed * light_speed) * By },
+          { (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
             e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
-            b_fact * (light_speed * light_speed) * Bz},
-        };
+            b_fact * (light_speed * light_speed) * Bz } };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[26], flux_local_sr[26], flux_local_gr[26], flux[26];
         for (int d = 0; d < 3; d++) {
@@ -388,35 +362,22 @@ test_gr_maxwell_tetrad_basic_kerr_ho()
         double Hy = (lapse * By) + ((shift[0] * Dz) - (shift[2] * Dx));
         double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
-        double fluxes[3][8] = {
-          {e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
-            -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
-            b_fact * (light_speed * light_speed) * Bx},
-          {-(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
+        double fluxes[3][8] = { { e_fact * (light_speed * light_speed) * phi,
+                                  (light_speed * light_speed) * Hz,
+                                  -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey,
+                                  e_fact * Dx, b_fact * (light_speed * light_speed) * Bx },
+          { -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
             (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
-            b_fact * (light_speed * light_speed) * By},
-          {(light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
+            b_fact * (light_speed * light_speed) * By },
+          { (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
             e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
-            b_fact * (light_speed * light_speed) * Bz},
-        };
+            b_fact * (light_speed * light_speed) * Bz } };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[26], flux_local_sr[26], flux_local_gr[26], flux[26];
         for (int d = 0; d < 3; d++) {
@@ -569,23 +530,11 @@ test_gr_maxwell_tetrad_waves_minkowski_ho()
       qr[24] = y;
       qr[25] = 0.0;
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       for (int d = 0; d < 3; d++) {
         double speeds[6], waves[6 * 26], waves_local[6 * 26];
@@ -760,23 +709,11 @@ test_gr_maxwell_tetrad_waves_schwarzschild_ho()
         qr[24] = y;
         qr[25] = 0.0;
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[6], waves[6 * 26], waves_local[6 * 26];
@@ -954,23 +891,11 @@ test_gr_maxwell_tetrad_waves_kerr_ho()
         qr[24] = y;
         qr[25] = 0.0;
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[6], waves[6 * 26], waves_local[6 * 26];
@@ -1039,12 +964,9 @@ test_gr_maxwell_tetrad_waves_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-TEST_LIST = {
-  {"gr_maxwell_tetrad_basic_minkowski_ho", test_gr_maxwell_tetrad_basic_minkowski_ho},
-  {"gr_maxwell_tetrad_basic_schwarzschild_ho", test_gr_maxwell_tetrad_basic_schwarzschild_ho},
-  {"gr_maxwell_tetrad_basic_kerr_ho", test_gr_maxwell_tetrad_basic_kerr_ho},
-  {"gr_maxwell_tetrad_waves_minkowski_ho", test_gr_maxwell_tetrad_waves_minkowski_ho},
-  {"gr_maxwell_tetrad_waves_schwarzschild_ho", test_gr_maxwell_tetrad_waves_schwarzschild_ho},
-  {"gr_maxwell_tetrad_waves_kerr_ho", test_gr_maxwell_tetrad_waves_kerr_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "gr_maxwell_tetrad_basic_minkowski_ho", test_gr_maxwell_tetrad_basic_minkowski_ho },
+  { "gr_maxwell_tetrad_basic_schwarzschild_ho", test_gr_maxwell_tetrad_basic_schwarzschild_ho },
+  { "gr_maxwell_tetrad_basic_kerr_ho", test_gr_maxwell_tetrad_basic_kerr_ho },
+  { "gr_maxwell_tetrad_waves_minkowski_ho", test_gr_maxwell_tetrad_waves_minkowski_ho },
+  { "gr_maxwell_tetrad_waves_schwarzschild_ho", test_gr_maxwell_tetrad_waves_schwarzschild_ho },
+  { "gr_maxwell_tetrad_waves_kerr_ho", test_gr_maxwell_tetrad_waves_kerr_ho }, { NULL, NULL } };

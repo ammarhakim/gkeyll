@@ -20,7 +20,7 @@ gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel(struct gkyl_dg_calc_pkpm_dist
   const struct gkyl_array *pkpm_accel, const struct gkyl_array *fIn,
   const struct gkyl_array *F_k_p_1, struct gkyl_array *g_dist_source, struct gkyl_array *F_k_m_1)
 {
-  double xc[GKYL_MAX_DIM] = {0.0};
+  double xc[GKYL_MAX_DIM] = { 0.0 };
   int idx[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < phase_range.volume;
        linc1 += gridDim.x * blockDim.x) {
@@ -71,7 +71,7 @@ gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu_kernel(struct gkyl_dg_calc_pkpm_dist_var
   const struct gkyl_array *bvar, const struct gkyl_array *fIn, const struct gkyl_array *max_b,
   struct gkyl_array *pkpm_div_ppar)
 {
-  double xc[GKYL_MAX_DIM] = {0.0};
+  double xc[GKYL_MAX_DIM] = { 0.0 };
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x * blockDim.x; linc1 < phase_range.volume;
        linc1 += gridDim.x * blockDim.x) {

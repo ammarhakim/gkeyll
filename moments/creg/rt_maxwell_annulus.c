@@ -74,8 +74,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct annulus_ctx ctx = {
-    .pi = pi,
+  struct annulus_ctx ctx = { .pi = pi,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
     .E0 = E0,
@@ -90,8 +89,7 @@ create_ctx(void)
     .field_energy_calcs = field_energy_calcs,
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -191,16 +189,14 @@ main(int argc, char **argv)
   int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // Field.
-  struct gkyl_moment_field field = {
-    .epsilon0 = ctx.epsilon0,
+  struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
 
     .limiter = GKYL_NO_LIMITER,
     .init = evalFieldInit,
     .ctx = &ctx,
 
-    .bcx = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
-  };
+    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -210,7 +206,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = {NR, NTHETA};
+  int cells[] = { NR, NTHETA };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -232,14 +228,12 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -264,25 +258,22 @@ main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = {0.25, 0.0},
-    .upper = {0.25 + ctx.Lr, ctx.Ltheta},
-    .cells = {NR, NTHETA},
+    .lower = { 0.25, 0.0 },
+    .upper = { 0.25 + ctx.Lr, ctx.Ltheta },
+    .cells = { NR, NTHETA },
 
     .mapc2p = mapc2p,
 
     .num_periodic_dir = 1,
-    .periodic_dirs = {1},
+    .periodic_dirs = { 1 },
 
     .cfl_frac = ctx.cfl_frac,
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -317,21 +308,24 @@ main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 

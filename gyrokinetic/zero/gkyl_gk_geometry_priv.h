@@ -18,7 +18,7 @@ get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
 static double
 calc_running_coord(double coord_lo, int i, double dx)
 {
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   double coord = coord_lo;
   for (int j = 0; j < i; j++)
     coord += dels[j % 2] * dx;
@@ -28,7 +28,7 @@ calc_running_coord(double coord_lo, int i, double dx)
 static double
 calc_running_surf_coord(double coord_lo, int i, double dx)
 {
-  double dels[3] = {(1.0 - 1.0 / sqrt(3)) / 2.0, 1.0 / sqrt(3), (1.0 - 1.0 / sqrt(3)) / 2.0};
+  double dels[3] = { (1.0 - 1.0 / sqrt(3)) / 2.0, 1.0 / sqrt(3), (1.0 - 1.0 / sqrt(3)) / 2.0 };
   double coord = coord_lo;
   for (int j = 0; j < i; j++)
     coord += dels[j % 3] * dx;
@@ -319,8 +319,8 @@ gk_geometry_surf_calc_expansions(
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&gk_geom->basis, &gk_geom->grid, false);
 
   struct gkyl_range local_ext_in_dir;
-  int lower[3] = {gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2]};
-  int upper[3] = {gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2]};
+  int lower[3] = { gk_geom->local.lower[0], gk_geom->local.lower[1], gk_geom->local.lower[2] };
+  int upper[3] = { gk_geom->local.upper[0], gk_geom->local.upper[1], gk_geom->local.upper[2] };
   upper[dir] += 1;
   gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 

@@ -127,7 +127,7 @@ fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis *basis,
   int ndim = basis->ndim;
   int ndim_perp = ndim - 1;
 
-  int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
+  int bckey[GKYL_MAX_CDIM] = { -1, -1, -1 };
   for (int d = 0; d < ndim_perp; d++)
     bckey[d] = isdirperiodic[d] ? 0 : 1;
   int *bckey_d = (int *)gkyl_cu_malloc(GKYL_MAX_CDIM * sizeof(int));
@@ -200,7 +200,7 @@ gkyl_fem_poisson_perp_set_rhs_kernel(struct gkyl_array *epsilon, const double *d
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(ndim_perp, num_cells, idx);
-    int idx1d[] = {idx[ndim - 1]};
+    int idx1d[] = { idx[ndim - 1] };
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     long parProbOff = paridx * numnodes_global;
     kers->srcker[keri](epsilon_d, dx, local_d, bcvals, parProbOff, globalidx, rhs_global);
@@ -253,7 +253,7 @@ gkyl_fem_poisson_perp_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid 
     kers->l2g[keri](num_cells, idx0, globalidx);
 
     // Modify the RHS source to enforce biasing of the solution.
-    int idx1d[] = {idx[ndim - 1]};
+    int idx1d[] = { idx[ndim - 1] };
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     long parProbOff = paridx * numnodes_global;
 
@@ -271,10 +271,8 @@ gkyl_fem_poisson_perp_bias_src_kernel(double *rhs_global, struct gkyl_rect_grid 
         (idx[bl->perp_dirs[0]] == bl_idx_m[0] + 1 && idx[bl->perp_dirs[1]] == bl_idx_m[1]) ||
         (idx[bl->perp_dirs[0]] == bl_idx_m[0] && idx[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
         (idx[bl->perp_dirs[0]] == bl_idx_m[0] + 1 && idx[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
-        int edge[2] = {
-          -1 + 2 * ((bl_idx_m[0] + 1) - idx[bl->perp_dirs[0]]),
-          -1 + 2 * ((bl_idx_m[1] + 1) - idx[bl->perp_dirs[1]]),
-        };
+        int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx[bl->perp_dirs[0]]),
+          -1 + 2 * ((bl_idx_m[1] + 1) - idx[bl->perp_dirs[1]]) };
         kers->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, parProbOff, globalidx, rhs_global);
       }
     }
@@ -326,7 +324,7 @@ gkyl_fem_poisson_perp_get_sol_kernel(struct gkyl_array *x_local, const double *x
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
-    int idx1d[] = {idx[ndim - 1]};
+    int idx1d[] = { idx[ndim - 1] };
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
     long parProbOff = paridx * numnodes_global;
     kers->solker(x_global, parProbOff, globalidx, local_d);
@@ -381,7 +379,7 @@ gkyl_fem_poisson_perp_update_lhs_kernel(bool is_helmholtz, const double *dx, con
       idx0[d] = idx[d] - 1;
     kers->l2g[keri](num_cells, idx0, globalidx);
 
-    int idx1d[] = {idx[ndim - 1]};
+    int idx1d[] = { idx[ndim - 1] };
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a

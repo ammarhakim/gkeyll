@@ -90,21 +90,21 @@ kernel_mom_bcorr_lbo_pkpm_3x1v_ser_p1(const struct gkyl_mom_type *momt, const do
 // Moment boundary correction kernel list (Serendipity basis)
 GKYL_CU_D static const gkyl_mom_bcorr_lbo_pkpm_kern_list ser_mom_bcorr_lbo_pkpm_kernels[] = {
   // 1x kernels
-  {NULL, kernel_mom_bcorr_lbo_pkpm_1x1v_ser_p1, kernel_mom_bcorr_lbo_pkpm_1x1v_ser_p2}, // 0
+  { NULL, kernel_mom_bcorr_lbo_pkpm_1x1v_ser_p1, kernel_mom_bcorr_lbo_pkpm_1x1v_ser_p2 }, // 0
   // 2x kernels
-  {NULL, kernel_mom_bcorr_lbo_pkpm_2x1v_ser_p1, NULL}, // 1
+  { NULL, kernel_mom_bcorr_lbo_pkpm_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
-  {NULL, kernel_mom_bcorr_lbo_pkpm_3x1v_ser_p1, NULL}, // 2
+  { NULL, kernel_mom_bcorr_lbo_pkpm_3x1v_ser_p1, NULL } // 2
 };
 
 // Moment boundary correction kernel list (Tensor basis)
 GKYL_CU_D static const gkyl_mom_bcorr_lbo_pkpm_kern_list ten_mom_bcorr_lbo_pkpm_kernels[] = {
   // 1x kernels
-  {NULL, kernel_mom_bcorr_lbo_pkpm_1x1v_ser_p1, kernel_mom_bcorr_lbo_pkpm_1x1v_tensor_p2}, // 0
+  { NULL, kernel_mom_bcorr_lbo_pkpm_1x1v_ser_p1, kernel_mom_bcorr_lbo_pkpm_1x1v_tensor_p2 }, // 0
   // 2x kernels
-  {NULL, kernel_mom_bcorr_lbo_pkpm_2x1v_ser_p1, kernel_mom_bcorr_lbo_pkpm_2x1v_tensor_p2}, // 1
+  { NULL, kernel_mom_bcorr_lbo_pkpm_2x1v_ser_p1, kernel_mom_bcorr_lbo_pkpm_2x1v_tensor_p2 }, // 1
   // 3x kernels
-  {NULL, kernel_mom_bcorr_lbo_pkpm_3x1v_ser_p1, NULL}, // 2
+  { NULL, kernel_mom_bcorr_lbo_pkpm_3x1v_ser_p1, NULL } // 2
 };
 
 /**

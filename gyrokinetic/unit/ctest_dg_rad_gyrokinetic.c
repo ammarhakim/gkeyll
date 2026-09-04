@@ -121,9 +121,9 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   double vtsq_min = 0.0;
   double vth = sqrt(te * GKYL_ELEMENTARY_CHARGE / GKYL_ELECTRON_MASS);
   // Phase space and Configuration space extents and resolution
-  double lower[] = {-1.0, -4 * vth, 0.0};
-  double upper[] = {1.0, 4 * vth, 9 * vth * vth * GKYL_ELECTRON_MASS};
-  int cells[] = {2, 256, 128};
+  double lower[] = { -1.0, -4 * vth, 0.0 };
+  double upper[] = { 1.0, 4 * vth, 9 * vth * vth * GKYL_ELECTRON_MASS };
+  int cells[] = { 2, 256, 128 };
   int vdim = 2;
 
   int ndim = sizeof(cells) / sizeof(cells[0]);
@@ -167,24 +167,23 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   gkyl_cart_modal_serendip(&surf_vpar_basis, ndim - 1, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {1};
+  int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], 0, 0};
+  int ghost[] = { confGhost[0], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  int vGhost[] = {0, 0};
+  int vGhost[] = { 0, 0 };
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = {0.0, 0.0},
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = { 0.0, 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
@@ -195,10 +194,9 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis,
-  };
+    .basis = confBasis };
 
-  int geo_ghost[3] = {1};
+  int geo_ghost[3] = { 1 };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext,
@@ -311,8 +309,7 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
 
   // Maxwellian (or bi-Maxwellian) projection updater.
-  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
-    .phase_grid = &grid,
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range = &confLocal,
@@ -322,8 +319,7 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu,
-  };
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
@@ -352,7 +348,8 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state,
   // initialize solver
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = {
-    .nvnu_surf = nvnu_surf, .nvnu = nvnu, .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu};
+    .nvnu_surf = nvnu_surf, .nvnu = nvnu, .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu
+  };
   slvr = gkyl_dg_updater_rad_gyrokinetic_new(
     &grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu);
 
@@ -456,9 +453,9 @@ test_2x(int poly_order, bool use_gpu, double te)
   double vth = sqrt(te * GKYL_ELEMENTARY_CHARGE / GKYL_ELECTRON_MASS);
   double vtsq_min = 0.0;
   // Phase space and Configuration space extents and resolution
-  double lower[] = {-2.0, -1.0, -4 * vth, 0.0};
-  double upper[] = {2.0, 1.0, 4 * vth, 9 * vth * vth * GKYL_ELECTRON_MASS};
-  int cells[] = {2, 2, 256, 128};
+  double lower[] = { -2.0, -1.0, -4 * vth, 0.0 };
+  double upper[] = { 2.0, 1.0, 4 * vth, 9 * vth * vth * GKYL_ELECTRON_MASS };
+  int cells[] = { 2, 2, 256, 128 };
   int vdim = 2;
 
   int ndim = sizeof(cells) / sizeof(cells[0]);
@@ -502,24 +499,23 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_cart_modal_serendip(&surf_vpar_basis, ndim - 1, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  int confGhost[] = {1, 1};
+  int confGhost[] = { 1, 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
+  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  int vGhost[] = {0, 0, 0};
+  int vGhost[] = { 0, 0, 0 };
   struct gkyl_range vLocal, vLocal_ext;
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = {0.0},
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = { 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
@@ -530,10 +526,9 @@ test_2x(int poly_order, bool use_gpu, double te)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis,
-  };
+    .basis = confBasis };
 
-  int geo_ghost[3] = {1};
+  int geo_ghost[3] = { 1 };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext,
@@ -565,7 +560,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   // Note that through the spatial variation of B, both these drag coefficients depend on the full phase space
 
   int num_collisions = 1;
-  int num_ne_per_coll[1] = {1};
+  int num_ne_per_coll[1] = { 1 };
   int atomic_z = 3;
   int charge_state = 0;
   struct all_radiation_states *rad_data = gkyl_radiation_read_rad_fit_params();
@@ -583,7 +578,7 @@ test_2x(int poly_order, bool use_gpu, double te)
     num_collisions, num_ne_per_coll, surf_mu_basis.num_basis, local_ext.volume, use_gpu);
 
   double a[1], alpha[1], beta[1], gamma[1], v0[1], n_elc_d[1];
-  int num_ne[1] = {1};
+  int num_ne[1] = { 1 };
   int ne_interval = 1;
   int status = gkyl_radiation_read_get_fit_params(
     *rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne, n_elc_d, 1e19, 1, 1e30);
@@ -649,8 +644,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
 
   // Maxwellian (or bi-Maxwellian) projection updater.
-  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
-    .phase_grid = &grid,
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .conf_range = &confLocal,
@@ -660,8 +654,7 @@ test_2x(int poly_order, bool use_gpu, double te)
     .vel_map = gvm,
     .mass = mass,
     .bimaxwellian = false,
-    .use_gpu = use_gpu,
-  };
+    .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
@@ -690,7 +683,8 @@ test_2x(int poly_order, bool use_gpu, double te)
   // initialize solver
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = {
-    .nvnu_surf = nvnu_surf, .nvnu = nvnu, .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu};
+    .nvnu_surf = nvnu_surf, .nvnu = nvnu, .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu
+  };
   slvr = gkyl_dg_updater_rad_gyrokinetic_new(
     &grid, &confBasis, &basis, &local, &confLocal, gvm, &drag_inp, use_gpu);
 
@@ -789,8 +783,8 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_gk_geometry_release(gk_geom);
 }
 
-static int num_ne[1] = {1};
-static int num_ne2[1] = {20};
+static int num_ne[1] = { 1 };
+static int num_ne2[1] = { 20 };
 void
 test_1x2v_p1_10eV()
 {
@@ -868,19 +862,17 @@ test_rad_gk_1x2v_p1_L1_midNe_dev()
 
 #endif
 
-TEST_LIST = {
-  {"test_rad_gk_1x2v_p1_Li0_30eV_ho", test_rad_gk_1x2v_p1_30eV_ho},
-  {"test_rad_gk_1x2v_p1_Li0_5000eV_ho", test_rad_gk_1x2v_p1_5000eV_ho},
-  {"test_rad_gk_1x2v_p1_H_ho", test_rad_gk_1x2v_p1_H_ho},
-  {"test_rad_gk_1x2v_p1_Li1_lowNe_ho", test_rad_gk_1x2v_p1_Li1_lowNe_ho},
-  {"test_rad_gk_1x2v_p1_Li1_midNe_ho", test_rad_gk_1x2v_p1_Li1_midNe_ho},
-  {"test_rad_gk_1x2v_p1_Li1_highNe_ho", test_rad_gk_1x2v_p1_Li1_highNe_ho},
-  {"test_rad_gk_2x2v_p1_ho", test_rad_gk_2x2v_p1_ho},
+TEST_LIST = { { "test_rad_gk_1x2v_p1_Li0_30eV_ho", test_rad_gk_1x2v_p1_30eV_ho },
+  { "test_rad_gk_1x2v_p1_Li0_5000eV_ho", test_rad_gk_1x2v_p1_5000eV_ho },
+  { "test_rad_gk_1x2v_p1_H_ho", test_rad_gk_1x2v_p1_H_ho },
+  { "test_rad_gk_1x2v_p1_Li1_lowNe_ho", test_rad_gk_1x2v_p1_Li1_lowNe_ho },
+  { "test_rad_gk_1x2v_p1_Li1_midNe_ho", test_rad_gk_1x2v_p1_Li1_midNe_ho },
+  { "test_rad_gk_1x2v_p1_Li1_highNe_ho", test_rad_gk_1x2v_p1_Li1_highNe_ho },
+  { "test_rad_gk_2x2v_p1_ho", test_rad_gk_2x2v_p1_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  {"test_rad_gk_1x2v_p1_dev", test_rad_gk_1x2v_p1_dev},
-  {"test_rad_gk_1x2v_p1_L1_midNe_dev", test_rad_gk_1x2v_p1_L1_midNe_dev},
+  { "test_rad_gk_1x2v_p1_dev", test_rad_gk_1x2v_p1_dev },
+  { "test_rad_gk_1x2v_p1_L1_midNe_dev", test_rad_gk_1x2v_p1_L1_midNe_dev },
 
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

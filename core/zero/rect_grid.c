@@ -83,7 +83,7 @@ gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
     new_index[d] = 0;
   }
 
-  int plusminus[2] = {-1, 1}, low_high_index[2 * GKYL_MAX_DIM];
+  int plusminus[2] = { -1, 1 }, low_high_index[2 * GKYL_MAX_DIM];
   bool all_less_eq = true;
   double lower_dir[nDim], upper_dir[nDim];
   /* Below we use a binary search. That is, if the i-th coordinate of the point in

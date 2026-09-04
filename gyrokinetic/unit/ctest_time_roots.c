@@ -19,7 +19,7 @@
 static inline struct RdRdZ_sol
 quad_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
-  struct RdRdZ_sol sol = {.nsol = 0};
+  struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
   double aq = 0.125 *
@@ -97,7 +97,7 @@ cub(double x)
 static inline struct RdRdZ_sol
 cub_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
 {
-  struct RdRdZ_sol sol = {.nsol = 0};
+  struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
   double coeffs[4];
@@ -185,11 +185,11 @@ getR(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid, struct
   int zcell = get_idx(1, Z, &rzgrid, &rzlocal);
 
   int sidx = 0;
-  int idx[2] = {0, zcell};
-  double dx[2] = {rzgrid.dx[0], rzgrid.dx[1]};
+  int idx[2] = { 0, zcell };
+  double dx[2] = { rzgrid.dx[0], rzgrid.dx[1] };
 
   struct gkyl_range rangeR;
-  gkyl_range_deflate(&rangeR, &rzlocal, (int[]){0, 1}, (int[]){0, zcell});
+  gkyl_range_deflate(&rangeR, &rzlocal, (int[]){ 0, 1 }, (int[]){ 0, zcell });
 
   struct gkyl_range_iter riter;
   gkyl_range_iter_init(&riter, &rangeR);
@@ -222,11 +222,11 @@ getRcub(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid,
   int zcell = get_idx(1, Z, &rzgrid, &rzlocal);
 
   int sidx = 0;
-  int idx[2] = {0, zcell};
-  double dx[2] = {rzgrid.dx[0], rzgrid.dx[1]};
+  int idx[2] = { 0, zcell };
+  double dx[2] = { rzgrid.dx[0], rzgrid.dx[1] };
 
   struct gkyl_range rangeR;
-  gkyl_range_deflate(&rangeR, &rzlocal, (int[]){0, 1}, (int[]){0, zcell});
+  gkyl_range_deflate(&rangeR, &rzlocal, (int[]){ 0, 1 }, (int[]){ 0, zcell });
 
   struct gkyl_range_iter riter;
   gkyl_range_iter_init(&riter, &rangeR);
@@ -258,32 +258,30 @@ time_roots_compare_quad_and_cub_ho(void)
   clock_t start, end;
   double cpu_time_used;
 
-  struct gkyl_efit_inp inp = {
-    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
+  struct gkyl_efit_inp inp = { .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
-    .reflect = true,
-  };
+    .reflect = true };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
   // project the cubic on cubic basis: this should result in the same
   // DG expansions
-  double lower[2] = {efit->rmin, efit->zmin};
-  double upper[2] = {efit->rmax, efit->zmax};
-  int cells[2] = {efit->nr - 1, efit->nz - 1};
+  double lower[2] = { efit->rmin, efit->zmin };
+  double upper[2] = { efit->rmax, efit->zmax };
+  int cells[2] = { efit->nr - 1, efit->nz - 1 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {0, 0};
+  int nghost[GKYL_MAX_CDIM] = { 0, 0 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   struct gkyl_basis basis;
   gkyl_cart_modal_tensor(&basis, 2, 3);
   gkyl_proj_on_basis *projCub =
-    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){.grid = &grid,
+    gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
       .basis = &basis,
       .num_ret_vals = 1,
       .ctx = efit->evf->ctx,
-      .eval = efit->evf->eval_cubic});
+      .eval = efit->evf->eval_cubic });
   struct gkyl_array *psi_cubic_DG = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(projCub, 0.0, &local, psi_cubic_DG);
   gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic_DG, "psi_cubic.gkyl");
@@ -336,7 +334,5 @@ time_roots_compare_quad_and_cub_ho(void)
   gkyl_efit_release(efit);
 }
 
-TEST_LIST = {
-  {"time_roots_compare_quad_and_cub_ho", time_roots_compare_quad_and_cub_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "time_roots_compare_quad_and_cub_ho", time_roots_compare_quad_and_cub_ho },
+  { NULL, NULL } };

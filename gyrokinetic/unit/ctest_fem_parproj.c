@@ -417,8 +417,8 @@ ghost_from_skin_surf(bool use_gpu, int dim, struct skin_ghost_ranges *sgr, struc
 void
 test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
-  double lower[] = {-0.5}, upper[] = {0.5};
-  int cells[] = {4};
+  double lower[] = { -0.5 }, upper[] = { 0.5 };
+  int cells[] = { 4 };
   int dim = sizeof(lower) / sizeof(lower[0]);
 
   // grids.
@@ -429,7 +429,7 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
@@ -491,9 +491,9 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
-      const double sol[8] = {-0.9089542445638024, -0.4554124667453318, -0.8488758876834943,
+      const double sol[8] = { -0.9089542445638024, -0.4554124667453318, -0.8488758876834943,
         0.4900987222626481, 0.8488758876834943, 0.490098722262648, 0.9089542445638024,
-        -0.4554124667453318};
+        -0.4554124667453318 };
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi_ho, 1);
       TEST_CHECK(gkyl_compare(sol[0], phi_p[0], 1e-14));
@@ -511,9 +511,9 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       TEST_CHECK(gkyl_compare(sol[7], phi_p[1], 1e-14));
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked visually against g2):
-      const double sol[8] = {-0.8638954769035714, -0.498770286141977, -0.8638954769035713,
+      const double sol[8] = { -0.8638954769035714, -0.498770286141977, -0.8638954769035713,
         0.498770286141977, 0.8638954769035713, 0.498770286141977, 0.8638954769035713,
-        -0.498770286141977};
+        -0.498770286141977 };
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi_ho, 0);
       TEST_CHECK(gkyl_compare(sol[6], phi_p[0], 1e-14));
@@ -540,10 +540,10 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually against g2):
-      const double sol[12] = {-0.9010465429057769, -0.4272439810948228, 0.0875367707148495,
+      const double sol[12] = { -0.9010465429057769, -0.4272439810948228, 0.0875367707148495,
         -0.9039382020247494, 0.4172269800703625, 0.08107082435707, 0.9039382020247495,
         0.4172269800703625, -0.0810708243570699, 0.9010465429057768, -0.4272439810948229,
-        -0.0875367707148495};
+        -0.0875367707148495 };
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi_ho, 1);
       TEST_CHECK(gkyl_compare(sol[0], phi_p[0], 1e-14));
@@ -563,10 +563,10 @@ test_1x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       TEST_CHECK(gkyl_compare(sol[11], phi_p[2], 1e-14));
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked visually against g2):
-      const double sol[12] = {-0.9044201452112453, -0.418896480241106, 0.0799931666307734,
+      const double sol[12] = { -0.9044201452112453, -0.418896480241106, 0.0799931666307734,
         -0.9044201452112451, 0.418896480241106, 0.0799931666307734, 0.904420145211245,
         0.418896480241106, -0.0799931666307734, 0.9044201452112451, -0.418896480241106,
-        -0.0799931666307734};
+        -0.0799931666307734 };
       const double *phi_p;
       phi_p = gkyl_array_cfetch(phi_ho, 0);
       TEST_CHECK(gkyl_compare(sol[9], phi_p[0], 1e-14));
@@ -638,8 +638,8 @@ evalFunc2x_dirichlet(double t, const double *xn, double *fout, void *ctx)
 void
 test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
-  double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
-  int cells[] = {3, 4};
+  double lower[] = { -2., -0.5 }, upper[] = { 2., 0.5 };
+  int cells[] = { 3, 4 };
   int dim = sizeof(lower) / sizeof(lower[0]);
 
   // Grids.
@@ -650,7 +650,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
@@ -724,63 +724,32 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked continuity manually):
-      const double sol[48] = {
-        // idx = [0,:]
-        -4.2253125086607479e-04,
-        -4.2252954845312053e-04,
-        -2.1170042428951191e-04,
-        -2.1169957133119468e-04,
-        -3.9460357085969891e-04,
-        -3.9460198096965074e-04,
-        2.2782447785903476e-04,
-        2.2782355993558733e-04,
-        3.9460357085969891e-04,
-        3.9460198096965057e-04,
-        2.2782447785903476e-04,
-        2.2782355993558747e-04,
-        4.2253125086607485e-04,
-        4.2252954845312059e-04,
-        -2.1170042428951191e-04,
+      const double sol[48] = { // idx = [0,:]
+        -4.2253125086607479e-04, -4.2252954845312053e-04, -2.1170042428951191e-04,
+        -2.1169957133119468e-04, -3.9460357085969891e-04, -3.9460198096965074e-04,
+        2.2782447785903476e-04, 2.2782355993558733e-04, 3.9460357085969891e-04,
+        3.9460198096965057e-04, 2.2782447785903476e-04, 2.2782355993558747e-04,
+        4.2253125086607485e-04, 4.2252954845312059e-04, -2.1170042428951191e-04,
         -2.1169957133119463e-04,
         // idx = [1,:]
-        -6.2761887708076181e-01,
-        -4.3547064325365575e-01,
-        -3.1445527945628282e-01,
-        -2.1818343555290270e-01,
-        -5.8613569890365669e-01,
-        -4.0668771950060645e-01,
-        3.3840560354367566e-01,
-        2.3480126432979020e-01,
-        5.8613569890365669e-01,
-        4.0668771950060634e-01,
-        3.3840560354367566e-01,
-        2.3480126432979012e-01,
-        6.2761887708076181e-01,
-        4.3547064325365564e-01,
-        -3.1445527945628282e-01,
+        -6.2761887708076181e-01, -4.3547064325365575e-01, -3.1445527945628282e-01,
+        -2.1818343555290270e-01, -5.8613569890365669e-01, -4.0668771950060645e-01,
+        3.3840560354367566e-01, 2.3480126432979020e-01, 5.8613569890365669e-01,
+        4.0668771950060634e-01, 3.3840560354367566e-01, 2.3480126432979012e-01,
+        6.2761887708076181e-01, 4.3547064325365564e-01, -3.1445527945628282e-01,
         -2.1818343555290265e-01,
         // idx = [2,:]
-        -2.8612000924778641e-02,
-        2.8608472382826922e-02,
-        -1.4335443172858760e-02,
-        1.4333675270894658e-02,
-        -2.6720858424593201e-02,
-        2.6717563105605024e-02,
-        1.5427294804416765e-02,
-        -1.5425392251111881e-02,
-        2.6720858424593201e-02,
-        -2.6717563105605024e-02,
-        1.5427294804416765e-02,
-        -1.5425392251111872e-02,
-        2.8612000924778638e-02,
-        -2.8608472382826912e-02,
-        -1.4335443172858762e-02,
-        1.4333675270894653e-02,
+        -2.8612000924778641e-02, 2.8608472382826922e-02, -1.4335443172858760e-02,
+        1.4333675270894658e-02, -2.6720858424593201e-02, 2.6717563105605024e-02,
+        1.5427294804416765e-02, -1.5425392251111881e-02, 2.6720858424593201e-02,
+        -2.6717563105605024e-02, 1.5427294804416765e-02, -1.5425392251111872e-02,
+        2.8612000924778638e-02, -2.8608472382826912e-02, -1.4335443172858762e-02,
+        1.4333675270894653e-02
       };
       for (int k = 0; k < cells[1]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {0 + 1, k + 1};
+        int idx0[] = { 0 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -790,7 +759,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx1[] = {1 + 1, k + 1};
+        int idx1[] = { 1 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx1);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -800,7 +769,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx2[] = {2 + 1, k + 1};
+        int idx2[] = { 2 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx2);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -812,63 +781,32 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       }
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked continuity manually):
-      const double sol[48] = {
-        // idx = [0,:]
-        -4.0158549086129289e-04,
-        -4.0158387284051808e-04,
-        -2.3185549125141544e-04,
-        -2.3185455708668560e-04,
-        -4.0158549086129284e-04,
-        -4.0158387284051819e-04,
-        2.3185549125141544e-04,
-        2.3185455708668560e-04,
-        4.0158549086129284e-04,
-        4.0158387284051808e-04,
-        2.3185549125141549e-04,
-        2.3185455708668560e-04,
-        4.0158549086129289e-04,
-        4.0158387284051808e-04,
-        -2.3185549125141549e-04,
+      const double sol[48] = { // idx = [0,:]
+        -4.0158549086129289e-04, -4.0158387284051808e-04, -2.3185549125141544e-04,
+        -2.3185455708668560e-04, -4.0158549086129284e-04, -4.0158387284051819e-04,
+        2.3185549125141544e-04, 2.3185455708668560e-04, 4.0158549086129284e-04,
+        4.0158387284051808e-04, 2.3185549125141549e-04, 2.3185455708668560e-04,
+        4.0158549086129289e-04, 4.0158387284051808e-04, -2.3185549125141549e-04,
         -2.3185455708668560e-04,
         // idx = [1,:]
-        -5.9650649344793294e-01,
-        -4.1388345043886876e-01,
-        -3.4439318456552387e-01,
-        -2.3895572152401204e-01,
-        -5.9650649344793294e-01,
-        -4.1388345043886876e-01,
-        3.4439318456552381e-01,
-        2.3895572152401204e-01,
-        5.9650649344793305e-01,
-        4.1388345043886882e-01,
-        3.4439318456552398e-01,
-        2.3895572152401212e-01,
-        5.9650649344793305e-01,
-        4.1388345043886882e-01,
-        -3.4439318456552392e-01,
+        -5.9650649344793294e-01, -4.1388345043886876e-01, -3.4439318456552387e-01,
+        -2.3895572152401204e-01, -5.9650649344793294e-01, -4.1388345043886876e-01,
+        3.4439318456552381e-01, 2.3895572152401204e-01, 5.9650649344793305e-01,
+        4.1388345043886882e-01, 3.4439318456552398e-01, 2.3895572152401212e-01,
+        5.9650649344793305e-01, 4.1388345043886882e-01, -3.4439318456552392e-01,
         -2.3895572152401207e-01,
         // idx = [2,:]
-        -2.7193644049639566e-02,
-        2.7190290424910505e-02,
-        -1.5700257712306272e-02,
-        1.5698321496166186e-02,
-        -2.7193644049639563e-02,
-        2.7190290424910498e-02,
-        1.5700257712306272e-02,
-        -1.5698321496166189e-02,
-        2.7193644049639566e-02,
-        -2.7190290424910505e-02,
-        1.5700257712306268e-02,
-        -1.5698321496166175e-02,
-        2.7193644049639566e-02,
-        -2.7190290424910498e-02,
-        -1.5700257712306268e-02,
-        1.5698321496166182e-02,
+        -2.7193644049639566e-02, 2.7190290424910505e-02, -1.5700257712306272e-02,
+        1.5698321496166186e-02, -2.7193644049639563e-02, 2.7190290424910498e-02,
+        1.5700257712306272e-02, -1.5698321496166189e-02, 2.7193644049639566e-02,
+        -2.7190290424910505e-02, 1.5700257712306268e-02, -1.5698321496166175e-02,
+        2.7193644049639566e-02, -2.7190290424910498e-02, -1.5700257712306268e-02,
+        1.5698321496166182e-02
       };
       for (int k = 0; k < cells[1]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {0 + 1, k + 1};
+        int idx0[] = { 0 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -878,7 +816,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx1[] = {1 + 1, k + 1};
+        int idx1[] = { 1 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx1);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -888,7 +826,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx2[] = {2 + 1, k + 1};
+        int idx2[] = { 2 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx2);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -905,111 +843,47 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked continuity manually):
-      const double sol[96] = {
-        // idx = [0,:]
-        -1.1330777557967131e-03,
-        -1.5185686084598735e-03,
-        -5.3726486726801399e-04,
-        -7.2005081530163346e-04,
-        -1.0232451194644426e-03,
-        1.1007862855941796e-04,
-        -5.0054690727467069e-04,
-        1.4752910728100009e-04,
-        -1.1367140547768834e-03,
-        -1.5234420334777174e-03,
-        5.2466835809768231e-04,
-        7.0316877582606832e-04,
-        -9.4510889721781985e-04,
-        1.0194761685324392e-04,
-        5.4565887622221867e-04,
-        1.3663179765785352e-04,
-        1.1367140547768836e-03,
-        1.5234420334777181e-03,
-        5.2466835809768199e-04,
-        7.0316877582606865e-04,
-        9.4510889721782039e-04,
-        -1.0194761685324384e-04,
-        5.4565887622221878e-04,
-        -1.3663179765785401e-04,
-        1.1330777557967133e-03,
-        1.5185686084598746e-03,
-        -5.3726486726801410e-04,
-        -7.2005081530163281e-04,
-        1.0232451194644423e-03,
-        -1.1007862855941822e-04,
-        -5.0054690727467112e-04,
-        -1.4752910728100011e-04,
+      const double sol[96] = { // idx = [0,:]
+        -1.1330777557967131e-03, -1.5185686084598735e-03, -5.3726486726801399e-04,
+        -7.2005081530163346e-04, -1.0232451194644426e-03, 1.1007862855941796e-04,
+        -5.0054690727467069e-04, 1.4752910728100009e-04, -1.1367140547768834e-03,
+        -1.5234420334777174e-03, 5.2466835809768231e-04, 7.0316877582606832e-04,
+        -9.4510889721781985e-04, 1.0194761685324392e-04, 5.4565887622221867e-04,
+        1.3663179765785352e-04, 1.1367140547768836e-03, 1.5234420334777181e-03,
+        5.2466835809768199e-04, 7.0316877582606865e-04, 9.4510889721782039e-04,
+        -1.0194761685324384e-04, 5.4565887622221878e-04, -1.3663179765785401e-04,
+        1.1330777557967133e-03, 1.5185686084598746e-03, -5.3726486726801410e-04,
+        -7.2005081530163281e-04, 1.0232451194644423e-03, -1.1007862855941822e-04,
+        -5.0054690727467112e-04, -1.4752910728100011e-04,
         // idx = [1,:]
-        -6.7690840335622460e-01,
-        -2.4487341055248341e-01,
-        -3.2096570744703012e-01,
-        -1.1611019609633033e-01,
-        3.1090049018637228e-01,
-        6.5761725813252431e-02,
-        1.5208504382060301e-01,
-        2.3789478759409195e-02,
-        -6.7908075324501238e-01,
-        -2.4565926388735609e-01,
-        3.1344046668863568e-01,
-        1.1338792028973634e-01,
-        2.8715975657749776e-01,
-        6.0904203791008561e-02,
-        -1.6579176276044591e-01,
-        2.2032257282288872e-02,
-        6.7908075324501249e-01,
-        2.4565926388735596e-01,
-        3.1344046668863534e-01,
-        1.1338792028973639e-01,
-        -2.8715975657749782e-01,
-        -6.0904203791008568e-02,
-        -1.6579176276044558e-01,
-        -2.2032257282288945e-02,
-        6.7690840335622438e-01,
-        2.4487341055248346e-01,
-        -3.2096570744703029e-01,
-        -1.1611019609633018e-01,
-        -3.1090049018637222e-01,
-        -6.5761725813252764e-02,
-        1.5208504382060276e-01,
-        -2.3789478759409195e-02,
+        -6.7690840335622460e-01, -2.4487341055248341e-01, -3.2096570744703012e-01,
+        -1.1611019609633033e-01, 3.1090049018637228e-01, 6.5761725813252431e-02,
+        1.5208504382060301e-01, 2.3789478759409195e-02, -6.7908075324501238e-01,
+        -2.4565926388735609e-01, 3.1344046668863568e-01, 1.1338792028973634e-01,
+        2.8715975657749776e-01, 6.0904203791008561e-02, -1.6579176276044591e-01,
+        2.2032257282288872e-02, 6.7908075324501249e-01, 2.4565926388735596e-01,
+        3.1344046668863534e-01, 1.1338792028973639e-01, -2.8715975657749782e-01,
+        -6.0904203791008568e-02, -1.6579176276044558e-01, -2.2032257282288945e-02,
+        6.7690840335622438e-01, 2.4487341055248346e-01, -3.2096570744703029e-01,
+        -1.1611019609633018e-01, -3.1090049018637222e-01, -6.5761725813252764e-02,
+        1.5208504382060276e-01, -2.3789478759409195e-02,
         // idx = [2,:]
-        -4.3172337009889768e-02,
-        5.7316620628891347e-02,
-        -2.0470775103125258e-02,
-        2.7177487526246415e-02,
-        -3.8162615108747848e-02,
-        4.1941972873804139e-03,
-        -1.8668233644930851e-02,
-        -5.5683159961537557e-03,
-        -4.3310886658612019e-02,
-        5.7500562435244373e-02,
-        1.9990825041209737e-02,
-        -2.6540294417767608e-02,
-        -3.5248472134667398e-02,
-        3.8843908545787469e-03,
-        2.0350714875473255e-02,
-        -5.1570096132443387e-03,
-        4.3310886658612019e-02,
-        -5.7500562435244360e-02,
-        1.9990825041209734e-02,
-        -2.6540294417767608e-02,
-        3.5248472134667398e-02,
-        -3.8843908545787400e-03,
-        2.0350714875473234e-02,
-        5.1570096132443335e-03,
-        4.3172337009889775e-02,
-        -5.7316620628891354e-02,
-        -2.0470775103125262e-02,
-        2.7177487526246422e-02,
-        3.8162615108747848e-02,
-        -4.1941972873804174e-03,
-        -1.8668233644930830e-02,
-        5.5683159961537644e-03,
+        -4.3172337009889768e-02, 5.7316620628891347e-02, -2.0470775103125258e-02,
+        2.7177487526246415e-02, -3.8162615108747848e-02, 4.1941972873804139e-03,
+        -1.8668233644930851e-02, -5.5683159961537557e-03, -4.3310886658612019e-02,
+        5.7500562435244373e-02, 1.9990825041209737e-02, -2.6540294417767608e-02,
+        -3.5248472134667398e-02, 3.8843908545787469e-03, 2.0350714875473255e-02,
+        -5.1570096132443387e-03, 4.3310886658612019e-02, -5.7500562435244360e-02,
+        1.9990825041209734e-02, -2.6540294417767608e-02, 3.5248472134667398e-02,
+        -3.8843908545787400e-03, 2.0350714875473234e-02, 5.1570096132443335e-03,
+        4.3172337009889775e-02, -5.7316620628891354e-02, -2.0470775103125262e-02,
+        2.7177487526246422e-02, 3.8162615108747848e-02, -4.1941972873804174e-03,
+        -1.8668233644930830e-02, 5.5683159961537644e-03
       };
       for (int k = 0; k < cells[1]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {0 + 1, k + 1};
+        int idx0[] = { 0 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1019,7 +893,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx1[] = {1 + 1, k + 1};
+        int idx1[] = { 1 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx1);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1029,7 +903,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx2[] = {2 + 1, k + 1};
+        int idx2[] = { 2 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx2);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1041,111 +915,47 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
       }
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked continuity manually):
-      const double sol[96] = {
-        // idx = [0,:]
-        -1.1373201046069117e-03,
-        -1.5242542709806915e-03,
-        -5.2676777629273737e-04,
-        -7.0598244907199602e-04,
-        -9.6464295277947558e-04,
-        1.0059244823554794e-04,
-        -5.5693686845910558e-04,
-        1.3481557938732944e-04,
-        -1.1373201046069115e-03,
-        -1.5242542709806913e-03,
-        5.2676777629273759e-04,
-        7.0598244907199592e-04,
-        -9.6464295277947547e-04,
-        1.0059244823554807e-04,
-        5.5693686845910547e-04,
-        1.3481557938732920e-04,
-        1.1373201046069117e-03,
-        1.5242542709806913e-03,
-        5.2676777629273737e-04,
-        7.0598244907199570e-04,
-        9.6464295277947569e-04,
-        -1.0059244823554815e-04,
-        5.5693686845910558e-04,
-        -1.3481557938732931e-04,
-        1.1373201046069121e-03,
-        1.5242542709806917e-03,
-        -5.2676777629273748e-04,
-        -7.0598244907199559e-04,
-        9.6464295277947580e-04,
-        -1.0059244823554837e-04,
-        -5.5693686845910558e-04,
-        -1.3481557938732942e-04,
+      const double sol[96] = { // idx = [0,:]
+        -1.1373201046069117e-03, -1.5242542709806915e-03, -5.2676777629273737e-04,
+        -7.0598244907199602e-04, -9.6464295277947558e-04, 1.0059244823554794e-04,
+        -5.5693686845910558e-04, 1.3481557938732944e-04, -1.1373201046069115e-03,
+        -1.5242542709806913e-03, 5.2676777629273759e-04, 7.0598244907199592e-04,
+        -9.6464295277947547e-04, 1.0059244823554807e-04, 5.5693686845910547e-04,
+        1.3481557938732920e-04, 1.1373201046069117e-03, 1.5242542709806913e-03,
+        5.2676777629273737e-04, 7.0598244907199570e-04, 9.6464295277947569e-04,
+        -1.0059244823554815e-04, 5.5693686845910558e-04, -1.3481557938732931e-04,
+        1.1373201046069121e-03, 1.5242542709806917e-03, -5.2676777629273748e-04,
+        -7.0598244907199559e-04, 9.6464295277947580e-04, -1.0059244823554837e-04,
+        -5.5693686845910558e-04, -1.3481557938732942e-04,
         // idx = [1,:]
-        -6.7944281155981046e-01,
-        -2.4579023944316827e-01,
-        -3.1469467348170127e-01,
-        -1.1384163292416867e-01,
-        2.9309493997971658e-01,
-        6.0094616787301068e-02,
-        1.6921844249540649e-01,
-        2.1739387036102342e-02,
-        -6.7944281155981046e-01,
-        -2.4579023944316816e-01,
-        3.1469467348170149e-01,
-        1.1384163292416860e-01,
-        2.9309493997971653e-01,
-        6.0094616787301228e-02,
-        -1.6921844249540652e-01,
-        2.1739387036102231e-02,
-        6.7944281155981034e-01,
-        2.4579023944316825e-01,
-        3.1469467348170110e-01,
-        1.1384163292416871e-01,
-        -2.9309493997971625e-01,
-        -6.0094616787301283e-02,
-        -1.6921844249540638e-01,
-        -2.1739387036102269e-02,
-        6.7944281155981046e-01,
-        2.4579023944316813e-01,
-        -3.1469467348170133e-01,
-        -1.1384163292416863e-01,
-        -2.9309493997971620e-01,
-        -6.0094616787301477e-02,
-        1.6921844249540641e-01,
-        -2.1739387036102162e-02,
+        -6.7944281155981046e-01, -2.4579023944316827e-01, -3.1469467348170127e-01,
+        -1.1384163292416867e-01, 2.9309493997971658e-01, 6.0094616787301068e-02,
+        1.6921844249540649e-01, 2.1739387036102342e-02, -6.7944281155981046e-01,
+        -2.4579023944316816e-01, 3.1469467348170149e-01, 1.1384163292416860e-01,
+        2.9309493997971653e-01, 6.0094616787301228e-02, -1.6921844249540652e-01,
+        2.1739387036102231e-02, 6.7944281155981034e-01, 2.4579023944316825e-01,
+        3.1469467348170110e-01, 1.1384163292416871e-01, -2.9309493997971625e-01,
+        -6.0094616787301283e-02, -1.6921844249540638e-01, -2.1739387036102269e-02,
+        6.7944281155981046e-01, 2.4579023944316813e-01, -3.1469467348170133e-01,
+        -1.1384163292416863e-01, -2.9309493997971620e-01, -6.0094616787301477e-02,
+        1.6921844249540641e-01, -2.1739387036102162e-02,
         // idx = [2,:]
-        -4.3333978266732395e-02,
-        5.7531219402969860e-02,
-        -2.0070816718195661e-02,
-        2.6646493269180744e-02,
-        -3.5977007878187514e-02,
-        3.8327564491117956e-03,
-        -2.0771335183108836e-02,
-        -5.0884585494261007e-03,
-        -4.3333978266732402e-02,
-        5.7531219402969860e-02,
-        2.0070816718195657e-02,
-        -2.6646493269180744e-02,
-        -3.5977007878187521e-02,
-        3.8327564491117982e-03,
-        2.0771335183108832e-02,
-        -5.0884585494261041e-03,
-        4.3333978266732381e-02,
-        -5.7531219402969860e-02,
-        2.0070816718195661e-02,
-        -2.6646493269180761e-02,
-        3.5977007878187528e-02,
-        -3.8327564491117830e-03,
-        2.0771335183108863e-02,
-        5.0884585494260738e-03,
-        4.3333978266732395e-02,
-        -5.7531219402969860e-02,
-        -2.0070816718195657e-02,
-        2.6646493269180758e-02,
-        3.5977007878187521e-02,
-        -3.8327564491117874e-03,
-        -2.0771335183108860e-02,
-        5.0884585494260720e-03,
+        -4.3333978266732395e-02, 5.7531219402969860e-02, -2.0070816718195661e-02,
+        2.6646493269180744e-02, -3.5977007878187514e-02, 3.8327564491117956e-03,
+        -2.0771335183108836e-02, -5.0884585494261007e-03, -4.3333978266732402e-02,
+        5.7531219402969860e-02, 2.0070816718195657e-02, -2.6646493269180744e-02,
+        -3.5977007878187521e-02, 3.8327564491117982e-03, 2.0771335183108832e-02,
+        -5.0884585494261041e-03, 4.3333978266732381e-02, -5.7531219402969860e-02,
+        2.0070816718195661e-02, -2.6646493269180761e-02, 3.5977007878187528e-02,
+        -3.8327564491117830e-03, 2.0771335183108863e-02, 5.0884585494260738e-03,
+        4.3333978266732395e-02, -5.7531219402969860e-02, -2.0070816718195657e-02,
+        2.6646493269180758e-02, 3.5977007878187521e-02, -3.8327564491117874e-03,
+        -2.0771335183108860e-02, 5.0884585494260720e-03
       };
       for (int k = 0; k < cells[1]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {0 + 1, k + 1};
+        int idx0[] = { 0 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1155,7 +965,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx1[] = {1 + 1, k + 1};
+        int idx1[] = { 1 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx1);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1165,7 +975,7 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx2[] = {2 + 1, k + 1};
+        int idx2[] = { 2 + 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx2);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1189,8 +999,8 @@ test_2x(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 void
 test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
-  double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
-  int cells[] = {3, 4};
+  double lower[] = { -2., -0.5 }, upper[] = { 2., 0.5 };
+  int cells[] = { 3, 4 };
   int dim = sizeof(lower) / sizeof(lower[0]);
 
   // Grids.
@@ -1201,7 +1011,7 @@ test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
@@ -1237,21 +1047,16 @@ test_2x_bias(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 
   // Specify the bias:
   struct gkyl_poisson_bias_line bias[] = {
-    {
-      .perp_dirs = {0, 1},
-      .perp_coords = {-2., -0.5}, // Location of the plane in the 'dir' dimension.
-      .val = 0.,
-    }, // Biasing value.
-    {
-      .perp_dirs = {0, 1},
-      .perp_coords = {-2 + 2 * 4.0 / 3.0, 0.5}, // Location of the plane in the 'dir' dimension.
-      .val = 0.,
-    }, // Biasing value.
+    { .perp_dirs = { 0, 1 },
+      .perp_coords = { -2., -0.5 }, // Location of the plane in the 'dir' dimension.
+      .val = 0. }, // Biasing value.
+    { .perp_dirs = { 0, 1 },
+      .perp_coords = { -2 + 2 * 4.0 / 3.0, 0.5 }, // Location of the plane in the 'dir' dimension.
+      .val = 0. } // Biasing value.
   };
-  struct gkyl_poisson_bias_line_list bll = {
-    .num_bias_line = sizeof(bias) / sizeof(bias[0]), // Number of bias lines.
-    .bl = bias,
-  };
+  struct gkyl_poisson_bias_line_list bll = { .num_bias_line = sizeof(bias) /
+      sizeof(bias[0]), // Number of bias lines.
+    .bl = bias };
 
   // Parallel FEM projection method.
   struct gkyl_fem_parproj *parproj =
@@ -1305,8 +1110,8 @@ evalWeight2x(double t, const double *xn, double *restrict fout, void *ctx)
 void
 test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
-  double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
-  int cells[] = {3, 4};
+  double lower[] = { -2., -0.5 }, upper[] = { 2., 0.5 };
+  int cells[] = { 3, 4 };
   int dim = sizeof(lower) / sizeof(lower[0]);
 
   // grids.
@@ -1317,7 +1122,7 @@ test_2x_weighted(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
@@ -1416,8 +1221,8 @@ void
 test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
   // Check that the operator is self-adjoint.
-  double lower[] = {-2., -0.5}, upper[] = {2., 0.5};
-  int cells[] = {3, 4};
+  double lower[] = { -2., -0.5 }, upper[] = { 2., 0.5 };
+  int cells[] = { 3, 4 };
   int dim = sizeof(lower) / sizeof(lower[0]);
 
   // grids.
@@ -1428,7 +1233,7 @@ test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool u
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
@@ -1518,7 +1323,7 @@ void
 evalFunc3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
-  double mu[2] = {.2, 0.2};
+  double mu[2] = { .2, 0.2 };
   double sig = 0.3;
   fout[0] = exp(-(pow(x - mu[0], 2) + pow(y - mu[1], 2)) / (2.0 * sig * sig)) * sin(2. * M_PI * z);
 }
@@ -1527,7 +1332,7 @@ void
 evalFunc3x_dirichlet(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
-  double mu[2] = {.2, 0.2};
+  double mu[2] = { .2, 0.2 };
   double sig = 0.3;
   fout[0] = exp(-(pow(x - mu[0], 2) + pow(y - mu[1], 2)) / (2.0 * sig * sig)) * cos(2. * M_PI * z);
 }
@@ -1535,8 +1340,8 @@ evalFunc3x_dirichlet(double t, const double *xn, double *restrict fout, void *ct
 void
 test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
-  double lower[] = {-2., -2., -0.5}, upper[] = {2., 2., 0.5};
-  int cells[] = {3, 3, 4};
+  double lower[] = { -2., -2., -0.5 }, upper[] = { 2., 2., 0.5 };
+  int cells[] = { 3, 3, 4 };
   int dim = sizeof(lower) / sizeof(lower[0]);
 
   // grids.
@@ -1547,7 +1352,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
@@ -1609,7 +1414,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually, also checked that phi is actually continuous,
       // and checked that visually looks like results in g2):
-      const double sol[96] = {// idx = [0,1,:]
+      const double sol[96] = { // idx = [0,1,:]
         -2.9175130738000619e-04, -2.9175013189013625e-04, -2.0243038272814358e-04,
         -1.4617587558971766e-04, -2.0242956711958172e-04, -1.4617528663516419e-04,
         -1.0142349903065383e-04, -1.0142309038708445e-04, -2.7246767537113221e-04,
@@ -1644,11 +1449,12 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
         7.3910584964231134e-03, -1.0650995274045996e-02, -7.3901470026747221e-03,
         1.9756145041229078e-02, 1.3707715786581542e-02, -1.9753708637470870e-02,
         -9.8984022577751907e-03, -1.3706025298371980e-02, -6.8679635934884914e-03,
-        9.8971815487547583e-03, 6.8671166098145560e-03};
+        9.8971815487547583e-03, 6.8671166098145560e-03
+      };
       for (int k = 0; k < cells[2]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {1, 2, k + 1};
+        int idx0[] = { 1, 2, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1658,7 +1464,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx1[] = {2, 1, k + 1};
+        int idx1[] = { 2, 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx1);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1668,7 +1474,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx2[] = {2, 3, k + 1};
+        int idx2[] = { 2, 3, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx2);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1680,7 +1486,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
       }
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked visually against g2):
-      const double sol[96] = {// idx = [0,0,:]
+      const double sol[96] = { // idx = [0,0,:]
         -1.8667872535731117e-07, -1.8667797321346457e-07, -1.8667797321346459e-07,
         -1.0777901233701990e-07, -1.8667722107264865e-07, -1.0777857808656757e-07,
         -1.0777857808656758e-07, -1.0777814383786501e-07, -1.8667872535731120e-07,
@@ -1717,11 +1523,12 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
         -1.0839448705368820e-02, 7.5218322221567817e-03, -7.5209046008897652e-03,
         1.8776791509851089e-02, -1.8774475883735483e-02, 1.3028195574784242e-02,
         -1.0840785632730015e-02, -1.3026588887619596e-02, 1.0839448705368822e-02,
-        -7.5218322221567791e-03, 7.5209046008897643e-03};
+        -7.5218322221567791e-03, 7.5209046008897643e-03
+      };
       for (int k = 0; k < cells[2]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {1, 1, k + 1};
+        int idx0[] = { 1, 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1731,7 +1538,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx1[] = {2, 2, k + 1};
+        int idx1[] = { 2, 2, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx1);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1741,7 +1548,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx2[] = {3, 2, k + 1};
+        int idx2[] = { 3, 2, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx2);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1758,7 +1565,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
       check_dirichlet_bc(localRange, localRange_ext, basis, bctype, rho_ho, phi_ho);
     } else if (bctype == GKYL_FEM_PARPROJ_NONE) {
       // Solution (checked visually against g2):
-      const double sol[240] = {// idx = [0,1,:]
+      const double sol[240] = { // idx = [0,1,:]
         -8.5122112791349098e-04, -1.1408199279301246e-03, -3.0793150106132720e-04,
         -4.0361855482954289e-04, -4.1269463518755719e-04, -5.4093592784822922e-04,
         -1.4601008289058379e-04, -7.6870970263647495e-04, 3.9096141311460275e-04,
@@ -1841,11 +1648,12 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
         -3.1508776228206014e-03, 7.3859048827130082e-03, 1.9776742488664040e-02,
         1.0371284137159235e-02, 7.2869340853499148e-03, -1.4024452265605647e-02,
         -1.1398383384044384e-03, 4.1831800144129993e-03, -9.6743068697453978e-03,
-        -5.0733828098187663e-03, 1.5132764669568367e-03};
+        -5.0733828098187663e-03, 1.5132764669568367e-03
+      };
       for (int k = 0; k < cells[2]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {1, 2, k + 1};
+        int idx0[] = { 1, 2, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1855,7 +1663,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx1[] = {2, 1, k + 1};
+        int idx1[] = { 2, 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx1);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1865,7 +1673,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx2[] = {2, 3, k + 1};
+        int idx2[] = { 2, 3, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx2);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1877,7 +1685,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
       }
     } else if (bctype == GKYL_FEM_PARPROJ_PERIODIC) {
       // Solution (checked visually against g2):
-      const double sol[240] = {// idx = [0,0,:]
+      const double sol[240] = { // idx = [0,0,:]
         -1.4301948349911598e-06, -1.9167695855717431e-06, -1.9167695855717423e-06,
         -6.6241733513894548e-07, -2.5688847101699803e-06, -8.8778211883114730e-07,
         -8.8778211883114889e-07, -1.2130510689887676e-06, -1.2130510689887695e-06,
@@ -1960,11 +1768,12 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
         -2.8793463210621708e-03, 7.2415989356615969e-03, 9.7773113830442425e-03,
         1.8644110690319435e-02, -1.5604400732765939e-02, 8.1078560094583405e-03,
         3.8226886051063334e-03, -1.0416111697008599e-03, -5.6449333589513760e-03,
-        -1.0764182325857125e-02, 1.3828677433627668e-03};
+        -1.0764182325857125e-02, 1.3828677433627668e-03
+      };
       for (int k = 0; k < cells[2]; k++) {
         long linidx;
         const double *phi_p;
-        int idx0[] = {1, 1, k + 1};
+        int idx0[] = { 1, 1, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx0);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1974,7 +1783,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx1[] = {2, 2, k + 1};
+        int idx1[] = { 2, 2, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx1);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -1984,7 +1793,7 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
           TEST_MSG("Produced: %.13e", phi_p[m]);
         }
 
-        int idx2[] = {3, 2, k + 1};
+        int idx2[] = { 3, 2, k + 1 };
         linidx = gkyl_range_idx(&localRange, idx2);
         phi_p = gkyl_array_cfetch(phi_ho, linidx);
         for (int m = 0; m < basis.num_basis; m++) {
@@ -2008,8 +1817,8 @@ test_3x(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu
 void
 test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool use_gpu)
 {
-  double lower[] = {-2., -2., -0.5}, upper[] = {2., 2., 0.5};
-  int cells[] = {3, 3, 4};
+  double lower[] = { -2., -2., -0.5 }, upper[] = { 2., 2., 0.5 };
+  int cells[] = { 3, 3, 4 };
   int dim = sizeof(lower) / sizeof(lower[0]);
 
   // grids.
@@ -2020,7 +1829,7 @@ test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
@@ -2056,21 +1865,16 @@ test_3x_bias(const int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool us
 
   // Specify the bias:
   struct gkyl_poisson_bias_line bias[] = {
-    {
-      .perp_dirs = {0, 2},
-      .perp_coords = {-2., -0.5}, // Location of the plane in the 'dir' dimension.
-      .val = 0.,
-    }, // Biasing value.
-    {
-      .perp_dirs = {0, 2},
-      .perp_coords = {-2 + 2 * 4.0 / 3.0, 0.5}, // Location of the plane in the 'dir' dimension.
-      .val = 0.,
-    }, // Biasing value.
+    { .perp_dirs = { 0, 2 },
+      .perp_coords = { -2., -0.5 }, // Location of the plane in the 'dir' dimension.
+      .val = 0. }, // Biasing value.
+    { .perp_dirs = { 0, 2 },
+      .perp_coords = { -2 + 2 * 4.0 / 3.0, 0.5 }, // Location of the plane in the 'dir' dimension.
+      .val = 0. } // Biasing value.
   };
-  struct gkyl_poisson_bias_line_list bll = {
-    .num_bias_line = sizeof(bias) / sizeof(bias[0]), // Number of bias lines.
-    .bl = bias,
-  };
+  struct gkyl_poisson_bias_line_list bll = { .num_bias_line = sizeof(bias) /
+      sizeof(bias[0]), // Number of bias lines.
+    .bl = bias };
 
   // parallel FEM projection method.
   struct gkyl_fem_parproj *parproj =
@@ -2358,52 +2162,50 @@ test_fem_parproj_3x_p2_bcperiodic_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_fem_parproj_1x_p1_bcnone_ho", test_fem_parproj_1x_p1_bcnone_ho},
-  {"test_fem_parproj_1x_p1_bcdirichlet_ho", test_fem_parproj_1x_p1_bcdirichlet_ho},
-  {"test_fem_parproj_1x_p1_bcperiodic_ho", test_fem_parproj_1x_p1_bcperiodic_ho},
-  {"test_fem_parproj_1x_p2_bcnone_ho", test_fem_parproj_1x_p2_bcnone_ho},
+TEST_LIST = { { "test_fem_parproj_1x_p1_bcnone_ho", test_fem_parproj_1x_p1_bcnone_ho },
+  { "test_fem_parproj_1x_p1_bcdirichlet_ho", test_fem_parproj_1x_p1_bcdirichlet_ho },
+  { "test_fem_parproj_1x_p1_bcperiodic_ho", test_fem_parproj_1x_p1_bcperiodic_ho },
+  { "test_fem_parproj_1x_p2_bcnone_ho", test_fem_parproj_1x_p2_bcnone_ho },
   // { "test_fem_parproj_1x_p2_bcdirichlet_ho", test_fem_parproj_1x_p2_bcdirichlet_ho },
-  {"test_fem_parproj_1x_p2_bcperiodic_ho", test_fem_parproj_1x_p2_bcperiodic_ho},
-  {"test_fem_parproj_2x_p1_bcnone_ho", test_fem_parproj_2x_p1_bcnone_ho},
-  {"test_fem_parproj_2x_p1_bcdirichlet_ho", test_fem_parproj_2x_p1_bcdirichlet_ho},
-  {"test_fem_parproj_2x_p1_bcperiodic_ho", test_fem_parproj_2x_p1_bcperiodic_ho},
-  {"test_fem_parproj_2x_p2_bcnone_ho", test_fem_parproj_2x_p2_bcnone_ho},
+  { "test_fem_parproj_1x_p2_bcperiodic_ho", test_fem_parproj_1x_p2_bcperiodic_ho },
+  { "test_fem_parproj_2x_p1_bcnone_ho", test_fem_parproj_2x_p1_bcnone_ho },
+  { "test_fem_parproj_2x_p1_bcdirichlet_ho", test_fem_parproj_2x_p1_bcdirichlet_ho },
+  { "test_fem_parproj_2x_p1_bcperiodic_ho", test_fem_parproj_2x_p1_bcperiodic_ho },
+  { "test_fem_parproj_2x_p2_bcnone_ho", test_fem_parproj_2x_p2_bcnone_ho },
   // { "test_fem_parproj_2x_p2_bcdirichlet_ho", test_fem_parproj_2x_p2_bcdirichlet_ho },
-  {"test_fem_parproj_2x_p2_bcperiodic_ho", test_fem_parproj_2x_p2_bcperiodic_ho},
-  {"test_fem_parproj_2x_p1_weighted_ho", test_fem_parproj_2x_p1_weighted_ho},
-  {"test_fem_parproj_2x_p1_selfadjoint_ho", test_fem_parproj_2x_p1_selfadjoint_ho},
-  {"test_fem_parproj_2x_p1_bcdirichlet_bias_ho", test_fem_parproj_2x_p1_bcdirichlet_bias_ho},
-  {"test_fem_parproj_3x_p1_bcnone_ho", test_fem_parproj_3x_p1_bcnone_ho},
-  {"test_fem_parproj_3x_p1_bcdirichlet_ho", test_fem_parproj_3x_p1_bcdirichlet_ho},
-  {"test_fem_parproj_3x_p1_bcperiodic_ho", test_fem_parproj_3x_p1_bcperiodic_ho},
-  {"test_fem_parproj_3x_p1_bcdirichlet_bias_ho", test_fem_parproj_3x_p1_bcdirichlet_bias_ho},
-  {"test_fem_parproj_3x_p2_bcnone_ho", test_fem_parproj_3x_p2_bcnone_ho},
+  { "test_fem_parproj_2x_p2_bcperiodic_ho", test_fem_parproj_2x_p2_bcperiodic_ho },
+  { "test_fem_parproj_2x_p1_weighted_ho", test_fem_parproj_2x_p1_weighted_ho },
+  { "test_fem_parproj_2x_p1_selfadjoint_ho", test_fem_parproj_2x_p1_selfadjoint_ho },
+  { "test_fem_parproj_2x_p1_bcdirichlet_bias_ho", test_fem_parproj_2x_p1_bcdirichlet_bias_ho },
+  { "test_fem_parproj_3x_p1_bcnone_ho", test_fem_parproj_3x_p1_bcnone_ho },
+  { "test_fem_parproj_3x_p1_bcdirichlet_ho", test_fem_parproj_3x_p1_bcdirichlet_ho },
+  { "test_fem_parproj_3x_p1_bcperiodic_ho", test_fem_parproj_3x_p1_bcperiodic_ho },
+  { "test_fem_parproj_3x_p1_bcdirichlet_bias_ho", test_fem_parproj_3x_p1_bcdirichlet_bias_ho },
+  { "test_fem_parproj_3x_p2_bcnone_ho", test_fem_parproj_3x_p2_bcnone_ho },
   // { "test_fem_parproj_3x_p2_bcdirichlet_ho", test_fem_parproj_3x_p2_bcdirichlet_ho },
-  {"test_fem_parproj_3x_p2_bcperiodic_ho", test_fem_parproj_3x_p2_bcperiodic_ho},
+  { "test_fem_parproj_3x_p2_bcperiodic_ho", test_fem_parproj_3x_p2_bcperiodic_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_fem_parproj_1x_p1_bcnone_dev", test_fem_parproj_1x_p1_bcnone_dev},
-  {"test_fem_parproj_1x_p1_bcdirichlet_dev", test_fem_parproj_1x_p1_bcdirichlet_dev},
-  {"test_fem_parproj_1x_p1_bcperiodic_dev", test_fem_parproj_1x_p1_bcperiodic_dev},
-  {"test_fem_parproj_1x_p2_bcnone_dev", test_fem_parproj_1x_p2_bcnone_dev},
+  { "test_fem_parproj_1x_p1_bcnone_dev", test_fem_parproj_1x_p1_bcnone_dev },
+  { "test_fem_parproj_1x_p1_bcdirichlet_dev", test_fem_parproj_1x_p1_bcdirichlet_dev },
+  { "test_fem_parproj_1x_p1_bcperiodic_dev", test_fem_parproj_1x_p1_bcperiodic_dev },
+  { "test_fem_parproj_1x_p2_bcnone_dev", test_fem_parproj_1x_p2_bcnone_dev },
   // { "test_fem_parproj_1x_p2_bcdirichlet_dev", test_fem_parproj_1x_p2_bcdirichlet_dev },
-  {"test_fem_parproj_1x_p2_bcperiodic_dev", test_fem_parproj_1x_p2_bcperiodic_dev},
-  {"test_fem_parproj_2x_p1_bcnone_dev", test_fem_parproj_2x_p1_bcnone_dev},
-  {"test_fem_parproj_2x_p1_bcdirichlet_dev", test_fem_parproj_2x_p1_bcdirichlet_dev},
-  {"test_fem_parproj_2x_p1_bcperiodic_dev", test_fem_parproj_2x_p1_bcperiodic_dev},
-  {"test_fem_parproj_2x_p2_bcnone_dev", test_fem_parproj_2x_p2_bcnone_dev},
+  { "test_fem_parproj_1x_p2_bcperiodic_dev", test_fem_parproj_1x_p2_bcperiodic_dev },
+  { "test_fem_parproj_2x_p1_bcnone_dev", test_fem_parproj_2x_p1_bcnone_dev },
+  { "test_fem_parproj_2x_p1_bcdirichlet_dev", test_fem_parproj_2x_p1_bcdirichlet_dev },
+  { "test_fem_parproj_2x_p1_bcperiodic_dev", test_fem_parproj_2x_p1_bcperiodic_dev },
+  { "test_fem_parproj_2x_p2_bcnone_dev", test_fem_parproj_2x_p2_bcnone_dev },
   // { "test_fem_parproj_2x_p2_bcdirichlet_dev", test_fem_parproj_2x_p2_bcdirichlet_dev },
-  {"test_fem_parproj_2x_p2_bcperiodic_dev", test_fem_parproj_2x_p2_bcperiodic_dev},
-  {"test_fem_parproj_2x_p1_weighted_dev", test_fem_parproj_2x_p1_weighted_dev},
-  {"test_fem_parproj_2x_p1_selfadjoint_dev", test_fem_parproj_2x_p1_selfadjoint_dev},
-  {"test_fem_parproj_2x_p1_bcdirichlet_bias_dev", test_fem_parproj_2x_p1_bcdirichlet_bias_dev},
-  {"test_fem_parproj_3x_p1_bcnone_dev", test_fem_parproj_3x_p1_bcnone_dev},
-  {"test_fem_parproj_3x_p1_bcdirichlet_dev", test_fem_parproj_3x_p1_bcdirichlet_dev},
-  {"test_fem_parproj_3x_p1_bcperiodic_dev", test_fem_parproj_3x_p1_bcperiodic_dev},
-  {"test_fem_parproj_3x_p1_bcdirichlet_bias_dev", test_fem_parproj_3x_p1_bcdirichlet_bias_dev},
-  {"test_fem_parproj_3x_p2_bcnone_dev", test_fem_parproj_3x_p2_bcnone_dev},
+  { "test_fem_parproj_2x_p2_bcperiodic_dev", test_fem_parproj_2x_p2_bcperiodic_dev },
+  { "test_fem_parproj_2x_p1_weighted_dev", test_fem_parproj_2x_p1_weighted_dev },
+  { "test_fem_parproj_2x_p1_selfadjoint_dev", test_fem_parproj_2x_p1_selfadjoint_dev },
+  { "test_fem_parproj_2x_p1_bcdirichlet_bias_dev", test_fem_parproj_2x_p1_bcdirichlet_bias_dev },
+  { "test_fem_parproj_3x_p1_bcnone_dev", test_fem_parproj_3x_p1_bcnone_dev },
+  { "test_fem_parproj_3x_p1_bcdirichlet_dev", test_fem_parproj_3x_p1_bcdirichlet_dev },
+  { "test_fem_parproj_3x_p1_bcperiodic_dev", test_fem_parproj_3x_p1_bcperiodic_dev },
+  { "test_fem_parproj_3x_p1_bcdirichlet_bias_dev", test_fem_parproj_3x_p1_bcdirichlet_bias_dev },
+  { "test_fem_parproj_3x_p2_bcnone_dev", test_fem_parproj_3x_p2_bcnone_dev },
   // { "test_fem_parproj_3x_p2_bcdirichlet_dev", test_fem_parproj_3x_p2_bcdirichlet_dev },
-  {"test_fem_parproj_3x_p2_bcperiodic_dev", test_fem_parproj_3x_p2_bcperiodic_dev},
+  { "test_fem_parproj_3x_p2_bcperiodic_dev", test_fem_parproj_3x_p2_bcperiodic_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

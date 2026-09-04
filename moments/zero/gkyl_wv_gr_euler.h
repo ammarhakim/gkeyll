@@ -7,7 +7,7 @@
 enum gkyl_wv_gr_euler_rp {
   WV_GR_EULER_RP_HLL = 0, // Default (HLL fluxes).
   WV_GR_EULER_RP_ROE,
-  WV_GR_EULER_RP_LAX,
+  WV_GR_EULER_RP_LAX
 };
 
 // Input context, packaged as a struct.

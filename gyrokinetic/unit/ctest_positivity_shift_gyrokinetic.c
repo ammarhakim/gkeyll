@@ -93,8 +93,8 @@ test_1x2v(int poly_order, bool use_gpu)
   int cdim = 1;
   double vpar_max = 6.0;
   double mu_max = 36.0;
-  double lower[] = {0.1, -vpar_max, 0.0}, upper[] = {1.0, vpar_max, mu_max};
-  int cells[] = {2, 12, 8};
+  double lower[] = { 0.1, -vpar_max, 0.0 }, upper[] = { 1.0, vpar_max, mu_max };
+  int cells[] = { 2, 12, 8 };
 
   int ndim = sizeof(cells) / sizeof(cells[0]);
   int vdim = ndim - cdim;
@@ -107,7 +107,7 @@ test_1x2v(int poly_order, bool use_gpu)
     .B0 = 1.0, // Magnetic field.
     .vdim = vdim, // Number of velocity space dimensions.
     .vpar_max = vpar_max, // Maximum vpar of the grid.
-    .mu_max = mu_max, // Maximum mu of the grid.
+    .mu_max = mu_max // Maximum mu of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -142,15 +142,15 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = {1};
+  int confGhost[GKYL_MAX_CDIM] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = {0};
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -181,9 +181,8 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = {0.0},
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = { 0.0 },
     .mapc2p = mapc2p,
     .c2p_ctx = 0,
     .bfield_func = eval_bfield_1x,
@@ -194,9 +193,8 @@ test_1x2v(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .position_map = pmap,
-  };
-  int geo_ghost[3] = {1, 1, 1};
+    .position_map = pmap };
+  int geo_ghost[3] = { 1, 1, 1 };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext,
@@ -342,10 +340,8 @@ test_positivity_shift_1x2v_dev()
   test_1x2v(1, true);
 }
 
-TEST_LIST = {
-  {"test_positivity_shift_1x2v_ho", test_positivity_shift_1x2v_ho},
+TEST_LIST = { { "test_positivity_shift_1x2v_ho", test_positivity_shift_1x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_positivity_shift_1x2v_dev", test_positivity_shift_1x2v_dev},
+  { "test_positivity_shift_1x2v_dev", test_positivity_shift_1x2v_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

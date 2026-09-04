@@ -355,10 +355,7 @@ struct gkyl_wv_eqn *
 gkyl_wv_iso_euler_new(double vt, bool use_gpu)
 {
   return gkyl_wv_iso_euler_inew(&(struct gkyl_wv_iso_euler_inp){
-    .vt = vt,
-    .rp_type = WV_ISO_EULER_RP_ROE,
-    .use_gpu = use_gpu,
-  });
+    .vt = vt, .rp_type = WV_ISO_EULER_RP_ROE, .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

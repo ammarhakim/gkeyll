@@ -139,7 +139,7 @@ enum gkyl_cu_memcpy_kind {
   GKYL_CU_MEMCPY_H2H,
   GKYL_CU_MEMCPY_H2D,
   GKYL_CU_MEMCPY_D2H,
-  GKYL_CU_MEMCPY_D2D,
+  GKYL_CU_MEMCPY_D2D
 };
 
 #define GKYL_DEFAULT_NUM_THREADS 1
@@ -476,7 +476,7 @@ enum gkyl_msgpack_elem_type {
   GKYL_MP_UNSIGNED_INT,
   GKYL_MP_FLOAT,
   GKYL_MP_DOUBLE,
-  GKYL_MP_STRING,
+  GKYL_MP_STRING
 };
 
 // Entry type into msgpack map.
@@ -500,32 +500,33 @@ struct gkyl_msgpack_map_elem {
 static inline struct gkyl_msgpack_map_elem
 gmpe_bval(const char *key, bool val)
 {
-  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_BOOL, .bval = val};
+  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_BOOL, .bval = val };
 }
 static inline struct gkyl_msgpack_map_elem
 gmpe_uval(const char *key, unsigned int val)
 {
-  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_UNSIGNED_INT, .uval = val};
+  return (
+    struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_UNSIGNED_INT, .uval = val };
 }
 static inline struct gkyl_msgpack_map_elem
 gmpe_ival(const char *key, int val)
 {
-  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_INT, .ival = val};
+  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_INT, .ival = val };
 }
 static inline struct gkyl_msgpack_map_elem
 gmpe_fval(const char *key, float val)
 {
-  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_FLOAT, .fval = val};
+  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_FLOAT, .fval = val };
 }
 static inline struct gkyl_msgpack_map_elem
 gmpe_dval(const char *key, double val)
 {
-  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_DOUBLE, .dval = val};
+  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_DOUBLE, .dval = val };
 }
 static inline struct gkyl_msgpack_map_elem
 gmpe_cval(const char *key, char *val)
 {
-  return (struct gkyl_msgpack_map_elem){.key = key, .elem_type = GKYL_MP_STRING, .cval = val};
+  return (struct gkyl_msgpack_map_elem){ .key = key, .elem_type = GKYL_MP_STRING, .cval = val };
 }
 #define GKYL_MSGPACK_MAP_ELEM(key, val) \
   _Generic((val),                       \

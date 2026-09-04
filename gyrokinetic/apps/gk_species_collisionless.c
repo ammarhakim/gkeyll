@@ -108,12 +108,12 @@ gk_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app *app, struct g
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {{.key = "Description",
+  struct gkyl_msgpack_map_elem desc[] = { { .key = "Description",
     .elem_type = GKYL_MP_STRING,
-    .cval = "Collisionless flux at cell surface."}};
-  int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_phase, app->gk_geom->io_meta_basic, desc};
+    .cval = "Collisionless flux at cell surface." } };
+  int io_meta_len[] = { gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1 };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_phase, app->gk_geom->io_meta_basic,
+    desc };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -144,15 +144,14 @@ gk_species_collisionless_init_passive(struct gkyl_gyrokinetic_app *app, struct g
     ? mkarr(false, gkcls->passive_speeds->ncomp, gkcls->passive_speeds->size)
     : gkyl_array_acquire(gkcls->passive_speeds);
 
-  struct gkyl_eval_on_nodes *speeds_proj = gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
-    .grid = &app->grid,
-    .basis = &app->basis,
-    .num_ret_vals = cdim,
-    .eval = gks->info.collisionless.passive_speeds,
-    .ctx = gks->info.collisionless.passive_speeds_ctx,
-    .c2p_func = eval_on_nodes_c2p_position_func,
-    .c2p_func_ctx = app->position_map,
-  });
+  struct gkyl_eval_on_nodes *speeds_proj =
+    gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){ .grid = &app->grid,
+      .basis = &app->basis,
+      .num_ret_vals = cdim,
+      .eval = gks->info.collisionless.passive_speeds,
+      .ctx = gks->info.collisionless.passive_speeds_ctx,
+      .c2p_func = eval_on_nodes_c2p_position_func,
+      .c2p_func_ctx = app->position_map });
   gkyl_eval_on_nodes_advance(speeds_proj, 0.0, &app->local, gkcls->passive_speeds_ho);
   gkyl_eval_on_nodes_release(speeds_proj);
   gkyl_array_copy(gkcls->passive_speeds, gkcls->passive_speeds_ho);
@@ -167,10 +166,8 @@ gk_species_collisionless_init_passive(struct gkyl_gyrokinetic_app *app, struct g
     &gks->basis, gkcls->passive_speeds, gks->info.charge, gks->info.mass, app->gk_geom,
     app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
-  struct gkyl_dg_gyrokinetic_passive_auxfields passive_aux = {
-    .flux_surf = gkcls->flux_surf,
-    .speeds = gkcls->passive_speeds,
-  };
+  struct gkyl_dg_gyrokinetic_passive_auxfields passive_aux = { .flux_surf = gkcls->flux_surf,
+    .speeds = gkcls->passive_speeds };
   gkcls->passive_slvr = gkyl_dg_updater_gyrokinetic_passive_new(&gks->grid, &app->basis,
     &gks->basis, &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
     app->gk_geom, gks->vel_map, &passive_aux, app->use_gpu);
@@ -178,12 +175,12 @@ gk_species_collisionless_init_passive(struct gkyl_gyrokinetic_app *app, struct g
   if (gkcls->write_diagnostics) {
     gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", 0.0);
     gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", 0);
-    struct gkyl_msgpack_map_elem desc[] = {{.key = "Description",
+    struct gkyl_msgpack_map_elem desc[] = { { .key = "Description",
       .elem_type = GKYL_MP_STRING,
-      .cval = "Conf-space passive advection speeds."}};
-    int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem *io_meta[] = {
-      gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+      .cval = "Conf-space passive advection speeds." } };
+    int io_meta_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
+    const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_conf,
+      app->gk_geom->io_meta_basic, desc };
     struct gkyl_msgpack_data *mt =
       gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -217,7 +214,7 @@ gk_species_collisionless_init(
 
     // Determine which directions are zero-flux. By default
     // we do not have zero-flux boundary conditions in any direction.
-    bool is_zero_flux[2 * GKYL_MAX_DIM] = {false};
+    bool is_zero_flux[2 * GKYL_MAX_DIM] = { false };
     for (int dir = 0; dir < app->cdim; ++dir) {
       if (gks->lower_bc[dir].type == GKYL_BC_GK_SPECIES_ZERO_FLUX)
         is_zero_flux[dir] = true;
@@ -267,10 +264,10 @@ gk_species_collisionless_init(
         gks->info.charge, gks->info.mass, gkcls->collisionless_id, app->gk_geom, app->dg_geom,
         app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
-      struct gkyl_dg_gyrokinetic_auxfields aux_inp = {.flux_surf = gkcls->flux_surf,
+      struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf,
         .phi = gks->gyro_phi,
         .apar = gkcls->apar,
-        .apardot = gkcls->apardot};
+        .apardot = gkcls->apardot };
       // Create solver.
       gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis,
         &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,

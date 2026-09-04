@@ -481,12 +481,12 @@ GKYL_CU_DH static double
 wave_embedded(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   const double *qr, const double phil, const double phir, double *waves, double *s)
 {
-  double deltaphi[10] = {0.0};
-  double qphi[10] = {0.0};
+  double deltaphi[10] = { 0.0 };
+  double qphi[10] = { 0.0 };
 
   double amax = 0.0;
 
-  double fl[10], fr[10] = {0.0};
+  double fl[10], fr[10] = { 0.0 };
   if ((phil < 0.0) && (phir > 0.0)) {
     double sr = gkyl_ten_moment_max_abs_speed(qr);
     amax = sr;

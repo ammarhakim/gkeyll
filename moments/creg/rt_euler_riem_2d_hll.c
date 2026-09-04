@@ -106,8 +106,7 @@ create_ctx(void)
 
   double loc = 0.8; // Fluid boundaries (both x and y coordinates).
 
-  struct euler_riem_2d_hll_ctx ctx = {
-    .gas_gamma = gas_gamma,
+  struct euler_riem_2d_hll_ctx ctx = { .gas_gamma = gas_gamma,
     .rho_ul = rho_ul,
     .u_ul = u_ul,
     .v_ul = v_ul,
@@ -135,8 +134,7 @@ create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .loc = loc,
-  };
+    .loc = loc };
 
   return ctx;
 }
@@ -273,18 +271,13 @@ main(int argc, char **argv)
 
   // Fluid equations.
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
-    .gas_gamma = ctx.gas_gamma,
-    .rp_type = WV_EULER_RP_HLL,
-    .use_gpu = app_args.use_gpu,
-  });
+    .gas_gamma = ctx.gas_gamma, .rp_type = WV_EULER_RP_HLL, .use_gpu = app_args.use_gpu });
 
-  struct gkyl_moment_species fluid = {
-    .name = "euler",
+  struct gkyl_moment_species fluid = { .name = "euler",
     .equation = euler,
 
     .init = evalEulerInit,
-    .ctx = &ctx,
-  };
+    .ctx = &ctx };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -293,7 +286,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int cells[] = {NX, NY};
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -315,14 +308,12 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -347,9 +338,9 @@ main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = {0.0, 0.0},
-    .upper = {ctx.Lx, ctx.Ly},
-    .cells = {NX, NY},
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
 
     .scheme_type = GKYL_MOMENT_WAVE_PROP,
     .mp_recon = app_args.mp_recon,
@@ -357,14 +348,11 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = {fluid},
+    .species = { fluid },
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -399,21 +387,24 @@ main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 

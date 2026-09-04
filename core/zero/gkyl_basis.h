@@ -6,7 +6,7 @@ enum gkyl_basis_type {
   GKYL_BASIS_MODAL_TENSOR,
   GKYL_BASIS_MODAL_HYBRID,
   GKYL_BASIS_MODAL_GKHYBRID,
-  GKYL_BASIS_MODAL_GKHYBRID_VEL,
+  GKYL_BASIS_MODAL_GKHYBRID_VEL
 };
 
 typedef void (*nodal_to_modal_quad_surf_t)(const double *fnodal, double *fmodal);

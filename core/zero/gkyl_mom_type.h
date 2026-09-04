@@ -25,45 +25,22 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_ENERGY, // H moment.
   GKYL_F_MOMENT_M0ENERGYM3, // M0, Energy (H) and M3 moments.
   GKYL_F_MOMENT_NI, // M0, M1i for-vector.
-  GKYL_F_MOMENT_TIJ, // Stress-energy tensor.
+  GKYL_F_MOMENT_TIJ // Stress-energy tensor.
 };
 
 // String names corresponding to the enum options above.
-static const char *gkyl_distribution_moments_strs[] = {
-  "M0",
-  "M1",
-  "M2",
-  "M2par",
-  "M2perp",
-  "M2ij",
-  "M3",
-  "M3par",
-  "M3perp",
-  "M3ijk",
-  "MaxwellianMoments",
-  "BiMaxwellianMoments",
-  "LTEMoments",
-  "M0M1M2",
-  "M0M1M2parM2perp",
-  "HamiltonianMoments",
-  "M1_from_H",
-  "EnergyMoment",
-  "M0EnergyM3",
-  "Ni",
-  "Tij",
-};
+static const char *gkyl_distribution_moments_strs[] = { "M0", "M1", "M2", "M2par", "M2perp", "M2ij",
+  "M3", "M3par", "M3perp", "M3ijk", "MaxwellianMoments", "BiMaxwellianMoments", "LTEMoments",
+  "M0M1M2", "M0M1M2parM2perp", "HamiltonianMoments", "M1_from_H", "EnergyMoment", "M0EnergyM3",
+  "Ni", "Tij" };
 
 // Descriptions for each distribution moment.
-static const char *gkyl_distribution_moments_descriptions[] = {
-  "Number density.",
-  "Momentum density divided by the mass.",
-  "Kinetic energy density times 2/mass.",
+static const char *gkyl_distribution_moments_descriptions[] = { "Number density.",
+  "Momentum density divided by the mass.", "Kinetic energy density times 2/mass.",
   "Parallel kinetic energy density times 2/mass.",
   "Perpendicular kinetic energy density times 2/mass.",
-  "Second velocity moment (tensor) of the distribution.",
-  "Heat flux density times 2/mass.",
-  "Parallel heat flux density times 2/mass.",
-  "Perpendicular heat flux density times 2/mass.",
+  "Second velocity moment (tensor) of the distribution.", "Heat flux density times 2/mass.",
+  "Parallel heat flux density times 2/mass.", "Perpendicular heat flux density times 2/mass.",
   "Third velocity moment (tensor) times 2/mass.",
   "Number density, drift velocity, and thermal speed squared.",
   "Number density, drift velocity, parallel and perpendicular thermal speed squared.",
@@ -75,9 +52,7 @@ static const char *gkyl_distribution_moments_descriptions[] = {
   "Momentum density (divided by mass) from the velocity gradient of the Hamiltonian.",
   "Hamiltonian energy density (for neutrals).",
   "Number density, Hamiltonian energy density, and heat flux density times 2/mass.",
-  "4-momentum (M0, M1).",
-  "Stress-energy tensor.",
-};
+  "4-momentum (M0, M1).", "Stress-energy tensor." };
 
 // Forward declare for use in function pointers
 struct gkyl_mom_type;

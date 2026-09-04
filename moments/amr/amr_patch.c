@@ -602,11 +602,7 @@ euler_update_all_patches(const struct gkyl_job_pool *job_pool, const struct gkyl
 
   for (int i = 0; i < num_patches; i++) {
     euler_patch_ctx[i] = (struct euler_update_patch_ctx){
-      .pdata = &pdata[i],
-      .t_curr = t_curr,
-      .dir = 0,
-      .dt = dt,
-      .pidx = i,
+      .pdata = &pdata[i], .t_curr = t_curr, .dir = 0, .dt = dt, .pidx = i
     };
   }
 
@@ -625,10 +621,8 @@ euler_update_all_patches(const struct gkyl_job_pool *job_pool, const struct gkyl
 
   for (int i = 0; i < num_patches; i++) {
     if (euler_patch_ctx[i].stat.success == false) {
-      return (struct gkyl_update_status){
-        .success = false,
-        .dt_suggested = euler_patch_ctx[i].stat.dt_suggested,
-      };
+      return (struct gkyl_update_status){ .success = false,
+        .dt_suggested = euler_patch_ctx[i].stat.dt_suggested };
     }
 
     dt_suggested = fmin(dt_suggested, euler_patch_ctx[i].stat.dt_suggested);
@@ -637,10 +631,7 @@ euler_update_all_patches(const struct gkyl_job_pool *job_pool, const struct gkyl
 
   euler_sync_patches(ptopo, pdata, fld);
 
-  return (struct gkyl_update_status){
-    .success = true,
-    .dt_suggested = dt_suggested,
-  };
+  return (struct gkyl_update_status){ .success = true, .dt_suggested = dt_suggested };
 }
 
 void
@@ -658,13 +649,7 @@ euler_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl_block
   int num_patches = ptopo->num_blocks;
   double dt_suggested = DBL_MAX;
 
-  enum {
-    UPDATE_DONE = 0,
-    PRE_UPDATE,
-    POST_UPDATE,
-    FLUID_UPDATE,
-    UPDATE_REDO,
-  } state = PRE_UPDATE;
+  enum { UPDATE_DONE = 0, PRE_UPDATE, POST_UPDATE, FLUID_UPDATE, UPDATE_REDO } state = PRE_UPDATE;
 
   struct copy_job_ctx euler_copy_ctx[num_patches];
   double dt = dt0;
@@ -674,11 +659,8 @@ euler_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl_block
       state = FLUID_UPDATE;
 
       for (int i = 0; i < num_patches; i++) {
-        euler_copy_ctx[i] = (struct copy_job_ctx){
-          .bidx = i,
-          .inp = pdata[i].f[0],
-          .out = pdata[i].fdup,
-        };
+        euler_copy_ctx[i] =
+          (struct copy_job_ctx){ .bidx = i, .inp = pdata[i].f[0], .out = pdata[i].fdup };
       }
 
 #ifdef AMR_USETHREADS
@@ -707,11 +689,8 @@ euler_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl_block
       state = UPDATE_DONE;
 
       for (int i = 0; i < num_patches; i++) {
-        euler_copy_ctx[i] = (struct copy_job_ctx){
-          .bidx = i,
-          .inp = pdata[i].f[1],
-          .out = pdata[i].f[0],
-        };
+        euler_copy_ctx[i] =
+          (struct copy_job_ctx){ .bidx = i, .inp = pdata[i].f[1], .out = pdata[i].f[0] };
       }
 
 #ifdef AMR_USETHREADAS
@@ -728,11 +707,8 @@ euler_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl_block
       state = PRE_UPDATE;
 
       for (int i = 0; i < num_patches; i++) {
-        euler_copy_ctx[i] = (struct copy_job_ctx){
-          .bidx = i,
-          .inp = pdata[i].fdup,
-          .out = pdata[i].f[0],
-        };
+        euler_copy_ctx[i] =
+          (struct copy_job_ctx){ .bidx = i, .inp = pdata[i].fdup, .out = pdata[i].f[0] };
       }
 
 #ifdef AMR_USETHREADS
@@ -748,11 +724,8 @@ euler_update_patch(const struct gkyl_job_pool *job_pool, const struct gkyl_block
     }
   }
 
-  return (struct gkyl_update_status){
-    .success = true,
-    .dt_actual = dt,
-    .dt_suggested = dt_suggested,
-  };
+  return (
+    struct gkyl_update_status){ .success = true, .dt_actual = dt, .dt_suggested = dt_suggested };
 }
 
 void
@@ -786,16 +759,16 @@ create_patch_topo()
   struct gkyl_block_topo *ptopo = gkyl_block_topo_new(1, 3);
 
   ptopo->conn[0] = (struct gkyl_block_connections){
-    .connections[0] = {{.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+    .connections[0] = { { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
+      { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE } }
   };
   ptopo->conn[1] = (struct gkyl_block_connections){
-    .connections[0] = {{.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-      {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },
+      { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE } }
   };
   ptopo->conn[2] = (struct gkyl_block_connections){
-    .connections[0] = {{.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
+      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } }
   };
 
   return ptopo;
@@ -807,24 +780,24 @@ create_nested_patch_topo()
   struct gkyl_block_topo *ptopo = gkyl_block_topo_new(1, 5);
 
   ptopo->conn[0] = (struct gkyl_block_connections){
-    .connections[0] = {{.bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+    .connections[0] = { { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
+      { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE } }
   };
   ptopo->conn[1] = (struct gkyl_block_connections){
-    .connections[0] = {{.bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+    .connections[0] = { { .bid = 3, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
+      { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE } }
   };
   ptopo->conn[2] = (struct gkyl_block_connections){
-    .connections[0] = {{.bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
+      { .bid = 4, .dir = 0, .edge = GKYL_LOWER_POSITIVE } }
   };
   ptopo->conn[3] = (struct gkyl_block_connections){
-    .connections[0] = {{.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL},
-      {.bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE}},
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },
+      { .bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE } }
   };
   ptopo->conn[4] = (struct gkyl_block_connections){
-    .connections[0] = {{.bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
-      {.bid = 0, .dir = 0, .edge = GKYL_PHYSICAL}},
+    .connections[0] = { { .bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
+      { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } }
   };
 
   return ptopo;

@@ -59,8 +59,7 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
   up->error = gkyl_malloc(sizeof(double[up->num_comp]));
 
   // Moments structure
-  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
-    .phase_grid = inp->phase_grid,
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = { .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
     .conf_range = inp->conf_range,
@@ -69,13 +68,11 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
     .gk_geom = inp->gk_geom,
     .vel_map = inp->vel_map,
     .divide_jacobgeo = inp->divide_jacobgeo,
-    .use_gpu = inp->use_gpu,
-  };
+    .use_gpu = inp->use_gpu };
   up->moments_up = gkyl_gk_maxwellian_moments_inew(&inp_mom);
 
   // Create a projection updater for projecting the gyrokinetic Maxwellian or bi-Maxwellian
-  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
-    .phase_grid = inp->phase_grid,
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
     .conf_range = inp->conf_range,
@@ -86,8 +83,7 @@ gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp
     .mass = inp->mass,
     .bimaxwellian = inp->bimaxwellian,
     .divide_jacobgeo = inp->divide_jacobgeo,
-    .use_gpu = inp->use_gpu,
-  };
+    .use_gpu = inp->use_gpu };
   up->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
   return up;

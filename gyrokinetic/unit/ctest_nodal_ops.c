@@ -43,12 +43,12 @@ void
 test_nodal_ops_p1_2x_ho()
 {
   // create  grid, ranges, basis
-  double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
-  int cells[] = {8, 16};
+  double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
+  int cells[] = { 8, 16 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   int poly_order = 1;
   struct gkyl_basis basis;
@@ -76,7 +76,7 @@ test_nodal_ops_p1_2x_ho()
 #endif
 
   // Construct nrange and nodal field
-  int nodes[3] = {1, 1, 1};
+  int nodes[3] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] + 1;
   struct gkyl_range nrange;
@@ -127,12 +127,12 @@ void
 test_nodal_ops_p1_3x_ho()
 {
   // create  grid, ranges, basis
-  double lower[] = {0.0, -1.5, -1.0}, upper[] = {1.5, 1.5, 1.0};
-  int cells[] = {2, 4, 2};
+  double lower[] = { 0.0, -1.5, -1.0 }, upper[] = { 1.5, 1.5, 1.0 };
+  int cells[] = { 2, 4, 2 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   int poly_order = 1;
   struct gkyl_basis basis;
@@ -160,7 +160,7 @@ test_nodal_ops_p1_3x_ho()
 #endif
 
   // Construct nrange and nodal field
-  int nodes[3] = {1, 1, 1};
+  int nodes[3] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] + 1;
   struct gkyl_range nrange;
@@ -211,12 +211,12 @@ void
 test_nodal_ops_p1_interior_2x_ho()
 {
   // create  grid, ranges, basis
-  double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
-  int cells[] = {2, 4};
+  double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
+  int cells[] = { 2, 4 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   int poly_order = 1;
   struct gkyl_basis basis;
@@ -232,7 +232,7 @@ test_nodal_ops_p1_interior_2x_ho()
   struct gkyl_array *funcdg_dev = funcdg;
 
   // Construct nrange and nodal field
-  int nodes[3] = {1, 1, 1};
+  int nodes[3] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = 2 * grid.cells[d];
   struct gkyl_range nrange;
@@ -264,12 +264,12 @@ void
 test_nodal_ops_p1_interior_3x_ho()
 {
   // create  grid, ranges, basis
-  double lower[] = {0.0, -1.5, -1.0}, upper[] = {1.5, 1.5, 1.0};
-  int cells[] = {2, 4, 2};
+  double lower[] = { 0.0, -1.5, -1.0 }, upper[] = { 1.5, 1.5, 1.0 };
+  int cells[] = { 2, 4, 2 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   int poly_order = 1;
   struct gkyl_basis basis;
@@ -285,7 +285,7 @@ test_nodal_ops_p1_interior_3x_ho()
   struct gkyl_array *funcdg_dev = funcdg;
 
   // Construct nrange and nodal field
-  int nodes[3] = {1, 1, 1};
+  int nodes[3] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] * 2;
   struct gkyl_range nrange;
@@ -317,12 +317,12 @@ void
 test_nodal_ops_p1_deflated_ho()
 {
   // create  grid, ranges, basis
-  double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
-  int cells[] = {8, 16};
+  double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
+  int cells[] = { 8, 16 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   int poly_order = 1;
   struct gkyl_basis basis;
@@ -350,7 +350,7 @@ test_nodal_ops_p1_deflated_ho()
 #endif
 
   // Construct Nodal range, field, and nodal ops object
-  int nodes[3] = {1, 1, 1};
+  int nodes[3] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] + 1;
   struct gkyl_range nrange;
@@ -367,10 +367,10 @@ test_nodal_ops_p1_deflated_ho()
   struct gkyl_rect_grid deflated_grid;
   struct gkyl_basis deflated_basis;
   struct gkyl_range deflated_local, deflated_local_ext;
-  double deflated_lower[1] = {grid.lower[0]}, deflated_upper[1] = {grid.upper[0]};
-  int deflated_cells[1] = {grid.cells[0]};
+  double deflated_lower[1] = { grid.lower[0] }, deflated_upper[1] = { grid.upper[0] };
+  int deflated_cells[1] = { grid.cells[0] };
   gkyl_rect_grid_init(&deflated_grid, 1, deflated_lower, deflated_upper, deflated_cells);
-  int deflated_nghost[GKYL_MAX_CDIM] = {1};
+  int deflated_nghost[GKYL_MAX_CDIM] = { 1 };
   gkyl_create_grid_ranges(&deflated_grid, deflated_nghost, &deflated_local_ext, &deflated_local);
   gkyl_cart_modal_serendip(&deflated_basis, 1, poly_order);
 #ifdef GKYL_HAVE_CUDA
@@ -458,12 +458,12 @@ void
 test_nodal_ops_p1_deflated_3d_ho()
 {
   // create  grid, ranges, basis
-  double lower[] = {0.0, -1.5, -2}, upper[] = {1.5, 1.5, 2};
-  int cells[] = {8, 16, 12};
+  double lower[] = { 0.0, -1.5, -2 }, upper[] = { 1.5, 1.5, 2 };
+  int cells[] = { 8, 16, 12 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   int poly_order = 1;
   struct gkyl_basis basis;
@@ -491,7 +491,7 @@ test_nodal_ops_p1_deflated_3d_ho()
 #endif
 
   // Construct Nodal range, field, and nodal ops object
-  int nodes[3] = {1, 1, 1};
+  int nodes[3] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] + 1;
   struct gkyl_range nrange;
@@ -508,11 +508,11 @@ test_nodal_ops_p1_deflated_3d_ho()
   struct gkyl_rect_grid deflated_grid;
   struct gkyl_basis deflated_basis;
   struct gkyl_range deflated_local, deflated_local_ext;
-  double deflated_lower[2] = {grid.lower[0], grid.lower[1]};
-  double deflated_upper[2] = {grid.upper[0], grid.upper[1]};
-  int deflated_cells[2] = {grid.cells[0], grid.cells[1]};
+  double deflated_lower[2] = { grid.lower[0], grid.lower[1] };
+  double deflated_upper[2] = { grid.upper[0], grid.upper[1] };
+  int deflated_cells[2] = { grid.cells[0], grid.cells[1] };
   gkyl_rect_grid_init(&deflated_grid, 2, deflated_lower, deflated_upper, deflated_cells);
-  int deflated_nghost[GKYL_MAX_CDIM] = {1, 1};
+  int deflated_nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&deflated_grid, deflated_nghost, &deflated_local_ext, &deflated_local);
   gkyl_cart_modal_serendip(&deflated_basis, 2, poly_order);
 #ifdef GKYL_HAVE_CUDA
@@ -600,10 +600,10 @@ void
 test_p2_btype(enum gkyl_basis_type basis_type)
 {
   // create  grid
-  double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
+  double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
   // as ellipitical surfaces are exact, we only need 1 cell in each
   // direction
-  int cells[] = {8, 16};
+  int cells[] = { 8, 16 };
 
   int poly_order = 2;
   struct gkyl_rect_grid grid;
@@ -611,7 +611,7 @@ test_p2_btype(enum gkyl_basis_type basis_type)
 
   //  ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   //  basis function
@@ -628,7 +628,7 @@ test_p2_btype(enum gkyl_basis_type basis_type)
   gkyl_eval_on_nodes_release(eon);
   gkyl_grid_sub_array_write(&grid, &local, 0, funcdg, "proj_func.gkyl");
 
-  int nodes[3] = {1, 1, 1};
+  int nodes[3] = { 1, 1, 1 };
 
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = 2 * (grid.cells[d]) + 1;
@@ -663,14 +663,11 @@ test_nodal_ops_p2_tensor_ho()
   return test_p2_btype(GKYL_BASIS_MODAL_TENSOR);
 }
 
-TEST_LIST = {
-  {"test_nodal_ops_p1_interior_2x_ho", test_nodal_ops_p1_interior_2x_ho},
-  {"test_nodal_ops_p1_interior_3x_ho", test_nodal_ops_p1_interior_3x_ho},
-  {"test_nodal_ops_p1_2x_ho", test_nodal_ops_p1_2x_ho},
-  {"test_nodal_ops_p1_3x_ho", test_nodal_ops_p1_3x_ho},
-  {"test_nodal_ops_p1_deflated_ho", test_nodal_ops_p1_deflated_ho},
-  {"test_nodal_ops_p1_deflated_3d_ho", test_nodal_ops_p1_deflated_3d_ho},
-  {"test_nodal_ops_p2_ser_ho", test_nodal_ops_p2_ser_ho},
-  {"test_nodal_ops_p2_tensor_ho", test_nodal_ops_p2_tensor_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_nodal_ops_p1_interior_2x_ho", test_nodal_ops_p1_interior_2x_ho },
+  { "test_nodal_ops_p1_interior_3x_ho", test_nodal_ops_p1_interior_3x_ho },
+  { "test_nodal_ops_p1_2x_ho", test_nodal_ops_p1_2x_ho },
+  { "test_nodal_ops_p1_3x_ho", test_nodal_ops_p1_3x_ho },
+  { "test_nodal_ops_p1_deflated_ho", test_nodal_ops_p1_deflated_ho },
+  { "test_nodal_ops_p1_deflated_3d_ho", test_nodal_ops_p1_deflated_3d_ho },
+  { "test_nodal_ops_p2_ser_ho", test_nodal_ops_p2_ser_ho },
+  { "test_nodal_ops_p2_tensor_ho", test_nodal_ops_p2_tensor_ho }, { NULL, NULL } };

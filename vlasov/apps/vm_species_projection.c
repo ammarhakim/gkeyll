@@ -8,15 +8,13 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   proj->proj_id = inp.proj_id;
   proj->model_id = s->model_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &s->grid,
+    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &s->grid,
       .basis = &app->basis,
       .qtype = GKYL_GAUSS_QUAD,
       .num_quad = app->basis.poly_order + 1,
       .num_ret_vals = 1,
       .eval = inp.func,
-      .ctx = inp.ctx_func,
-    });
+      .ctx = inp.ctx_func });
     if (app->use_gpu) {
       proj->proj_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
     }
@@ -38,7 +36,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
     proj->vlasov_lte_moms =
       mkarr(app->use_gpu, (vdim + 2) * app->confBasis.num_basis, app->local_ext.volume);
 
-    struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {.phase_grid = &s->grid,
+    struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = { .phase_grid = &s->grid,
       .vel_grid = &s->grid_vel,
       .conf_basis = &app->confBasis,
       .vel_basis = &app->velBasis,
@@ -55,7 +53,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .hamil = s->hamil,
       .model_id = s->model_id,
       .use_gpu = app->use_gpu,
-      .quad_type = inp.quad_type};
+      .quad_type = inp.quad_type };
     proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
     proj->correct_all_moms = false;
@@ -66,8 +64,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       double iter_eps = inp.iter_eps > 0 ? inp.iter_eps : 1e-12;
       bool use_last_converged = inp.use_last_converged;
 
-      struct gkyl_vlasov_lte_correct_inp inp_corr = {
-        .phase_grid = &s->grid,
+      struct gkyl_vlasov_lte_correct_inp inp_corr = { .phase_grid = &s->grid,
         .vel_grid = &s->grid_vel,
         .conf_basis = &app->confBasis,
         .vel_basis = &app->velBasis,
@@ -87,8 +84,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         .quad_type = inp.quad_type,
         .max_iter = max_iter,
         .eps = iter_eps,
-        .use_last_converged = use_last_converged,
-      };
+        .use_last_converged = use_last_converged };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
     }
   }

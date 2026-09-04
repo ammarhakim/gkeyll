@@ -51,7 +51,7 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
-  struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = N};
+  struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = N };
 
   // initialize input/output mapping
   for (int i = 0; i < N; ++i) {
@@ -152,7 +152,7 @@ main(int argc, char *argv[])
   if (p_train) {
     fprintf(stdout, "*** Training\n");
     train_ann(
-      &(struct train_inp){.ntrain = 1001, .ndepth = 2, .nwidth = 256, .learning_rate = 1e-3f},
+      &(struct train_inp){ .ntrain = 1001, .ndepth = 2, .nwidth = 256, .learning_rate = 1e-3f },
       "rt_kann_mlp.kann");
   }
 
@@ -163,7 +163,7 @@ main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = inp->nvec};
+    struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
     for (int i = 0; i < inp->nvec; ++i)
       inp->vals[i][0] = xrange_n(xr, i);
 

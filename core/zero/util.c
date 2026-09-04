@@ -91,7 +91,7 @@ gkyl_compare_double(double a, double b, double eps)
 struct timespec
 gkyl_wall_clock(void)
 {
-  struct timespec tm = {0};
+  struct timespec tm = { 0 };
 #ifdef GKYL_HAVE_CUDA
   cudaDeviceSynchronize();
 #endif

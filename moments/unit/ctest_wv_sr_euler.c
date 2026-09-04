@@ -27,7 +27,7 @@ test_sr_euler_prim1_ho()
   TEST_CHECK(sr_euler->num_waves == 3);
 
   double rho = 1.0, u = 0.9999, v = 0.0, w = 0.01, pr = 1.5;
-  double q[5], pv2[5], pv[5] = {rho, u, v, w, pr};
+  double q[5], pv2[5], pv[5] = { rho, u, v, w, pr };
   calcq(gas_gamma, pv, q);
 
   gkyl_sr_euler_prim_vars(gas_gamma, q, pv2);
@@ -41,20 +41,19 @@ test_sr_euler_prim1_ho()
   double gamma = 1 / sqrt(1 - u * u - v * v - w * w);
   double rhoh = gas_gamma * pr / (gas_gamma - 1) + rho;
 
-  double fluxes[3][5] = {
-    {gamma * rho * u, gamma * gamma * rhoh * u, gamma * gamma * rhoh * u * u + pr,
-      gamma * gamma * rhoh * u * v, gamma * gamma * rhoh * u * w},
-    {gamma * rho * v, gamma * gamma * rhoh * v, gamma * gamma * rhoh * v * u,
-      gamma * gamma * rhoh * v * v + pr, gamma * gamma * rhoh * v * w},
-    {gamma * rho * w, gamma * gamma * rhoh * w, gamma * gamma * rhoh * w * u,
-      gamma * gamma * rhoh * w * v, gamma * gamma * rhoh * w * w + pr},
-  };
+  double fluxes[3][5] = { { gamma * rho * u, gamma * gamma * rhoh * u,
+                            gamma * gamma * rhoh * u * u + pr, gamma * gamma * rhoh * u * v,
+                            gamma * gamma * rhoh * u * w },
+    { gamma * rho * v, gamma * gamma * rhoh * v, gamma * gamma * rhoh * v * u,
+      gamma * gamma * rhoh * v * v + pr, gamma * gamma * rhoh * v * w },
+    { gamma * rho * w, gamma * gamma * rhoh * w, gamma * gamma * rhoh * w * u,
+      gamma * gamma * rhoh * w * v, gamma * gamma * rhoh * w * w + pr } };
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
   double q_local[5], flux_local[5], flux[5];
   for (int d = 1; d < 2; ++d) {
@@ -92,19 +91,19 @@ test_sr_euler_waves_ho()
   double gas_gamma = 1.333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
 
-  double vl[5] = {1.0, 0.09, 0.02, 0.03, 1.5};
-  double vr[5] = {0.1, .9, 0.2, 0.3, 0.15};
+  double vl[5] = { 1.0, 0.09, 0.02, 0.03, 1.5 };
+  double vr[5] = { 0.1, .9, 0.2, 0.3, 0.15 };
 
   double ql[5], qr[5];
   double ql_local[5], qr_local[5];
   calcq(gas_gamma, vl, ql);
   calcq(gas_gamma, vr, qr);
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
 
   for (int d = 0; d < 3; ++d) {
     double speeds[3], waves[3 * 5], waves_local[3 * 5];
@@ -150,19 +149,19 @@ test_sr_euler_waves2_ho()
   double gas_gamma = 1.3333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
 
-  double vl[5] = {1.0, 0.0999, 0.02, 0.03, 1500.};
-  double vr[5] = {0.1, 0.999, 0.01, 0.0, 0.015};
+  double vl[5] = { 1.0, 0.0999, 0.02, 0.03, 1500. };
+  double vr[5] = { 0.1, 0.999, 0.01, 0.0, 0.015 };
 
   double ql[5], qr[5];
   double ql_local[5], qr_local[5];
   calcq(gas_gamma, vl, ql);
   calcq(gas_gamma, vr, qr);
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
 
   for (int d = 0; d < 3; ++d) {
     double speeds[3], waves[3 * 5], waves_local[3 * 5];
@@ -202,9 +201,6 @@ test_sr_euler_waves2_ho()
   gkyl_wv_eqn_release(sr_euler);
 }
 
-TEST_LIST = {
-  {"sr_euler_prim1_ho", test_sr_euler_prim1_ho},
-  {"test_sr_euler_waves_ho", test_sr_euler_waves_ho},
-  {"test_sr_euler_waves2_ho", test_sr_euler_waves2_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "sr_euler_prim1_ho", test_sr_euler_prim1_ho },
+  { "test_sr_euler_waves_ho", test_sr_euler_waves_ho },
+  { "test_sr_euler_waves2_ho", test_sr_euler_waves2_ho }, { NULL, NULL } };

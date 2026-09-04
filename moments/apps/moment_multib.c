@@ -97,7 +97,7 @@ moment_multib_data_write(const char *fname, struct moment_multib_output_meta met
         &(struct gkyl_array_header_info){
           .file_type = gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],
           .meta_size = amet->meta_sz,
-          .meta = amet->meta},
+          .meta = amet->meta },
         fp);
       MPACK_FREE(amet->meta);
       gkyl_free(amet);
@@ -489,10 +489,10 @@ gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm,
       cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
 
       moment_multib_data_write(file_name.str,
-        (struct moment_multib_output_meta){.frame = frame,
+        (struct moment_multib_output_meta){ .frame = frame,
           .stime = tm,
           .topo_file_name = topo_file_name.str,
-          .app_name = app->name});
+          .app_name = app->name });
 
       cstr_drop(&topo_file_name);
       cstr_drop(&file_name);
@@ -517,7 +517,7 @@ gkyl_moment_multib_app_write_species(
 
     moment_multib_data_write(file_name.str,
       (struct moment_multib_output_meta){
-        .frame = frame, .stime = tm, .topo_file_name = topo_file_name.str, .app_name = app->name});
+        .frame = frame, .stime = tm, .topo_file_name = topo_file_name.str, .app_name = app->name });
 
     cstr_drop(&topo_file_name);
     cstr_drop(&file_name);

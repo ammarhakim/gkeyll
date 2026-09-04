@@ -252,7 +252,7 @@ test_gr_mhd_tetrad_basic_minkowski_ho()
       double Etot = (rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W);
 
       double fluxes[3][9] = {
-        {(lapse * sqrt(spatial_det)) * (D * (vel[0] - (shift[0] / lapse))),
+        { (lapse * sqrt(spatial_det)) * (D * (vel[0] - (shift[0] / lapse))),
           (lapse * sqrt(spatial_det)) *
             ((Sx * (vel[0] - (shift[0] / lapse))) + p_star - ((cov_b[0] * mag[0]) / W)),
           (lapse * sqrt(spatial_det)) *
@@ -269,8 +269,8 @@ test_gr_mhd_tetrad_basic_minkowski_ho()
             (((vel[0] - (shift[0] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[0])),
           (lapse * sqrt(spatial_det)) *
             (((vel[0] - (shift[0] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[0])),
-          (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_x)},
-        {(lapse * sqrt(spatial_det)) * (D * (vel[1] - (shift[1] / lapse))),
+          (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_x) },
+        { (lapse * sqrt(spatial_det)) * (D * (vel[1] - (shift[1] / lapse))),
           (lapse * sqrt(spatial_det)) *
             ((Sx * (vel[1] - (shift[1] / lapse))) - ((cov_b[0] * mag[1]) / W)),
           (lapse * sqrt(spatial_det)) *
@@ -287,8 +287,8 @@ test_gr_mhd_tetrad_basic_minkowski_ho()
               (b_fact * psi)),
           (lapse * sqrt(spatial_det)) *
             (((vel[1] - (shift[1] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[1])),
-          (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y)},
-        {(lapse * sqrt(spatial_det)) * (D * (vel[2] - (shift[2] / lapse))),
+          (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y) },
+        { (lapse * sqrt(spatial_det)) * (D * (vel[2] - (shift[2] / lapse))),
           (lapse * sqrt(spatial_det)) *
             ((Sx * (vel[2] - (shift[2] / lapse))) - ((cov_b[0] * mag[2]) / W)),
           (lapse * sqrt(spatial_det)) *
@@ -305,26 +305,14 @@ test_gr_mhd_tetrad_basic_minkowski_ho()
           (lapse * sqrt(spatial_det)) *
             (((vel[2] - (shift[2] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[2]) +
               (b_fact * psi)),
-          (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z)},
+          (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z) }
       };
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       double q_local[75], flux_local_sr[75], flux_local_gr[75], flux[75];
       for (int d = 0; d < 3; d++) {
@@ -638,7 +626,7 @@ test_gr_mhd_tetrad_basic_schwarzschild_ho()
         double Etot = (rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W);
 
         double fluxes[3][9] = {
-          {(lapse * sqrt(spatial_det)) * (D * (vel[0] - (shift[0] / lapse))),
+          { (lapse * sqrt(spatial_det)) * (D * (vel[0] - (shift[0] / lapse))),
             (lapse * sqrt(spatial_det)) *
               ((Sx * (vel[0] - (shift[0] / lapse))) + p_star - ((cov_b[0] * mag[0]) / W)),
             (lapse * sqrt(spatial_det)) *
@@ -655,8 +643,8 @@ test_gr_mhd_tetrad_basic_schwarzschild_ho()
               (((vel[0] - (shift[0] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[0])),
             (lapse * sqrt(spatial_det)) *
               (((vel[0] - (shift[0] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[0])),
-            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_x)},
-          {(lapse * sqrt(spatial_det)) * (D * (vel[1] - (shift[1] / lapse))),
+            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_x) },
+          { (lapse * sqrt(spatial_det)) * (D * (vel[1] - (shift[1] / lapse))),
             (lapse * sqrt(spatial_det)) *
               ((Sx * (vel[1] - (shift[1] / lapse))) - ((cov_b[0] * mag[1]) / W)),
             (lapse * sqrt(spatial_det)) *
@@ -673,8 +661,8 @@ test_gr_mhd_tetrad_basic_schwarzschild_ho()
                 (b_fact * psi)),
             (lapse * sqrt(spatial_det)) *
               (((vel[1] - (shift[1] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[1])),
-            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y)},
-          {(lapse * sqrt(spatial_det)) * (D * (vel[2] - (shift[2] / lapse))),
+            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y) },
+          { (lapse * sqrt(spatial_det)) * (D * (vel[2] - (shift[2] / lapse))),
             (lapse * sqrt(spatial_det)) *
               ((Sx * (vel[2] - (shift[2] / lapse))) - ((cov_b[0] * mag[2]) / W)),
             (lapse * sqrt(spatial_det)) *
@@ -691,26 +679,14 @@ test_gr_mhd_tetrad_basic_schwarzschild_ho()
             (lapse * sqrt(spatial_det)) *
               (((vel[2] - (shift[2] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[2]) +
                 (b_fact * psi)),
-            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z)},
+            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z) }
         };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[75], flux_local_sr[75], flux_local_gr[75], flux[75];
         for (int d = 0; d < 3; d++) {
@@ -1025,7 +1001,7 @@ test_gr_mhd_tetrad_basic_kerr_ho()
         double Etot = (rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W);
 
         double fluxes[3][9] = {
-          {(lapse * sqrt(spatial_det)) * (D * (vel[0] - (shift[0] / lapse))),
+          { (lapse * sqrt(spatial_det)) * (D * (vel[0] - (shift[0] / lapse))),
             (lapse * sqrt(spatial_det)) *
               ((Sx * (vel[0] - (shift[0] / lapse))) + p_star - ((cov_b[0] * mag[0]) / W)),
             (lapse * sqrt(spatial_det)) *
@@ -1042,8 +1018,8 @@ test_gr_mhd_tetrad_basic_kerr_ho()
               (((vel[0] - (shift[0] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[0])),
             (lapse * sqrt(spatial_det)) *
               (((vel[0] - (shift[0] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[0])),
-            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_x)},
-          {(lapse * sqrt(spatial_det)) * (D * (vel[1] - (shift[1] / lapse))),
+            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_x) },
+          { (lapse * sqrt(spatial_det)) * (D * (vel[1] - (shift[1] / lapse))),
             (lapse * sqrt(spatial_det)) *
               ((Sx * (vel[1] - (shift[1] / lapse))) - ((cov_b[0] * mag[1]) / W)),
             (lapse * sqrt(spatial_det)) *
@@ -1060,8 +1036,8 @@ test_gr_mhd_tetrad_basic_kerr_ho()
                 (b_fact * psi)),
             (lapse * sqrt(spatial_det)) *
               (((vel[1] - (shift[1] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[1])),
-            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y)},
-          {(lapse * sqrt(spatial_det)) * (D * (vel[2] - (shift[2] / lapse))),
+            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y) },
+          { (lapse * sqrt(spatial_det)) * (D * (vel[2] - (shift[2] / lapse))),
             (lapse * sqrt(spatial_det)) *
               ((Sx * (vel[2] - (shift[2] / lapse))) - ((cov_b[0] * mag[2]) / W)),
             (lapse * sqrt(spatial_det)) *
@@ -1078,26 +1054,14 @@ test_gr_mhd_tetrad_basic_kerr_ho()
             (lapse * sqrt(spatial_det)) *
               (((vel[2] - (shift[2] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[2]) +
                 (b_fact * psi)),
-            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z)},
+            (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z) }
         };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[75], flux_local_sr[75], flux_local_gr[75], flux[75];
         for (int d = 0; d < 3; d++) {
@@ -1529,23 +1493,11 @@ test_gr_mhd_tetrad_waves_minkowski_ho()
       qr[73] = y;
       qr[74] = 0.0;
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       for (int d = 0; d < 3; d++) {
         double speeds[2], waves[2 * 75], waves_local[2 * 75];
@@ -2013,23 +1965,11 @@ test_gr_mhd_tetrad_waves_schwarzschild_ho()
         qr[73] = y;
         qr[74] = 0.0;
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[2], waves[2 * 75], waves_local[2 * 75];
@@ -2498,23 +2438,11 @@ test_gr_mhd_tetrad_waves_kerr_ho()
         qr[73] = y;
         qr[74] = 0.0;
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[2], waves[2 * 75], waves_local[2 * 75];
@@ -2612,12 +2540,9 @@ test_gr_mhd_tetrad_waves_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-TEST_LIST = {
-  {"gr_mhd_tetrad_basic_minkowski_ho", test_gr_mhd_tetrad_basic_minkowski_ho},
-  {"gr_mhd_tetrad_basic_schwarzschild_ho", test_gr_mhd_tetrad_basic_schwarzschild_ho},
-  {"gr_mhd_tetrad_basic_kerr_ho", test_gr_mhd_tetrad_basic_kerr_ho},
-  {"gr_mhd_tetrad_waves_minkowski_ho", test_gr_mhd_tetrad_waves_minkowski_ho},
-  {"gr_mhd_tetrad_waves_schwarzschild_ho", test_gr_mhd_tetrad_waves_schwarzschild_ho},
-  {"gr_mhd_tetrad_waves_kerr_ho", test_gr_mhd_tetrad_waves_kerr_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "gr_mhd_tetrad_basic_minkowski_ho", test_gr_mhd_tetrad_basic_minkowski_ho },
+  { "gr_mhd_tetrad_basic_schwarzschild_ho", test_gr_mhd_tetrad_basic_schwarzschild_ho },
+  { "gr_mhd_tetrad_basic_kerr_ho", test_gr_mhd_tetrad_basic_kerr_ho },
+  { "gr_mhd_tetrad_waves_minkowski_ho", test_gr_mhd_tetrad_waves_minkowski_ho },
+  { "gr_mhd_tetrad_waves_schwarzschild_ho", test_gr_mhd_tetrad_waves_schwarzschild_ho },
+  { "gr_mhd_tetrad_waves_kerr_ho", test_gr_mhd_tetrad_waves_kerr_ho }, { NULL, NULL } };

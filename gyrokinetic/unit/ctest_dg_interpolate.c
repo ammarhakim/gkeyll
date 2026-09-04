@@ -86,7 +86,7 @@ eval_fdonor_1x(double t, const double *xn, double *restrict fout, void *ctx)
 void
 test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0}, upper[] = {1.0};
+  double lower[] = { 0.0 }, upper[] = { 1.0 };
   double mass = 1.0;
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
@@ -98,8 +98,8 @@ test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
     .B0 = 1.0, // Magnetic field.
     .mass = mass, // Particle mass.
     .cdim = ndim, // Number of position space dimensions.
-    .lower = {lower[0]}, // Lower extents of the grid.
-    .upper = {upper[0]}, // Upper extents of the grid.
+    .lower = { lower[0] }, // Lower extents of the grid.
+    .upper = { upper[0] } // Upper extents of the grid.
   };
 
   // Grid.
@@ -111,7 +111,7 @@ test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Ranges
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < ndim; d++)
     ghost[d] = 1;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -209,7 +209,7 @@ eval_fdonor_2x(double t, const double *xn, double *restrict fout, void *ctx)
 void
 test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  double lower[] = {0.0, -M_PI}, upper[] = {1.0, M_PI};
+  double lower[] = { 0.0, -M_PI }, upper[] = { 1.0, M_PI };
   double mass = 1.0;
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
@@ -221,8 +221,8 @@ test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
     .B0 = 1.0, // Magnetic field.
     .mass = mass, // Particle mass.
     .cdim = ndim, // Number of position space dimensions.
-    .lower = {lower[0], lower[1]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1]}, // Upper extents of the grid.
+    .lower = { lower[0], lower[1] }, // Lower extents of the grid.
+    .upper = { upper[0], upper[1] } // Upper extents of the grid.
   };
 
   // Grid.
@@ -234,7 +234,7 @@ test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Ranges
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < ndim; d++)
     ghost[d] = 1;
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -357,7 +357,7 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   double x_max = 1.0;
   double vx_min = -6.0;
   double vx_max = 6.0;
-  double lower[] = {x_min, vx_min}, upper[] = {x_max, vx_max};
+  double lower[] = { x_min, vx_min }, upper[] = { x_max, vx_max };
   double mass = 1.0;
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
@@ -370,8 +370,8 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
     .mass = mass, // Particle mass.
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
-    .lower = {lower[0], lower[1]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1]}, // Upper extents of the grid.
+    .lower = { lower[0], lower[1] }, // Lower extents of the grid.
+    .upper = { upper[0], upper[1] } // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -406,15 +406,15 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = {1};
+  int confGhost[GKYL_MAX_CDIM] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = {0};
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -606,7 +606,7 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   double vx_max = 6.0;
   double vy_min = -0.5;
   double vy_max = 0.5;
-  double lower[] = {x_min, vx_min, vy_min}, upper[] = {x_max, vx_max, vy_max};
+  double lower[] = { x_min, vx_min, vy_min }, upper[] = { x_max, vx_max, vy_max };
   double mass = 1.0;
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
@@ -620,8 +620,8 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
     .mass = mass, // Particle mass.
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
-    .lower = {lower[0], lower[1], lower[2]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1], upper[2]}, // Upper extents of the grid.
+    .lower = { lower[0], lower[1], lower[2] }, // Lower extents of the grid.
+    .upper = { upper[0], upper[1], upper[2] } // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -656,15 +656,15 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = {1};
+  int confGhost[GKYL_MAX_CDIM] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = {0};
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -893,9 +893,8 @@ init_gk_geo(int poly_order, struct gkyl_rect_grid confGrid, struct gkyl_basis co
 {
   // Initialize GK geometry.
   int cdim = confBasis.ndim;
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
-    .world = {0.0, 0.0, 0.0},
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+    .world = { 0.0, 0.0, 0.0 },
     .mapc2p = mapc2p,
     .c2p_ctx = 0,
     .bfield_func = cdim == 1 ? eval_bfield_1x : (cdim == 2 ? eval_bfield_2x : eval_bfield_3x),
@@ -905,9 +904,8 @@ init_gk_geo(int poly_order, struct gkyl_rect_grid confGrid, struct gkyl_basis co
     .local = confLocal,
     .local_ext = confLocal_ext,
     .global = confLocal,
-    .global_ext = confLocal_ext,
-  };
-  int geo_ghost[3] = {1, 1, 1};
+    .global_ext = confLocal_ext };
+  int geo_ghost[3] = { 1, 1, 1 };
   if (cdim < 3) {
     geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
     gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
@@ -963,7 +961,7 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double x_max = 1.0;
   double vpar_min = -6.0;
   double vpar_max = 6.0;
-  double lower[] = {x_min, vpar_min}, upper[] = {x_max, vpar_max};
+  double lower[] = { x_min, vpar_min }, upper[] = { x_max, vpar_max };
   double mass = 1.0;
   double charge = 1.0;
 
@@ -978,8 +976,8 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
     .mass = mass, // Particle mass.
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
-    .lower = {lower[0], lower[1]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1]}, // Upper extents of the grid.
+    .lower = { lower[0], lower[1] }, // Lower extents of the grid.
+    .upper = { upper[0], upper[1] } // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -1014,15 +1012,15 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = {1};
+  int confGhost[GKYL_MAX_CDIM] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = {0};
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -1220,7 +1218,7 @@ eval_distf_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 
   double vtsq = temp / mass;
 
-  double bfield[3] = {0.0};
+  double bfield[3] = { 0.0 };
   eval_bfield_1x(t, xn, bfield, ctx);
   double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
 
@@ -1237,7 +1235,7 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double vpar_min = -6.0;
   double vpar_max = 6.0;
   double mu_max = 0.5;
-  double lower[] = {x_min, vpar_min, 0.0}, upper[] = {x_max, vpar_max, mu_max};
+  double lower[] = { x_min, vpar_min, 0.0 }, upper[] = { x_max, vpar_max, mu_max };
   double mass = 1.0;
   double charge = 1.0;
 
@@ -1252,8 +1250,8 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
     .mass = mass, // Particle mass.
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
-    .lower = {lower[0], lower[1], lower[2]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1], upper[2]}, // Upper extents of the grid.
+    .lower = { lower[0], lower[1], lower[2] }, // Lower extents of the grid.
+    .upper = { upper[0], upper[1], upper[2] } // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -1288,15 +1286,15 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = {1};
+  int confGhost[GKYL_MAX_CDIM] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = {0};
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -1491,7 +1489,7 @@ eval_distf_2x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 
   double vtsq = temp / mass;
 
-  double bfield[3] = {0.0};
+  double bfield[3] = { 0.0 };
   eval_bfield_2x(t, xn, bfield, ctx);
   double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
 
@@ -1517,7 +1515,7 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double vpar_min = -1.744683e+05;
   double vpar_max = 1.744683e+05;
   double mu_max = 9.047585e-17;
-  double lower[] = {x_min, y_min, vpar_min, 0.0}, upper[] = {x_max, y_max, vpar_max, mu_max};
+  double lower[] = { x_min, y_min, vpar_min, 0.0 }, upper[] = { x_max, y_max, vpar_max, mu_max };
   double mass = 1.67e-27 * 3.973;
   double charge = 1.602e-19;
 
@@ -1532,8 +1530,8 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
     .mass = mass, // Particle mass.
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
-    .lower = {lower[0], lower[1], lower[2], lower[3]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1], upper[2], upper[3]}, // Upper extents of the grid.
+    .lower = { lower[0], lower[1], lower[2], lower[3] }, // Lower extents of the grid.
+    .upper = { upper[0], upper[1], upper[2], upper[3] } // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -1568,15 +1566,15 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = {1};
+  int confGhost[GKYL_MAX_CDIM] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = {0};
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -1771,7 +1769,7 @@ eval_distf_3x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 
   double vtsq = temp / mass;
 
-  double bfield[3] = {0.0};
+  double bfield[3] = { 0.0 };
   eval_bfield_3x(t, xn, bfield, ctx);
   double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
 
@@ -1810,8 +1808,8 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   //  double vpar_min = -1.060964135e+07;
   //  double vpar_max =  1.060964135e+07;
   //  double mu_max =  9.047584868e-17;
-  double lower[] = {x_min, y_min, z_min, vpar_min, 0.0},
-         upper[] = {x_max, y_max, z_max, vpar_max, mu_max};
+  double lower[] = { x_min, y_min, z_min, vpar_min, 0.0 },
+         upper[] = { x_max, y_max, z_max, vpar_max, mu_max };
   double mass = 1.67e-27 * 3.973;
   double charge = 1.602e-19;
 
@@ -1826,8 +1824,8 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
     .mass = mass, // Particle mass.
     .cdim = cdim, // Number of position space dimensions.
     .vdim = vdim, // Number of velocity space dimensions.
-    .lower = {lower[0], lower[1], lower[2], lower[3], lower[4]}, // Lower extents of the grid.
-    .upper = {upper[0], upper[1], upper[2], upper[3], upper[4]}, // Upper extents of the grid.
+    .lower = { lower[0], lower[1], lower[2], lower[3], lower[4] }, // Lower extents of the grid.
+    .upper = { upper[0], upper[1], upper[2], upper[3], upper[4] } // Upper extents of the grid.
   };
 
   double confLower[cdim], confUpper[cdim];
@@ -1862,17 +1860,17 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Ranges
-  int confGhost[GKYL_MAX_CDIM] = {0};
+  int confGhost[GKYL_MAX_CDIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     confGhost[d] = 1;
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  int velGhost[3] = {0};
+  int velGhost[3] = { 0 };
   struct gkyl_range velLocal, velLocal_ext; // local, local-ext vel-space ranges
   gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
-  int ghost[GKYL_MAX_DIM] = {0};
+  int ghost[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < cdim; d++)
     ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
@@ -2046,14 +2044,14 @@ void
 test_1x_hodev(bool use_gpu)
 {
   // Refine along x.
-  int cells_do0[] = {6};
-  int cells_tar0[] = {12};
+  int cells_do0[] = { 6 };
+  int cells_tar0[] = { 12 };
   test_1x(cells_do0, cells_tar0, 1, use_gpu);
   test_1x(cells_do0, cells_tar0, 2, use_gpu);
 
   // Coarsen along x.
-  int cells_do1[] = {16};
-  int cells_tar1[] = {8};
+  int cells_do1[] = { 16 };
+  int cells_tar1[] = { 8 };
   test_1x(cells_do1, cells_tar1, 1, use_gpu);
   test_1x(cells_do1, cells_tar1, 2, use_gpu);
 }
@@ -2074,8 +2072,8 @@ test_2x_hodev(bool use_gpu)
   //  test_2x(cells_do1, cells_tar1, 2, use_gpu);
 
   // Refine along vpar.
-  int cells_do2[] = {96, 96};
-  int cells_tar2[] = {128, 128};
+  int cells_do2[] = { 96, 96 };
+  int cells_tar2[] = { 128, 128 };
   test_2x(cells_do2, cells_tar2, 1, use_gpu);
   test_2x(cells_do2, cells_tar2, 2, use_gpu);
 
@@ -2102,38 +2100,38 @@ void
 test_1x1v_vlasov_hodev(bool use_gpu)
 {
   // Refine along x.
-  int cells_do0[] = {6, 8};
-  int cells_tar0[] = {12, 8};
+  int cells_do0[] = { 6, 8 };
+  int cells_tar0[] = { 12, 8 };
   test_1x1v_vlasov(cells_do0, cells_tar0, 1, use_gpu);
   test_1x1v_vlasov(cells_do0, cells_tar0, 2, use_gpu);
 
   // Coarsen along x.
-  int cells_do1[] = {16, 8};
-  int cells_tar1[] = {8, 8};
+  int cells_do1[] = { 16, 8 };
+  int cells_tar1[] = { 8, 8 };
   test_1x1v_vlasov(cells_do1, cells_tar1, 1, use_gpu);
   test_1x1v_vlasov(cells_do1, cells_tar1, 2, use_gpu);
 
   // Refine along vx.
-  int cells_do2[] = {8, 8};
-  int cells_tar2[] = {8, 16};
+  int cells_do2[] = { 8, 8 };
+  int cells_tar2[] = { 8, 16 };
   test_1x1v_vlasov(cells_do2, cells_tar2, 1, use_gpu);
   test_1x1v_vlasov(cells_do2, cells_tar2, 2, use_gpu);
 
   // Coarsen along vx.
-  int cells_do3[] = {8, 12};
-  int cells_tar3[] = {8, 6};
+  int cells_do3[] = { 8, 12 };
+  int cells_tar3[] = { 8, 6 };
   test_1x1v_vlasov(cells_do3, cells_tar3, 1, use_gpu);
   test_1x1v_vlasov(cells_do3, cells_tar3, 2, use_gpu);
 
   // Refine along x and vx.
-  int cells_do4[] = {8, 8};
-  int cells_tar4[] = {32, 16};
+  int cells_do4[] = { 8, 8 };
+  int cells_tar4[] = { 32, 16 };
   test_1x1v_vlasov(cells_do4, cells_tar4, 1, use_gpu);
   test_1x1v_vlasov(cells_do4, cells_tar4, 2, use_gpu);
 
   // Coarsen along x and vx.
-  int cells_do5[] = {8, 12};
-  int cells_tar5[] = {4, 6};
+  int cells_do5[] = { 8, 12 };
+  int cells_tar5[] = { 4, 6 };
   test_1x1v_vlasov(cells_do5, cells_tar5, 1, use_gpu);
   test_1x1v_vlasov(cells_do5, cells_tar5, 2, use_gpu);
 }
@@ -2142,74 +2140,74 @@ void
 test_1x2v_vlasov_hodev(bool use_gpu)
 {
   // Refine along x.
-  int cells_do0[] = {6, 8, 4};
-  int cells_tar0[] = {12, 8, 4};
+  int cells_do0[] = { 6, 8, 4 };
+  int cells_tar0[] = { 12, 8, 4 };
   test_1x2v_vlasov(cells_do0, cells_tar0, 1, use_gpu);
   test_1x2v_vlasov(cells_do0, cells_tar0, 2, use_gpu);
 
   // Coarsen along x.
-  int cells_do1[] = {16, 8, 4};
-  int cells_tar1[] = {8, 8, 4};
+  int cells_do1[] = { 16, 8, 4 };
+  int cells_tar1[] = { 8, 8, 4 };
   test_1x2v_vlasov(cells_do1, cells_tar1, 1, use_gpu);
   test_1x2v_vlasov(cells_do1, cells_tar1, 2, use_gpu);
 
   // Refine along vpar.
-  int cells_do2[] = {8, 8, 4};
-  int cells_tar2[] = {8, 16, 4};
+  int cells_do2[] = { 8, 8, 4 };
+  int cells_tar2[] = { 8, 16, 4 };
   test_1x2v_vlasov(cells_do2, cells_tar2, 1, use_gpu);
   test_1x2v_vlasov(cells_do2, cells_tar2, 2, use_gpu);
 
   // Coarsen along vpar.
-  int cells_do3[] = {8, 12, 4};
-  int cells_tar3[] = {8, 6, 4};
+  int cells_do3[] = { 8, 12, 4 };
+  int cells_tar3[] = { 8, 6, 4 };
   test_1x2v_vlasov(cells_do3, cells_tar3, 1, use_gpu);
   test_1x2v_vlasov(cells_do3, cells_tar3, 2, use_gpu);
 
   // Refine along mu.
-  int cells_do4[] = {8, 6, 4};
-  int cells_tar4[] = {8, 6, 8};
+  int cells_do4[] = { 8, 6, 4 };
+  int cells_tar4[] = { 8, 6, 8 };
   test_1x2v_vlasov(cells_do4, cells_tar4, 1, use_gpu);
   test_1x2v_vlasov(cells_do4, cells_tar4, 2, use_gpu);
 
   // Coarsen along mu.
-  int cells_do5[] = {8, 6, 12};
-  int cells_tar5[] = {8, 6, 4};
+  int cells_do5[] = { 8, 6, 12 };
+  int cells_tar5[] = { 8, 6, 4 };
   test_1x2v_vlasov(cells_do5, cells_tar5, 1, use_gpu);
   test_1x2v_vlasov(cells_do5, cells_tar5, 2, use_gpu);
 
   // Refine along x and vpar.
-  int cells_do6[] = {6, 8, 4};
-  int cells_tar6[] = {12, 16, 4};
+  int cells_do6[] = { 6, 8, 4 };
+  int cells_tar6[] = { 12, 16, 4 };
   test_1x2v_vlasov(cells_do6, cells_tar6, 1, use_gpu);
   test_1x2v_vlasov(cells_do6, cells_tar6, 2, use_gpu);
 
   // Coarsen along x and vpar.
-  int cells_do7[] = {16, 8, 4};
-  int cells_tar7[] = {8, 4, 4};
+  int cells_do7[] = { 16, 8, 4 };
+  int cells_tar7[] = { 8, 4, 4 };
   test_1x2v_vlasov(cells_do7, cells_tar7, 1, use_gpu);
   test_1x2v_vlasov(cells_do7, cells_tar7, 2, use_gpu);
 
   // Refine along x and mu.
-  int cells_do8[] = {6, 8, 4};
-  int cells_tar8[] = {12, 8, 8};
+  int cells_do8[] = { 6, 8, 4 };
+  int cells_tar8[] = { 12, 8, 8 };
   test_1x2v_vlasov(cells_do8, cells_tar8, 1, use_gpu);
   test_1x2v_vlasov(cells_do8, cells_tar8, 2, use_gpu);
 
   // Coarsen along x and mu.
-  int cells_do9[] = {16, 4, 12};
-  int cells_tar9[] = {8, 4, 4};
+  int cells_do9[] = { 16, 4, 12 };
+  int cells_tar9[] = { 8, 4, 4 };
   test_1x2v_vlasov(cells_do9, cells_tar9, 1, use_gpu);
   test_1x2v_vlasov(cells_do9, cells_tar9, 2, use_gpu);
 
   // Refine along vpar and mu.
-  int cells_do10[] = {8, 6, 4};
-  int cells_tar10[] = {8, 12, 8};
+  int cells_do10[] = { 8, 6, 4 };
+  int cells_tar10[] = { 8, 12, 8 };
   test_1x2v_vlasov(cells_do10, cells_tar10, 1, use_gpu);
   test_1x2v_vlasov(cells_do10, cells_tar10, 2, use_gpu);
 
   // Coarsen along vpar and mu.
-  int cells_do11[] = {8, 16, 12};
-  int cells_tar11[] = {8, 4, 4};
+  int cells_do11[] = { 8, 16, 12 };
+  int cells_tar11[] = { 8, 4, 4 };
   test_1x2v_vlasov(cells_do11, cells_tar11, 1, use_gpu);
   test_1x2v_vlasov(cells_do11, cells_tar11, 2, use_gpu);
 }
@@ -2218,33 +2216,33 @@ void
 test_1x1v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
-  int cells_do0[] = {6, 8};
-  int cells_tar0[] = {12, 8};
+  int cells_do0[] = { 6, 8 };
+  int cells_tar0[] = { 12, 8 };
   test_1x1v_gk(cells_do0, cells_tar0, 1, use_gpu);
 
   // Coarsen along x.
-  int cells_do1[] = {16, 8};
-  int cells_tar1[] = {8, 8};
+  int cells_do1[] = { 16, 8 };
+  int cells_tar1[] = { 8, 8 };
   test_1x1v_gk(cells_do1, cells_tar1, 1, use_gpu);
 
   // Refine along vpar.
-  int cells_do2[] = {8, 8};
-  int cells_tar2[] = {8, 16};
+  int cells_do2[] = { 8, 8 };
+  int cells_tar2[] = { 8, 16 };
   test_1x1v_gk(cells_do2, cells_tar2, 1, use_gpu);
 
   // Coarsen along vpar.
-  int cells_do3[] = {8, 12};
-  int cells_tar3[] = {8, 6};
+  int cells_do3[] = { 8, 12 };
+  int cells_tar3[] = { 8, 6 };
   test_1x1v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
   // Refine along x and vpar.
-  int cells_do4[] = {8, 8};
-  int cells_tar4[] = {32, 16};
+  int cells_do4[] = { 8, 8 };
+  int cells_tar4[] = { 32, 16 };
   test_1x1v_gk(cells_do4, cells_tar4, 1, use_gpu);
 
   // Coarsen along x and vpar.
-  int cells_do5[] = {8, 12};
-  int cells_tar5[] = {4, 6};
+  int cells_do5[] = { 8, 12 };
+  int cells_tar5[] = { 4, 6 };
   test_1x1v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
@@ -2252,63 +2250,63 @@ void
 test_1x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
-  int cells_do0[] = {6, 8, 4};
-  int cells_tar0[] = {12, 8, 4};
+  int cells_do0[] = { 6, 8, 4 };
+  int cells_tar0[] = { 12, 8, 4 };
   test_1x2v_gk(cells_do0, cells_tar0, 1, use_gpu);
 
   // Coarsen along x.
-  int cells_do1[] = {16, 8, 4};
-  int cells_tar1[] = {8, 8, 4};
+  int cells_do1[] = { 16, 8, 4 };
+  int cells_tar1[] = { 8, 8, 4 };
   test_1x2v_gk(cells_do1, cells_tar1, 1, use_gpu);
 
   // Refine along vpar.
-  int cells_do2[] = {8, 8, 4};
-  int cells_tar2[] = {8, 16, 4};
+  int cells_do2[] = { 8, 8, 4 };
+  int cells_tar2[] = { 8, 16, 4 };
   test_1x2v_gk(cells_do2, cells_tar2, 1, use_gpu);
 
   // Coarsen along vpar.
-  int cells_do3[] = {8, 12, 4};
-  int cells_tar3[] = {8, 6, 4};
+  int cells_do3[] = { 8, 12, 4 };
+  int cells_tar3[] = { 8, 6, 4 };
   test_1x2v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
   // Refine along mu.
-  int cells_do4[] = {8, 6, 4};
-  int cells_tar4[] = {8, 6, 8};
+  int cells_do4[] = { 8, 6, 4 };
+  int cells_tar4[] = { 8, 6, 8 };
   test_1x2v_gk(cells_do4, cells_tar4, 1, use_gpu);
 
   // Coarsen along mu.
-  int cells_do5[] = {8, 6, 12};
-  int cells_tar5[] = {8, 6, 4};
+  int cells_do5[] = { 8, 6, 12 };
+  int cells_tar5[] = { 8, 6, 4 };
   test_1x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 
   // Refine along x and vpar.
-  int cells_do6[] = {6, 8, 4};
-  int cells_tar6[] = {12, 16, 4};
+  int cells_do6[] = { 6, 8, 4 };
+  int cells_tar6[] = { 12, 16, 4 };
   test_1x2v_gk(cells_do6, cells_tar6, 1, use_gpu);
 
   // Coarsen along x and vpar.
-  int cells_do7[] = {16, 8, 4};
-  int cells_tar7[] = {8, 4, 4};
+  int cells_do7[] = { 16, 8, 4 };
+  int cells_tar7[] = { 8, 4, 4 };
   test_1x2v_gk(cells_do7, cells_tar7, 1, use_gpu);
 
   // Refine along x and mu.
-  int cells_do8[] = {6, 8, 4};
-  int cells_tar8[] = {12, 8, 8};
+  int cells_do8[] = { 6, 8, 4 };
+  int cells_tar8[] = { 12, 8, 8 };
   test_1x2v_gk(cells_do8, cells_tar8, 1, use_gpu);
 
   // Coarsen along x and mu.
-  int cells_do9[] = {16, 4, 12};
-  int cells_tar9[] = {8, 4, 4};
+  int cells_do9[] = { 16, 4, 12 };
+  int cells_tar9[] = { 8, 4, 4 };
   test_1x2v_gk(cells_do9, cells_tar9, 1, use_gpu);
 
   // Refine along vpar and mu.
-  int cells_do10[] = {8, 6, 4};
-  int cells_tar10[] = {8, 12, 8};
+  int cells_do10[] = { 8, 6, 4 };
+  int cells_tar10[] = { 8, 12, 8 };
   test_1x2v_gk(cells_do10, cells_tar10, 1, use_gpu);
 
   // Coarsen along vpar and mu.
-  int cells_do11[] = {8, 16, 12};
-  int cells_tar11[] = {8, 4, 4};
+  int cells_do11[] = { 8, 16, 12 };
+  int cells_tar11[] = { 8, 4, 4 };
   test_1x2v_gk(cells_do11, cells_tar11, 1, use_gpu);
 }
 
@@ -2316,33 +2314,33 @@ void
 test_2x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
-  int cells_do0[] = {6, 6, 8, 4};
-  int cells_tar0[] = {12, 6, 8, 4};
+  int cells_do0[] = { 6, 6, 8, 4 };
+  int cells_tar0[] = { 12, 6, 8, 4 };
   test_2x2v_gk(cells_do0, cells_tar0, 1, use_gpu);
 
   // Coarsen along x.
-  int cells_do1[] = {16, 6, 8, 4};
-  int cells_tar1[] = {8, 6, 8, 4};
+  int cells_do1[] = { 16, 6, 8, 4 };
+  int cells_tar1[] = { 8, 6, 8, 4 };
   test_2x2v_gk(cells_do1, cells_tar1, 1, use_gpu);
 
   // Refine along y.
-  int cells_do2[] = {6, 6, 8, 4};
-  int cells_tar2[] = {6, 12, 8, 4};
+  int cells_do2[] = { 6, 6, 8, 4 };
+  int cells_tar2[] = { 6, 12, 8, 4 };
   test_2x2v_gk(cells_do2, cells_tar2, 1, use_gpu);
 
   // Coarsen along y.
-  int cells_do3[] = {6, 16, 8, 4};
-  int cells_tar3[] = {6, 8, 8, 4};
+  int cells_do3[] = { 6, 16, 8, 4 };
+  int cells_tar3[] = { 6, 8, 8, 4 };
   test_2x2v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
   // Refine along x and y.
-  int cells_do4[] = {96, 96, 8, 4};
-  int cells_tar4[] = {128, 128, 8, 4};
+  int cells_do4[] = { 96, 96, 8, 4 };
+  int cells_tar4[] = { 128, 128, 8, 4 };
   test_2x2v_gk(cells_do4, cells_tar4, 1, use_gpu);
 
   // Coarsen along x and y.
-  int cells_do5[] = {16, 16, 8, 4};
-  int cells_tar5[] = {8, 8, 8, 4};
+  int cells_do5[] = { 16, 16, 8, 4 };
+  int cells_tar5[] = { 8, 8, 8, 4 };
   test_2x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
@@ -2350,33 +2348,33 @@ void
 test_3x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
-  int cells_do0[] = {6, 6, 8, 8, 4};
-  int cells_tar0[] = {12, 6, 8, 8, 4};
+  int cells_do0[] = { 6, 6, 8, 8, 4 };
+  int cells_tar0[] = { 12, 6, 8, 8, 4 };
   test_3x2v_gk(cells_do0, cells_tar0, 1, use_gpu);
 
   // Coarsen along x.
-  int cells_do1[] = {16, 6, 8, 8, 4};
-  int cells_tar1[] = {8, 6, 8, 8, 4};
+  int cells_do1[] = { 16, 6, 8, 8, 4 };
+  int cells_tar1[] = { 8, 6, 8, 8, 4 };
   test_3x2v_gk(cells_do1, cells_tar1, 1, use_gpu);
 
   // Refine along y.
-  int cells_do2[] = {6, 6, 8, 8, 4};
-  int cells_tar2[] = {6, 12, 8, 8, 4};
+  int cells_do2[] = { 6, 6, 8, 8, 4 };
+  int cells_tar2[] = { 6, 12, 8, 8, 4 };
   test_3x2v_gk(cells_do2, cells_tar2, 1, use_gpu);
 
   // Coarsen along y.
-  int cells_do3[] = {6, 16, 8, 8, 4};
-  int cells_tar3[] = {6, 8, 8, 8, 4};
+  int cells_do3[] = { 6, 16, 8, 8, 4 };
+  int cells_tar3[] = { 6, 8, 8, 8, 4 };
   test_3x2v_gk(cells_do3, cells_tar3, 1, use_gpu);
 
   // Refine along x and y.
-  int cells_do4[] = {96, 96, 8, 8, 4};
-  int cells_tar4[] = {128, 128, 8, 8, 4};
+  int cells_do4[] = { 96, 96, 8, 8, 4 };
+  int cells_tar4[] = { 128, 128, 8, 8, 4 };
   test_3x2v_gk(cells_do4, cells_tar4, 1, use_gpu);
 
   // Coarsen along x and y.
-  int cells_do5[] = {16, 16, 8, 8, 4};
-  int cells_tar5[] = {8, 8, 8, 8, 4};
+  int cells_do5[] = { 16, 16, 8, 8, 4 };
+  int cells_tar5[] = { 8, 8, 8, 8, 4 };
   test_3x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
@@ -2478,24 +2476,22 @@ test_dg_interpolate_3x2v_gk_dev()
 }
 #endif
 
-TEST_LIST = {
-  {"test_dg_interpolate_1x_ho", test_dg_interpolate_1x_ho},
-  {"test_dg_interpolate_2x_ho", test_dg_interpolate_2x_ho},
-  {"test_dg_interpolate_1x1v_vlasov_ho", test_dg_interpolate_1x1v_vlasov_ho},
-  {"test_dg_interpolate_1x2v_vlasov_ho", test_dg_interpolate_1x2v_vlasov_ho},
-  {"test_dg_interpolate_1x1v_gk_ho", test_dg_interpolate_1x1v_gk_ho},
-  {"test_dg_interpolate_1x2v_gk_ho", test_dg_interpolate_1x2v_gk_ho},
-  {"test_dg_interpolate_2x2v_gk_ho", test_dg_interpolate_2x2v_gk_ho},
-  {"test_dg_interpolate_3x2v_gk_ho", test_dg_interpolate_3x2v_gk_ho},
+TEST_LIST = { { "test_dg_interpolate_1x_ho", test_dg_interpolate_1x_ho },
+  { "test_dg_interpolate_2x_ho", test_dg_interpolate_2x_ho },
+  { "test_dg_interpolate_1x1v_vlasov_ho", test_dg_interpolate_1x1v_vlasov_ho },
+  { "test_dg_interpolate_1x2v_vlasov_ho", test_dg_interpolate_1x2v_vlasov_ho },
+  { "test_dg_interpolate_1x1v_gk_ho", test_dg_interpolate_1x1v_gk_ho },
+  { "test_dg_interpolate_1x2v_gk_ho", test_dg_interpolate_1x2v_gk_ho },
+  { "test_dg_interpolate_2x2v_gk_ho", test_dg_interpolate_2x2v_gk_ho },
+  { "test_dg_interpolate_3x2v_gk_ho", test_dg_interpolate_3x2v_gk_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_dg_interpolate_1x_dev", test_dg_interpolate_1x_dev},
-  {"test_dg_interpolate_2x_dev", test_dg_interpolate_2x_dev},
-  {"test_dg_interpolate_1x1v_vlasov_dev", test_dg_interpolate_1x1v_vlasov_dev},
-  {"test_dg_interpolate_1x2v_vlasov_dev", test_dg_interpolate_1x2v_vlasov_dev},
-  {"test_dg_interpolate_1x1v_gk_dev", test_dg_interpolate_1x1v_gk_dev},
-  {"test_dg_interpolate_1x2v_gk_dev", test_dg_interpolate_1x2v_gk_dev},
-  {"test_dg_interpolate_2x2v_gk_dev", test_dg_interpolate_2x2v_gk_dev},
-  {"test_dg_interpolate_3x2v_gk_dev", test_dg_interpolate_3x2v_gk_dev},
+  { "test_dg_interpolate_1x_dev", test_dg_interpolate_1x_dev },
+  { "test_dg_interpolate_2x_dev", test_dg_interpolate_2x_dev },
+  { "test_dg_interpolate_1x1v_vlasov_dev", test_dg_interpolate_1x1v_vlasov_dev },
+  { "test_dg_interpolate_1x2v_vlasov_dev", test_dg_interpolate_1x2v_vlasov_dev },
+  { "test_dg_interpolate_1x1v_gk_dev", test_dg_interpolate_1x1v_gk_dev },
+  { "test_dg_interpolate_1x2v_gk_dev", test_dg_interpolate_1x2v_gk_dev },
+  { "test_dg_interpolate_2x2v_gk_dev", test_dg_interpolate_2x2v_gk_dev },
+  { "test_dg_interpolate_3x2v_gk_dev", test_dg_interpolate_3x2v_gk_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

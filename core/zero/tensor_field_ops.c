@@ -36,7 +36,7 @@ tensor_field_raise_or_lower_idx_in_place(struct gkyl_tensor_field *met, int rais
 
       // summed over index, j
       for (int j = 0; j < ten->ndim; ++j) {
-        int idx_met[GKYL_MAX_DIM] = {index_raised, j};
+        int idx_met[GKYL_MAX_DIM] = { index_raised, j };
 
         // Get the tensor element we are indexing from
         int idx_tf[GKYL_MAX_DIM];
@@ -86,7 +86,7 @@ tensor_field_raise_or_lower_idx_set(const struct gkyl_tensor_field *met, int rai
 
       // summed over index, j
       for (int j = 0; j < ten->ndim; ++j) {
-        int idx_met[GKYL_MAX_DIM] = {index_raised, j};
+        int idx_met[GKYL_MAX_DIM] = { index_raised, j };
 
         // Get the tensor element we are indexing from
         int idx_tf[GKYL_MAX_DIM];

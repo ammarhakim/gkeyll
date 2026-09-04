@@ -66,10 +66,10 @@ pkpm_species_lbo_init(
     gkyl_prim_lbo_pkpm_calc_new(&s->grid, &app->confBasis, &app->basis, &app->local, app->use_gpu);
 
   // LBO updater
-  struct gkyl_dg_lbo_pkpm_drag_auxfields drag_inp = {
-    .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms};
-  struct gkyl_dg_lbo_pkpm_diff_auxfields diff_inp = {
-    .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms};
+  struct gkyl_dg_lbo_pkpm_drag_auxfields drag_inp = { .nuSum = lbo->nu_sum,
+    .nuPrimMomsSum = lbo->nu_prim_moms };
+  struct gkyl_dg_lbo_pkpm_diff_auxfields diff_inp = { .nuSum = lbo->nu_sum,
+    .nuPrimMomsSum = lbo->nu_prim_moms };
   lbo->coll_slvr = gkyl_dg_updater_lbo_pkpm_new(
     &s->grid, &app->confBasis, &app->basis, &app->local, &drag_inp, &diff_inp, app->use_gpu);
 }

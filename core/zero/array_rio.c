@@ -12,12 +12,12 @@
 #include <gkyl_elem_type_priv.h>
 
 // Error message strings
-static const char *array_rio_status_msg[] = {[GKYL_ARRAY_RIO_SUCCESS] = "Success",
+static const char *array_rio_status_msg[] = { [GKYL_ARRAY_RIO_SUCCESS] = "Success",
   [GKYL_ARRAY_RIO_BAD_VERSION] = "Incorrect header version",
   [GKYL_ARRAY_RIO_FOPEN_FAILED] = "File open failed",
   [GKYL_ARRAY_RIO_FREAD_FAILED] = "Data read failed",
   [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch",
-  [GKYL_ARRAY_RIO_META_FAILED] = "Metadata output failed"};
+  [GKYL_ARRAY_RIO_META_FAILED] = "Metadata output failed" };
 
 const char *
 gkyl_array_rio_status_msg(enum gkyl_array_rio_status status)
@@ -239,12 +239,12 @@ gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_r
   with_file(fp, fname, "w")
   {
     status = gkyl_grid_sub_array_header_write_fp(grid,
-      &(struct gkyl_array_header_info){.file_type = gkyl_file_type_int[GKYL_FIELD_DATA_FILE],
+      &(struct gkyl_array_header_info){ .file_type = gkyl_file_type_int[GKYL_FIELD_DATA_FILE],
         .etype = arr->type,
         .esznc = arr->esznc,
         .tot_cells = range->volume,
         .meta_size = meta ? meta->meta_sz : 0,
-        .meta = meta ? meta->meta : 0},
+        .meta = meta ? meta->meta : 0 },
       fp);
 
     if (status == GKYL_ARRAY_RIO_SUCCESS)
@@ -311,7 +311,7 @@ grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid, struct gkyl_array_he
       return GKYL_ARRAY_RIO_FREAD_FAILED;
 
     // construct range of indices corresponding to data in block
-    int loidx_i[GKYL_MAX_DIM] = {0}, upidx_i[GKYL_MAX_DIM] = {0};
+    int loidx_i[GKYL_MAX_DIM] = { 0 }, upidx_i[GKYL_MAX_DIM] = { 0 };
     for (int d = 0; d < grid->ndim; ++d) {
       loidx_i[d] = loidx[d];
       upidx_i[d] = upidx[d];

@@ -21,9 +21,7 @@ gkyl_dg_updater_vlasov_acquire_eqn(const gkyl_dg_updater_vlasov *vlasov)
 struct gkyl_dg_updater_vlasov_tm
 gkyl_dg_updater_vlasov_get_tm(const gkyl_dg_updater_vlasov *vlasov)
 {
-  return (struct gkyl_dg_updater_vlasov_tm){
-    .vlasov_tm = vlasov->vlasov_tm,
-  };
+  return (struct gkyl_dg_updater_vlasov_tm){ .vlasov_tm = vlasov->vlasov_tm };
 }
 
 gkyl_dg_updater_vlasov *

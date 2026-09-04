@@ -32,7 +32,7 @@ gkyl_reactive_euler_prim_vars(
 static inline double
 gkyl_reactive_euler_max_abs_speed(double gas_gamma, double energy_of_formation, const double q[6])
 {
-  double v[6] = {0.0};
+  double v[6] = { 0.0 };
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, q, v);
 
   double rho = v[0];
@@ -50,7 +50,7 @@ void
 gkyl_reactive_euler_flux(
   double gas_gamma, double energy_of_formation, const double q[6], double flux[6])
 {
-  double v[6] = {0.0};
+  double v[6] = { 0.0 };
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, q, v);
 
   double rho = v[0];
@@ -205,8 +205,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql, c
   double rho_l = ql[0];
   double rho_r = qr[0];
 
-  double vl[6] = {0.0};
-  double vr[6] = {0.0};
+  double vl[6] = { 0.0 };
+  double vr[6] = { 0.0 };
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, ql, vl);
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, qr, vr);
   double p_l = vl[4];
@@ -338,7 +338,7 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   double gas_gamma = reactive_euler->gas_gamma;
   double energy_of_formation = reactive_euler->energy_of_formation;
 
-  double v[6] = {0.0};
+  double v[6] = { 0.0 };
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, q, v);
 
   if (v[0] < 0.0 || v[4] < 0.0) {
@@ -376,7 +376,7 @@ reactive_euler_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *
   double ignition_temperature = reactive_euler->ignition_temperature;
   double reaction_rate = reactive_euler->reaction_rate;
 
-  double v[6] = {0.0};
+  double v[6] = { 0.0 };
   gkyl_reactive_euler_prim_vars(gas_gamma, energy_of_formation, qin, v);
 
   double rho = v[0];
@@ -420,15 +420,13 @@ struct gkyl_wv_eqn *
 gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity,
   double energy_of_formation, double ignition_temperature, double reaction_rate, bool use_gpu)
 {
-  return gkyl_wv_reactive_euler_inew(&(struct gkyl_wv_reactive_euler_inp){
-    .gas_gamma = gas_gamma,
+  return gkyl_wv_reactive_euler_inew(&(struct gkyl_wv_reactive_euler_inp){ .gas_gamma = gas_gamma,
     .specific_heat_capacity = specific_heat_capacity,
     .energy_of_formation = energy_of_formation,
     .ignition_temperature = ignition_temperature,
     .reaction_rate = reaction_rate,
     .rp_type = WV_REACTIVE_EULER_RP_LAX,
-    .use_gpu = use_gpu,
-  });
+    .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

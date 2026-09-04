@@ -247,7 +247,7 @@ gk_neut_species_scaling_cross_init(
       .conf_rng = &app->local,
       .type_ion = sca_inp->impacting_ion_id,
       .charge_state = 0,
-      .type_self = GKYL_SELF_ION, // Could be GKYL_SELF_DONOR. It just can't be
+      .type_self = GKYL_SELF_ION // Could be GKYL_SELF_DONOR. It just can't be
       // GKYL_SELF_ELC because we don't need to
       // compute the ionization temperatures.
     };

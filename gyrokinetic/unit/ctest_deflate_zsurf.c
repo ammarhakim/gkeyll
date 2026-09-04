@@ -62,14 +62,14 @@ test_deflate_inflate(bool use_gpu)
 {
   // Create the 2d field.
   // Create xz grid.
-  double lower[] = {-M_PI, 0.0}, upper[] = {M_PI, 1.0};
-  int cells[] = {12, 8};
+  double lower[] = { -M_PI, 0.0 }, upper[] = { M_PI, 1.0 };
+  int cells[] = { 12, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   // Ranges.
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // Basis function.
@@ -91,14 +91,14 @@ test_deflate_inflate(bool use_gpu)
   gkyl_array_copy(field_dev, field);
 
   // Create deflated 1d grid, ranges, basis, and field.
-  double deflated_lower[] = {-M_PI}, deflated_upper[] = {M_PI};
-  int deflated_cells[] = {12};
+  double deflated_lower[] = { -M_PI }, deflated_upper[] = { M_PI };
+  int deflated_cells[] = { 12 };
   struct gkyl_rect_grid deflated_grid;
   gkyl_rect_grid_init(&deflated_grid, 1, deflated_lower, deflated_upper, deflated_cells);
 
   // Ranges.
   struct gkyl_range deflated_local, deflated_local_ext;
-  int deflated_nghost[GKYL_MAX_CDIM] = {1};
+  int deflated_nghost[GKYL_MAX_CDIM] = { 1 };
   gkyl_create_grid_ranges(&deflated_grid, deflated_nghost, &deflated_local_ext, &deflated_local);
 
   // Deflated basis function.
@@ -117,7 +117,7 @@ test_deflate_inflate(bool use_gpu)
     : gkyl_array_acquire(deflated_field);
 
   // Create nrange and the 2d nodal array to be populated.
-  int nodes[2] = {1, 1};
+  int nodes[2] = { 1, 1 };
   if (poly_order == 1) {
     for (int d = 0; d < grid.ndim; ++d)
       nodes[d] = grid.cells[d] + 1;
@@ -134,7 +134,7 @@ test_deflate_inflate(bool use_gpu)
     : gkyl_array_acquire(nodal_fld);
 
   // Create the deflated nodal range and 1d array that will be used as an intermediate.
-  int deflated_nodes[3] = {1, 1, 1};
+  int deflated_nodes[3] = { 1, 1, 1 };
   if (poly_order == 1) {
     for (int d = 0; d < deflated_grid.ndim; ++d)
       deflated_nodes[d] = deflated_grid.cells[d] + 1;
@@ -211,14 +211,14 @@ test_deflate_zsurf_poisson_slices_ho()
 {
   // Create the 2d field.
   // Create xz grid.
-  double lower[] = {-M_PI, 0.0}, upper[] = {3 * M_PI / 2, 1.0};
-  int cells[] = {12, 8};
+  double lower[] = { -M_PI, 0.0 }, upper[] = { 3 * M_PI / 2, 1.0 };
+  int cells[] = { 12, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   // Ranges.
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   // Basis function.
@@ -235,14 +235,14 @@ test_deflate_zsurf_poisson_slices_ho()
 
   // Create deflated 1d grid, ranges, basis, and field.
   // Create xz grid.
-  double deflated_lower[] = {-M_PI}, deflated_upper[] = {M_PI};
-  int deflated_cells[] = {12};
+  double deflated_lower[] = { -M_PI }, deflated_upper[] = { M_PI };
+  int deflated_cells[] = { 12 };
   struct gkyl_rect_grid deflated_grid;
   gkyl_rect_grid_init(&deflated_grid, 1, deflated_lower, deflated_upper, deflated_cells);
 
   // Ranges,
   struct gkyl_range deflated_local, deflated_local_ext;
-  int deflated_nghost[GKYL_MAX_CDIM] = {1};
+  int deflated_nghost[GKYL_MAX_CDIM] = { 1 };
   gkyl_create_grid_ranges(&deflated_grid, deflated_nghost, &deflated_local_ext, &deflated_local);
 
   // Basis function.
@@ -257,7 +257,7 @@ test_deflate_zsurf_poisson_slices_ho()
     gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
 
   // Create nrange and the 2d nodal array to be populated.
-  int nodes[2] = {1, 1};
+  int nodes[2] = { 1, 1 };
   if (poly_order == 1) {
     for (int d = 0; d < grid.ndim; ++d)
       nodes[d] = grid.cells[d] + 1;
@@ -273,7 +273,7 @@ test_deflate_zsurf_poisson_slices_ho()
   struct gkyl_array *nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
 
   // Create the deflated nodal range and 1d array that will be used as an intermediate.
-  int deflated_nodes[3] = {1, 1, 1};
+  int deflated_nodes[3] = { 1, 1, 1 };
   if (poly_order == 1) {
     for (int d = 0; d < deflated_grid.ndim; ++d)
       deflated_nodes[d] = deflated_grid.cells[d] + 1;
@@ -384,11 +384,9 @@ test_deflate_zsurf_inflate_dev(void)
   test_deflate_inflate(true);
 }
 
-TEST_LIST = {
-  {"test_deflate_zsurf_inflate_ho", test_deflate_zsurf_inflate_ho},
-  {"test_deflate_zsurf_poisson_slices_ho", test_deflate_zsurf_poisson_slices_ho},
+TEST_LIST = { { "test_deflate_zsurf_inflate_ho", test_deflate_zsurf_inflate_ho },
+  { "test_deflate_zsurf_poisson_slices_ho", test_deflate_zsurf_poisson_slices_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_deflate_zsurf_inflate_dev", test_deflate_zsurf_inflate_dev},
+  { "test_deflate_zsurf_inflate_dev", test_deflate_zsurf_inflate_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

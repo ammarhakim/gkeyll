@@ -27,13 +27,13 @@ gk_neut_species_lte_kinetic_from_moms(gkyl_gyrokinetic_app *app,
     struct gkyl_vlasov_lte_correct_status status_corr;
     status_corr = gkyl_vlasov_lte_correct_all_moments(
       lte->corr_lte, lte->f_lte, moms_lte, &species->local, &app->local);
-    double corr_vec[7] = {0.0};
+    double corr_vec[7] = { 0.0 };
     corr_vec[0] = status_corr.num_iter;
     corr_vec[1] = status_corr.iter_converged;
     for (int i = 0; i < 5; ++i) {
       corr_vec[2 + i] = status_corr.error[i];
     }
-    double corr_vec_global[7] = {0.0};
+    double corr_vec_global[7] = { 0.0 };
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 7, corr_vec, corr_vec_global);
     gkyl_dynvec_append(lte->corr_stat, app->tcurr, corr_vec_global);
 
@@ -91,12 +91,12 @@ gk_neut_species_lte_kinetic_write_max_corr_status(
 
       if (gk_ns->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {{.key = "Description",
+        struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
           .elem_type = GKYL_MP_STRING,
-          .cval = "Statistics on Maxwellian correction."}};
-        int io_meta_len[] = {gk_ns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-        const struct gkyl_msgpack_map_elem *io_meta[] = {
-          gk_ns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+          .cval = "Statistics on Maxwellian correction." } };
+        int io_meta_len[] = { gk_ns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
+        const struct gkyl_msgpack_map_elem *io_meta[] = { gk_ns->io_meta_basic,
+          app->gk_geom->io_meta_basic, io_meta_phi };
         struct gkyl_msgpack_data *mt =
           gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -156,8 +156,7 @@ gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   // Allocate moments needed for LTE update.
   gk_neut_species_moment_init(app, s, &lte->moms, GKYL_F_MOMENT_LTE, false);
 
-  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
-    .phase_grid = &s->grid,
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = { .phase_grid = &s->grid,
     .vel_grid = &s->grid_vel,
     .conf_basis = &app->basis,
     .phase_basis = &s->basis,
@@ -170,8 +169,7 @@ gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     .det_h = app->gk_geom->geo_int.jacobgeo,
     .hamil = s->hamil,
     .model_id = s->model_id,
-    .use_gpu = app->use_gpu,
-  };
+    .use_gpu = app->use_gpu };
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
 
   lte->correct_all_moms = corr_inp.correct_all_moms;
@@ -180,8 +178,7 @@ gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   bool use_last_converged = corr_inp.use_last_converged;
 
   if (lte->correct_all_moms) {
-    struct gkyl_vlasov_lte_correct_inp inp_corr = {
-      .phase_grid = &s->grid,
+    struct gkyl_vlasov_lte_correct_inp inp_corr = { .phase_grid = &s->grid,
       .vel_grid = &s->grid_vel,
       .conf_basis = &app->basis,
       .phase_basis = &s->basis,
@@ -197,8 +194,7 @@ gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       .use_gpu = app->use_gpu,
       .max_iter = max_iter,
       .eps = iter_eps,
-      .use_last_converged = use_last_converged,
-    };
+      .use_last_converged = use_last_converged };
     lte->n_iter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew(&inp_corr);
 

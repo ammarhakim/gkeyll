@@ -181,20 +181,21 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, doubl
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc_nu_sum[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies."}};
-  int io_meta_nu_sum_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem *io_meta_nu_sum[] = {
-    gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_nu_sum};
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies." }
+  };
+  int io_meta_nu_sum_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
+  const struct gkyl_msgpack_map_elem *io_meta_nu_sum[] = { gks->io_meta_conf,
+    app->gk_geom->io_meta_basic, desc_nu_sum };
   struct gkyl_msgpack_data *mt_nu_sum = gkyl_msgpack_create_union(
     sizeof(io_meta_nu_sum_len) / sizeof(int), io_meta_nu_sum_len, io_meta_nu_sum);
 
-  struct gkyl_msgpack_map_elem desc_nu_prim[] = {{.key = "Description",
+  struct gkyl_msgpack_map_elem desc_nu_prim[] = { { .key = "Description",
     .elem_type = GKYL_MP_STRING,
     .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over "
-            "colliding species."}};
-  int io_meta_nu_prim_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem *io_meta_nu_prim[] = {
-    gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_nu_prim};
+            "colliding species." } };
+  int io_meta_nu_prim_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
+  const struct gkyl_msgpack_map_elem *io_meta_nu_prim[] = { gks->io_meta_conf,
+    app->gk_geom->io_meta_basic, desc_nu_prim };
   struct gkyl_msgpack_data *mt_nu_prim = gkyl_msgpack_create_union(
     sizeof(io_meta_nu_prim_len) / sizeof(int), io_meta_nu_prim_len, io_meta_nu_prim);
 
@@ -338,9 +339,11 @@ gk_species_lbo_init(
 
     // LBO updater.
     struct gkyl_dg_lbo_gyrokinetic_drag_auxfields drag_inp = {
-      .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self};
+      .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self
+    };
     struct gkyl_dg_lbo_gyrokinetic_diff_auxfields diff_inp = {
-      .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self};
+      .nuSum = lbo->nu_sum, .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self
+    };
     lbo->coll_slvr = gkyl_dg_updater_lbo_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis,
       &app->local, &drag_inp, &diff_inp, gks->info.mass, app->gk_geom, gks->vel_map, app->use_gpu);
 
@@ -393,7 +396,7 @@ gk_species_lbo_cross_init(
       double nu_frac = gks->info.collisions.nu_frac ? gks->info.collisions.nu_frac : 1.0;
 
       // Compute the time-independent part of alpha_E.
-      double alpha_E_norm[GKYL_MAX_SPECIES] = {0.0};
+      double alpha_E_norm[GKYL_MAX_SPECIES] = { 0.0 };
       for (int i = 0; i < lbo->num_cross_collisions; ++i) {
         double eps0 = gks->info.collisions.eps0 ? gks->info.collisions.eps0 : GKYL_EPSILON0;
         double hbar = gks->info.collisions.hbar ? gks->info.collisions.hbar

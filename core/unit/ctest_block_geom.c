@@ -133,8 +133,5 @@ test_block_geom_mobius_domain_ho()
   gkyl_block_geom_release(bgeom);
 }
 
-TEST_LIST = {
-  {"block_geom_mobius_domain_ho", test_block_geom_mobius_domain_ho},
-  {"block_geom_L_domain_ho", test_block_geom_L_domain_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "block_geom_mobius_domain_ho", test_block_geom_mobius_domain_ho },
+  { "block_geom_L_domain_ho", test_block_geom_L_domain_ho }, { NULL, NULL } };

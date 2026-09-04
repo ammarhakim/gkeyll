@@ -46,7 +46,7 @@ dg_eval_at_coord_choose_ker_cu(
   struct dg_ev_proj_kernels *kers =
     (struct dg_ev_proj_kernels *)gkyl_cu_malloc(sizeof(struct dg_ev_proj_kernels));
 
-  dg_evproj_struct_int_t eval_dirs_st = {0};
+  dg_evproj_struct_int_t eval_dirs_st = { 0 };
   for (int i = 0; i < num_eval_dirs; i++)
     eval_dirs_st.c[i] = eval_dirs[i];
 
@@ -104,18 +104,18 @@ gkyl_dg_eval_at_coord_proj_advance_cu(struct gkyl_dg_eval_at_coord_proj *up,
       point[d] = grid->lower[d] + (rng_do->lower[d] - 0.5) * grid->dx[d];
   }
 
-  dg_evproj_struct_int_t cell_idx = {0};
+  dg_evproj_struct_int_t cell_idx = { 0 };
   gkyl_rect_grid_find_cell(grid, point, pick_lower, known_index, cell_idx.c);
 
   // Convert comp eval_coords to logical coords.
-  dg_evproj_struct_double_t eval_coords_log = {0};
+  dg_evproj_struct_double_t eval_coords_log = { 0 };
   for (int i = 0; i < up->num_eval_dirs; i++) {
     int d = up->eval_dirs[i];
     double xc_d = grid->lower[d] + (cell_idx.c[d] - 0.5) * grid->dx[d];
     eval_coords_log.c[i] = 2.0 * (eval_coords[i] - xc_d) / grid->dx[d];
   }
 
-  dg_evproj_struct_bool_t is_eval = {0};
+  dg_evproj_struct_bool_t is_eval = { 0 };
   for (int d = 0; d < GKYL_MAX_DIM; d++)
     is_eval.c[d] = up->is_eval[d];
 

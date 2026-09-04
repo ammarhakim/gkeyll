@@ -580,12 +580,10 @@ gkyl_euler_mixture_free(const struct gkyl_ref_count *ref)
 struct gkyl_wv_eqn *
 gkyl_wv_euler_mixture_new(int num_species, double *gas_gamma_s, bool use_gpu)
 {
-  return gkyl_wv_euler_mixture_inew(&(struct gkyl_wv_euler_mixture_inp){
-    .num_species = num_species,
+  return gkyl_wv_euler_mixture_inew(&(struct gkyl_wv_euler_mixture_inp){ .num_species = num_species,
     .gas_gamma_s = gas_gamma_s,
     .rp_type = WV_EULER_MIXTURE_RP_LAX,
-    .use_gpu = use_gpu,
-  });
+    .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

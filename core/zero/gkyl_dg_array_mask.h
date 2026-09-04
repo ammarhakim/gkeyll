@@ -15,7 +15,7 @@ enum gkyl_dg_array_mask_types {
   GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF, // Applies the mask based on the local maximum 0th component of the input array, which is spatially dependent.
   GKYL_DG_ARRAY_MASK_C0_GREATER, // Mask applied based on the 0th component of the array.
   GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC, // Applies the mask based on the global maximum 0th component of the input array.
-  GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF, // Applies the mask based on the local maximum 0th component of the input array, which is spatially dependent.
+  GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF // Applies the mask based on the local maximum 0th component of the input array, which is spatially dependent.
 };
 
 // Input structure for creating a mask object.

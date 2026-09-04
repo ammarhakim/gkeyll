@@ -68,9 +68,9 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 2);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
-  struct xrange tr = {.xleft = 0.0f, .xright = 3.0f, .N = Nt};
+  struct xrange tr = { .xleft = 0.0f, .xright = 3.0f, .N = Nt };
 
-  struct xrange xr = {.xleft = 0.0f, .xright = 1.0f, .N = Nx};
+  struct xrange xr = { .xleft = 0.0f, .xright = 1.0f, .N = Nx };
 
   // initialize input/output mapping
   for (int i = 0; i < Nt; ++i)
@@ -83,13 +83,11 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
       out->vals[idx][0] = ufunc(t, x);
     }
 
-  struct gkyl_kann_train_params params = {
-    .learning_rate = nn_inp->learning_rate,
+  struct gkyl_kann_train_params params = { .learning_rate = nn_inp->learning_rate,
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f,
-  };
+    .frac_val = 0.1f };
 
   if (nn_inp->use_gpu) {
     struct gkyl_kn_vec *inp_cu = gkyl_kn_vec_cu_dev_new(N, 2);
@@ -236,30 +234,30 @@ main(int argc, char *argv[])
 
   if (p_train) {
     fprintf(stdout, "*** Training MLP%s (gkyl_kann_net wrapper)\n", use_gpu ? " (GPU)" : "");
-    train_ann(&(struct train_inp){.ntrain = {101, 101},
+    train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
                 .ndepth = 2,
                 .nwidth = 64,
                 .learning_rate = 1e-3f,
                 .layer_type = ANN_DENSE,
-                .use_gpu = use_gpu},
+                .use_gpu = use_gpu },
       "rt_kann_cmp_arch_gkw_mlp.kann");
 
     fprintf(stdout, "*** Training GRU%s (gkyl_kann_net wrapper)\n", use_gpu ? " (GPU)" : "");
-    train_ann(&(struct train_inp){.ntrain = {101, 101},
+    train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
                 .ndepth = 2,
                 .nwidth = 32,
                 .learning_rate = 1e-3f,
                 .layer_type = ANN_GRU,
-                .use_gpu = use_gpu},
+                .use_gpu = use_gpu },
       "rt_kann_cmp_arch_gkw_gru.kann");
 
     fprintf(stdout, "*** Training GRU+Norm%s (gkyl_kann_net wrapper)\n", use_gpu ? " (GPU)" : "");
-    train_ann(&(struct train_inp){.ntrain = {101, 101},
+    train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
                 .ndepth = 2,
                 .nwidth = 32,
                 .learning_rate = 1e-3f,
                 .layer_type = ANN_GRU_NORM,
-                .use_gpu = use_gpu},
+                .use_gpu = use_gpu },
       "rt_kann_cmp_arch_gkw_gru_norm.kann");
   }
 
@@ -268,7 +266,7 @@ main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 2);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange tr = {.xleft = 0.0f, .xright = 3.0f, .N = inp->nvec};
+    struct xrange tr = { .xleft = 0.0f, .xright = 3.0f, .N = inp->nvec };
     for (int i = 0; i < inp->nvec; ++i) {
       inp->vals[i][0] = xrange_n(tr, i);
       inp->vals[i][1] = 0.35f;

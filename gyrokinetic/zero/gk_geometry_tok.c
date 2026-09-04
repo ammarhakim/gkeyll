@@ -114,12 +114,12 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   char geqdsk_file_name[128];
   get_filename_from_path(geo->efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
   struct gkyl_msgpack_map_elem io_meta_basic[] = {
-    {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
-    {.key = "geqdsk_sign_convention",
+    { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+    { .key = "geqdsk_sign_convention",
       .elem_type = GKYL_MP_UNSIGNED_INT,
-      .uval = up->geqdsk_sign_convention},
-    {.key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
-    {.key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain},
+      .uval = up->geqdsk_sign_convention },
+    { .key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name },
+    { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain }
   };
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);

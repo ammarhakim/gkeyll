@@ -24,8 +24,8 @@ ker_cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn, int *nfail)
 
   GKYL_CU_CHECK(ten_moment->k0 == 1.0, nfail);
 
-  double vl[10] = {1.0, 0.1, 0.2, 0.3, 0.5, 0.0, 0.0, 1.0, 0.0, 1.5};
-  double vr[10] = {0.1, 1.0, 2.0, 3.0, 0.1, 0.0, 0.0, 0.2, 0.0, 0.3};
+  double vl[10] = { 1.0, 0.1, 0.2, 0.3, 0.5, 0.0, 0.0, 1.0, 0.0, 1.5 };
+  double vr[10] = { 0.1, 1.0, 2.0, 3.0, 0.1, 0.0, 0.0, 0.2, 0.0, 0.3 };
 
   double ql[10], qr[10];
   double ql_local[10], qr_local[10];
@@ -52,11 +52,11 @@ ker_cu_wv_ten_moment_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   qr[8] = vr[8] + vr[0] * vr[2] * vr[3];
   qr[9] = vr[9] + vr[0] * vr[3] * vr[3];
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, -1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, 1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, 1.0 }, { 0.0, 1.0, 0.0 } };
 
   for (int d = 0; d < 3; ++d) {
     double speeds[5], waves[5 * 10], waves_local[5 * 10];

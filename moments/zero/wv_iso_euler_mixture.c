@@ -551,12 +551,11 @@ gkyl_iso_euler_mixture_free(const struct gkyl_ref_count *ref)
 struct gkyl_wv_eqn *
 gkyl_wv_iso_euler_mixture_new(int num_species, double *vt_s, bool use_gpu)
 {
-  return gkyl_wv_iso_euler_mixture_inew(&(struct gkyl_wv_iso_euler_mixture_inp){
-    .num_species = num_species,
-    .vt_s = vt_s,
-    .rp_type = WV_ISO_EULER_MIXTURE_RP_LAX,
-    .use_gpu = use_gpu,
-  });
+  return gkyl_wv_iso_euler_mixture_inew(
+    &(struct gkyl_wv_iso_euler_mixture_inp){ .num_species = num_species,
+      .vt_s = vt_s,
+      .rp_type = WV_ISO_EULER_MIXTURE_RP_LAX,
+      .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

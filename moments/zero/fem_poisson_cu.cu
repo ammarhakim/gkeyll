@@ -137,7 +137,7 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis *basis, const struct gkyl_
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
 
-  int bckey[GKYL_MAX_CDIM] = {-1};
+  int bckey[GKYL_MAX_CDIM] = { -1 };
   for (int d = 0; d < basis->ndim; d++)
     bckey[d] = isdirperiodic[d] ? 0 : 1;
   int *bckey_d = (int *)gkyl_cu_malloc(sizeof(int[GKYL_MAX_CDIM]));

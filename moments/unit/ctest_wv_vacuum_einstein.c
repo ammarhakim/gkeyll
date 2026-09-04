@@ -323,7 +323,7 @@ test_vacuum_einstein_basic_minkowski_ho()
       }
 
       double fluxes[3][42] = {
-        {extrinsic_curvature_flux[0][0][0], extrinsic_curvature_flux[0][0][1],
+        { extrinsic_curvature_flux[0][0][0], extrinsic_curvature_flux[0][0][1],
           extrinsic_curvature_flux[0][0][2], extrinsic_curvature_flux[0][1][0],
           extrinsic_curvature_flux[0][1][1], extrinsic_curvature_flux[0][1][2],
           extrinsic_curvature_flux[0][2][0], extrinsic_curvature_flux[0][2][1],
@@ -342,8 +342,8 @@ test_vacuum_einstein_basic_minkowski_ho()
           spatial_metric_der_flux[0][2][1][2], spatial_metric_der_flux[0][2][2][0],
           spatial_metric_der_flux[0][2][2][1], spatial_metric_der_flux[0][2][2][2],
           lapse_der_flux[0][0], lapse_der_flux[0][1], lapse_der_flux[0][2], aux_vect_flux[0][0],
-          aux_vect_flux[0][1], aux_vect_flux[0][2]},
-        {extrinsic_curvature_flux[1][0][0], extrinsic_curvature_flux[1][0][1],
+          aux_vect_flux[0][1], aux_vect_flux[0][2] },
+        { extrinsic_curvature_flux[1][0][0], extrinsic_curvature_flux[1][0][1],
           extrinsic_curvature_flux[1][0][2], extrinsic_curvature_flux[1][1][0],
           extrinsic_curvature_flux[1][1][1], extrinsic_curvature_flux[1][1][2],
           extrinsic_curvature_flux[1][2][0], extrinsic_curvature_flux[1][2][1],
@@ -362,8 +362,8 @@ test_vacuum_einstein_basic_minkowski_ho()
           spatial_metric_der_flux[1][2][1][2], spatial_metric_der_flux[1][2][2][0],
           spatial_metric_der_flux[1][2][2][1], spatial_metric_der_flux[1][2][2][2],
           lapse_der_flux[1][0], lapse_der_flux[1][1], lapse_der_flux[1][2], aux_vect_flux[1][0],
-          aux_vect_flux[1][1], aux_vect_flux[1][2]},
-        {extrinsic_curvature_flux[2][0][0], extrinsic_curvature_flux[2][0][1],
+          aux_vect_flux[1][1], aux_vect_flux[1][2] },
+        { extrinsic_curvature_flux[2][0][0], extrinsic_curvature_flux[2][0][1],
           extrinsic_curvature_flux[2][0][2], extrinsic_curvature_flux[2][1][0],
           extrinsic_curvature_flux[2][1][1], extrinsic_curvature_flux[2][1][2],
           extrinsic_curvature_flux[2][2][0], extrinsic_curvature_flux[2][2][1],
@@ -382,26 +382,14 @@ test_vacuum_einstein_basic_minkowski_ho()
           spatial_metric_der_flux[2][2][1][2], spatial_metric_der_flux[2][2][2][0],
           spatial_metric_der_flux[2][2][2][1], spatial_metric_der_flux[2][2][2][2],
           lapse_der_flux[2][0], lapse_der_flux[2][1], lapse_der_flux[2][2], aux_vect_flux[2][0],
-          aux_vect_flux[2][1], aux_vect_flux[2][2]},
+          aux_vect_flux[2][1], aux_vect_flux[2][2] }
       };
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       double q_local[64], flux_local[64], flux[64];
       for (int d = 0; d < 3; d++) {
@@ -778,7 +766,7 @@ test_vacuum_einstein_basic_schwarzschild_ho()
         }
 
         double fluxes[3][42] = {
-          {extrinsic_curvature_flux[0][0][0], extrinsic_curvature_flux[0][0][1],
+          { extrinsic_curvature_flux[0][0][0], extrinsic_curvature_flux[0][0][1],
             extrinsic_curvature_flux[0][0][2], extrinsic_curvature_flux[0][1][0],
             extrinsic_curvature_flux[0][1][1], extrinsic_curvature_flux[0][1][2],
             extrinsic_curvature_flux[0][2][0], extrinsic_curvature_flux[0][2][1],
@@ -797,8 +785,8 @@ test_vacuum_einstein_basic_schwarzschild_ho()
             spatial_metric_der_flux[0][2][1][2], spatial_metric_der_flux[0][2][2][0],
             spatial_metric_der_flux[0][2][2][1], spatial_metric_der_flux[0][2][2][2],
             lapse_der_flux[0][0], lapse_der_flux[0][1], lapse_der_flux[0][2], aux_vect_flux[0][0],
-            aux_vect_flux[0][1], aux_vect_flux[0][2]},
-          {extrinsic_curvature_flux[1][0][0], extrinsic_curvature_flux[1][0][1],
+            aux_vect_flux[0][1], aux_vect_flux[0][2] },
+          { extrinsic_curvature_flux[1][0][0], extrinsic_curvature_flux[1][0][1],
             extrinsic_curvature_flux[1][0][2], extrinsic_curvature_flux[1][1][0],
             extrinsic_curvature_flux[1][1][1], extrinsic_curvature_flux[1][1][2],
             extrinsic_curvature_flux[1][2][0], extrinsic_curvature_flux[1][2][1],
@@ -817,8 +805,8 @@ test_vacuum_einstein_basic_schwarzschild_ho()
             spatial_metric_der_flux[1][2][1][2], spatial_metric_der_flux[1][2][2][0],
             spatial_metric_der_flux[1][2][2][1], spatial_metric_der_flux[1][2][2][2],
             lapse_der_flux[1][0], lapse_der_flux[1][1], lapse_der_flux[1][2], aux_vect_flux[1][0],
-            aux_vect_flux[1][1], aux_vect_flux[1][2]},
-          {extrinsic_curvature_flux[2][0][0], extrinsic_curvature_flux[2][0][1],
+            aux_vect_flux[1][1], aux_vect_flux[1][2] },
+          { extrinsic_curvature_flux[2][0][0], extrinsic_curvature_flux[2][0][1],
             extrinsic_curvature_flux[2][0][2], extrinsic_curvature_flux[2][1][0],
             extrinsic_curvature_flux[2][1][1], extrinsic_curvature_flux[2][1][2],
             extrinsic_curvature_flux[2][2][0], extrinsic_curvature_flux[2][2][1],
@@ -837,26 +825,14 @@ test_vacuum_einstein_basic_schwarzschild_ho()
             spatial_metric_der_flux[2][2][1][2], spatial_metric_der_flux[2][2][2][0],
             spatial_metric_der_flux[2][2][2][1], spatial_metric_der_flux[2][2][2][2],
             lapse_der_flux[2][0], lapse_der_flux[2][1], lapse_der_flux[2][2], aux_vect_flux[2][0],
-            aux_vect_flux[2][1], aux_vect_flux[2][2]},
+            aux_vect_flux[2][1], aux_vect_flux[2][2] }
         };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[64], flux_local[64], flux[64];
         for (int d = 0; d < 3; d++) {
@@ -1291,23 +1267,11 @@ test_vacuum_einstein_waves_schwarzschild_ho()
         qr[62] = shift_der_r[2][1];
         qr[63] = shift_der_r[2][2];
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[2], waves[2 * 64], waves_local[2 * 64];
@@ -1765,23 +1729,11 @@ test_vacuum_einstein_waves_kerr_ho()
         qr[62] = shift_der_r[2][1];
         qr[63] = shift_der_r[2][2];
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[2], waves[2 * 64], waves_local[2 * 64];
@@ -1864,10 +1816,7 @@ test_vacuum_einstein_waves_kerr_ho()
   }
 }
 
-TEST_LIST = {
-  {"vacuum_einstein_basic_minkowski_ho", test_vacuum_einstein_basic_minkowski_ho},
-  {"vacuum_einstein_basic_schwarzschild_ho", test_vacuum_einstein_basic_schwarzschild_ho},
-  {"vacuum_einstein_waves_schwarzschild_ho", test_vacuum_einstein_waves_schwarzschild_ho},
-  {"vacuum_einstein_waves_kerr_ho", test_vacuum_einstein_waves_kerr_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "vacuum_einstein_basic_minkowski_ho", test_vacuum_einstein_basic_minkowski_ho },
+  { "vacuum_einstein_basic_schwarzschild_ho", test_vacuum_einstein_basic_schwarzschild_ho },
+  { "vacuum_einstein_waves_schwarzschild_ho", test_vacuum_einstein_waves_schwarzschild_ho },
+  { "vacuum_einstein_waves_kerr_ho", test_vacuum_einstein_waves_kerr_ho }, { NULL, NULL } };

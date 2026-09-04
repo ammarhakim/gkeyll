@@ -21,9 +21,9 @@ typedef struct {
 // Serendipity basis kernels
 //
 GKYL_CU_D static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
-  {sigma_cx_1x_ser_p1, sigma_cx_1x_ser_p2}, // 0
-  {sigma_cx_2x_ser_p1, sigma_cx_2x_ser_p2}, // 4
-  {sigma_cx_3x_ser_p1, NULL}, // 5
+  { sigma_cx_1x_ser_p1, sigma_cx_1x_ser_p2 }, // 0
+  { sigma_cx_2x_ser_p1, sigma_cx_2x_ser_p2 }, // 4
+  { sigma_cx_3x_ser_p1, NULL } // 5
 };
 
 struct gkyl_dg_cx {

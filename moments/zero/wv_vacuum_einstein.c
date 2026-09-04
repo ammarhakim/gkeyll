@@ -1850,13 +1850,12 @@ gkyl_wv_vacuum_einstein_new(double excision_threshold,
   enum gkyl_spacetime_slicing spacetime_slicing, enum gkyl_spacetime_evolution spacetime_evolution,
   bool use_gpu)
 {
-  return gkyl_wv_vacuum_einstein_inew(&(struct gkyl_wv_vacuum_einstein_inp){
-    .excision_threshold = excision_threshold,
-    .spacetime_slicing = spacetime_slicing,
-    .spacetime_evolution = spacetime_evolution,
-    .rp_type = WV_VACUUM_EINSTEIN_RP_HLL,
-    .use_gpu = use_gpu,
-  });
+  return gkyl_wv_vacuum_einstein_inew(
+    &(struct gkyl_wv_vacuum_einstein_inp){ .excision_threshold = excision_threshold,
+      .spacetime_slicing = spacetime_slicing,
+      .spacetime_evolution = spacetime_evolution,
+      .rp_type = WV_VACUUM_EINSTEIN_RP_HLL,
+      .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

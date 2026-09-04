@@ -14,8 +14,8 @@ test_reduce_dg(bool use_gpu)
 {
   int poly_order = 1;
   int ncomp = 3;
-  double lower[] = {-M_PI}, upper[] = {M_PI};
-  int cells[] = {20};
+  double lower[] = { -M_PI }, upper[] = { M_PI };
+  int cells[] = { 20 };
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
@@ -171,8 +171,8 @@ test_reduce_dg_range(bool use_gpu)
 {
   int poly_order = 1;
   int ncomp = 3;
-  double lower[] = {-M_PI}, upper[] = {M_PI};
-  int cells[] = {20};
+  double lower[] = { -M_PI }, upper[] = { M_PI };
+  int cells[] = { 20 };
 
   int ndim = sizeof(lower) / sizeof(lower[0]);
 
@@ -350,12 +350,10 @@ test_reduce_dg_range_dev()
 
 #endif
 
-TEST_LIST = {
-  {"array_reduce_dg_ho", test_reduce_dg_ho},
-  {"array_reduce_dg_range_ho", test_reduce_dg_range_ho},
+TEST_LIST = { { "array_reduce_dg_ho", test_reduce_dg_ho },
+  { "array_reduce_dg_range_ho", test_reduce_dg_range_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"array_reduce_dg_dev", test_reduce_dg_dev},
-  {"array_reduce_dg_range_dev", test_reduce_dg_range_dev},
+  { "array_reduce_dg_dev", test_reduce_dg_dev },
+  { "array_reduce_dg_range_dev", test_reduce_dg_range_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

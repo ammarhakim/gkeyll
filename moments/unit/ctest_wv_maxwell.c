@@ -26,30 +26,29 @@ test_maxwell_basic_ho()
   double Ex = 1.0, Ey = 0.1, Ez = 0.2;
   double Bx = 10.0, By = 10.1, Bz = 10.2;
   double phi = 0.01, psi = 0.02;
-  double q[8] = {Ex, Ey, Ez, Bx, By, Bz, phi, psi};
+  double q[8] = { Ex, Ey, Ez, Bx, By, Bz, phi, psi };
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
-  double fluxes[3][8] = {
-    {e_fact * c2 * q[6], c2 * q[BZ], -c2 * q[BY],
+  double fluxes[3][8] = { { e_fact * c2 * q[6], c2 * q[BZ], -c2 * q[BY],
 
-      b_fact * q[7], -q[EZ], q[EY],
+                            b_fact * q[7], -q[EZ], q[EY],
 
-      e_fact * q[EX], b_fact * c2 * q[BX]},
-    {-c2 * q[BZ], e_fact * c2 * q[6], c2 * q[BX],
+                            e_fact * q[EX], b_fact * c2 * q[BX] },
+    { -c2 * q[BZ], e_fact * c2 * q[6], c2 * q[BX],
 
       q[EZ], b_fact * q[7], -q[EX],
 
-      e_fact * q[EY], b_fact * c2 * q[BY]},
-    {c2 * q[BY], -c2 * q[BX], e_fact * c2 * q[6],
+      e_fact * q[EY], b_fact * c2 * q[BY] },
+    { c2 * q[BY], -c2 * q[BX], e_fact * c2 * q[6],
 
       -q[EY], q[EX], b_fact * q[7],
 
-      e_fact * q[EZ], b_fact * c2 * q[BZ]},
+      e_fact * q[EZ], b_fact * c2 * q[BZ] }
 
   };
 
@@ -85,14 +84,14 @@ test_maxwell_waves_ho()
   double b_fact = 1.0;
   struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact, false);
 
-  double ql[8] = {0.0, 1.0, 0.0, 1.0, -0.75, 0.0, 0.0, 0.0};
-  double qr[8] = {0.0, -1.0, 0.0, 1.0, 0.75, 0.0, 0.0, 0.0};
+  double ql[8] = { 0.0, 1.0, 0.0, 1.0, -0.75, 0.0, 0.0, 0.0 };
+  double qr[8] = { 0.0, -1.0, 0.0, 1.0, 0.75, 0.0, 0.0, 0.0 };
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
   for (int d = 0; d < 3; ++d) {
     double speeds[6], waves[6 * 8], waves_local[6 * 8];
@@ -163,11 +162,9 @@ test_wv_maxwell_dev()
 
 #endif
 
-TEST_LIST = {
-  {"maxwell_basic_ho", test_maxwell_basic_ho},
-  {"maxwell_waves_ho", test_maxwell_waves_ho},
+TEST_LIST = { { "maxwell_basic_ho", test_maxwell_basic_ho },
+  { "maxwell_waves_ho", test_maxwell_waves_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"wv_maxwell_dev", test_wv_maxwell_dev},
+  { "wv_maxwell_dev", test_wv_maxwell_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

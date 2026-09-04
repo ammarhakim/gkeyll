@@ -54,7 +54,7 @@ moment_array_meta_release(struct gkyl_msgpack_data *mt)
 struct moment_output_meta
 moment_meta_from_mpack(struct gkyl_msgpack_data *mt)
 {
-  struct moment_output_meta meta = {.frame = 0, .stime = 0.0};
+  struct moment_output_meta meta = { .frame = 0, .stime = 0.0 };
 
   if (mt->meta_sz > 0) {
     mpack_tree_t tree;
@@ -93,7 +93,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   else if (app->scheme_type == GKYL_MOMENT_KEP)
     app->update_func = moment_update_ssp_rk3;
 
-  int ghost[3] = {2, 2, 2}; // 2 ghost-cells for wave
+  int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
   if (mom->scheme_type != GKYL_MOMENT_WAVE_PROP)
     for (int d = 0; d < 3; ++d)
       ghost[d] = 3; // 3 for MP scheme and KEP
@@ -105,13 +105,13 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
 
   if (mom->parallelism.comm == 0) {
-    int cuts[3] = {1, 1, 1};
+    int cuts[3] = { 1, 1, 1 };
     app->decomp = gkyl_rect_decomp_new_from_cuts(app->ndim, cuts, &app->global);
 
     app->comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){
       .decomp = app->decomp,
       .sync_corners =
-        true, // If no communicator, since some moment apps need corner syncs, turn on corner syncs.
+        true // If no communicator, since some moment apps need corner syncs, turn on corner syncs.
     });
 
     // Global and local ranges are same, and so just copy them.
@@ -335,7 +335,7 @@ gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int frame)
     return;
 
   struct gkyl_msgpack_data *mt =
-    moment_array_meta_new((struct moment_output_meta){.frame = frame, .stime = tm});
+    moment_array_meta_new((struct moment_output_meta){ .frame = frame, .stime = tm });
 
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.fcurr, fileNm.str);
@@ -413,7 +413,7 @@ void
 gkyl_moment_app_write_species(const gkyl_moment_app *app, int sidx, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt =
-    moment_array_meta_new((struct moment_output_meta){.frame = frame, .stime = tm});
+    moment_array_meta_new((struct moment_output_meta){ .frame = frame, .stime = tm });
 
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
   gkyl_comm_array_write(
@@ -465,7 +465,7 @@ gkyl_moment_app_field_energy_ndiag(gkyl_moment_app *app)
 void
 gkyl_moment_app_get_field_energy(gkyl_moment_app *app, double *vals)
 {
-  double energy_global[6] = {0.0};
+  double energy_global[6] = { 0.0 };
   if (app->has_field) {
     double energy[6];
     calc_integ_quant(
@@ -481,7 +481,7 @@ void
 gkyl_moment_app_calc_field_energy(gkyl_moment_app *app, double tm)
 {
   if (app->has_field) {
-    double energy[6] = {0.0};
+    double energy[6] = { 0.0 };
     gkyl_moment_app_get_field_energy(app, energy);
     gkyl_dynvec_append(app->field.integ_energy, tm, energy);
   }
@@ -545,11 +545,11 @@ comm_reduce_app_stat(
   }
 
   enum { NUP, NFAIL, NFEULER, NSTAGE_2_FAIL, NSTAGE_3_FAIL, L_END };
-  int64_t l_red[] = {[NUP] = local->nup,
+  int64_t l_red[] = { [NUP] = local->nup,
     [NFAIL] = local->nfail,
     [NFEULER] = local->nfeuler,
     [NSTAGE_2_FAIL] = local->nstage_2_fail,
-    [NSTAGE_3_FAIL] = local->nstage_3_fail};
+    [NSTAGE_3_FAIL] = local->nstage_3_fail };
 
   int64_t l_red_global[L_END];
   gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
@@ -574,7 +574,7 @@ comm_reduce_app_stat(
     D_END
   };
 
-  double d_red[] = {[TOTAL_TM] = local->total_tm,
+  double d_red[] = { [TOTAL_TM] = local->total_tm,
     [SPECIES_TM] = local->species_tm,
     [FIELD_TM] = local->field_tm,
     [SOURCES_TM] = local->sources_tm,
@@ -583,7 +583,7 @@ comm_reduce_app_stat(
     [SPECIES_RHS_TM] = local->species_rhs_tm,
     [FIELD_RHS_TM] = local->field_rhs_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
-    [FIELD_BC_TM] = local->field_bc_tm};
+    [FIELD_BC_TM] = local->field_bc_tm };
 
   double_t d_red_global[D_END];
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
@@ -612,9 +612,9 @@ comm_reduce_wave_prop_stats(const gkyl_moment_app *app, const struct gkyl_wave_p
   }
 
   enum { N_CALLS, N_BAD_ADVANCE_CALLS, N_MAX_BAD_CELLS, L_END };
-  int64_t l_red[] = {[N_CALLS] = local->n_calls,
+  int64_t l_red[] = { [N_CALLS] = local->n_calls,
     [N_BAD_ADVANCE_CALLS] = local->n_bad_advance_calls,
-    [N_MAX_BAD_CELLS] = local->n_max_bad_cells};
+    [N_MAX_BAD_CELLS] = local->n_max_bad_cells };
 
   int64_t l_red_global[L_END];
   gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
@@ -728,7 +728,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app *app)
 static struct gkyl_app_restart_status
 header_from_file(gkyl_moment_app *app, const char *fname)
 {
-  struct gkyl_app_restart_status rstat = {.io_status = 0};
+  struct gkyl_app_restart_status rstat = { .io_status = 0 };
 
   FILE *fp = 0;
   with_file(fp, fname, "r")
@@ -745,7 +745,7 @@ header_from_file(gkyl_moment_app *app, const char *fname)
     }
 
     struct moment_output_meta meta = moment_meta_from_mpack(
-      &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size});
+      &(struct gkyl_msgpack_data){ .meta = hdr.meta, .meta_sz = hdr.meta_size });
 
     rstat.frame = meta.frame;
     rstat.stime = meta.stime;
@@ -761,7 +761,8 @@ gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
 {
   if (app->has_field != 1)
     return (struct gkyl_app_restart_status){
-      .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0};
+      .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0
+    };
 
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 

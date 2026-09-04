@@ -13,7 +13,7 @@ load_projection_moment_from_file(struct gkyl_gyrokinetic_app *app, struct gkyl_a
   struct gkyl_array *arr_host =
     app->use_gpu ? mkarr(false, arr->ncomp, arr->size) : gkyl_array_acquire(arr);
 
-  struct gkyl_app_restart_status rstat = {.io_status = GKYL_ARRAY_RIO_FOPEN_FAILED};
+  struct gkyl_app_restart_status rstat = { .io_status = GKYL_ARRAY_RIO_FOPEN_FAILED };
   rstat.io_status =
     gkyl_comm_array_read(app->comm, &app->grid, &app->local, arr_host, inp->file_name);
   assert(rstat.io_status == GKYL_ARRAY_RIO_SUCCESS);
@@ -113,8 +113,7 @@ init_moment_from_import_or_proj(struct gkyl_gyrokinetic_app *app, struct gk_proj
     return;
   }
 
-  *proj_on_basis = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-    .grid = &app->grid,
+  *proj_on_basis = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &app->grid,
     .basis = &app->basis,
     .qtype = GKYL_GAUSS_QUAD,
     .num_quad = app->basis.poly_order + 1,
@@ -122,8 +121,7 @@ init_moment_from_import_or_proj(struct gkyl_gyrokinetic_app *app, struct gk_proj
     .eval = eval,
     .ctx = ctx,
     .c2p_func = proj_on_basis_c2p_position_func,
-    .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-  });
+    .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx });
 }
 
 static void
@@ -284,8 +282,7 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
   }
 
   // Maxwellian (or bi-Maxwellian) projection updater.
-  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = {
-    .phase_grid = &s->grid,
+  struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &s->grid,
     .conf_basis = &app->basis,
     .phase_basis = &s->basis,
     .conf_range = &app->local,
@@ -297,8 +294,7 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
     .mass = s->info.mass,
     .bimaxwellian = bimaxwellian,
     .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
-    .use_gpu = app->use_gpu,
-  };
+    .use_gpu = app->use_gpu };
   proj->proj_max = gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
   proj->correct_all_moms = false;
@@ -310,8 +306,7 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
     bool use_last_converged = inp.use_last_converged;
 
     // Maxwellian correction updater
-    struct gkyl_gk_maxwellian_correct_inp inp_corr = {
-      .phase_grid = &s->grid,
+    struct gkyl_gk_maxwellian_correct_inp inp_corr = { .phase_grid = &s->grid,
       .conf_basis = &app->basis,
       .phase_basis = &s->basis,
       .conf_range = &app->local,
@@ -325,8 +320,7 @@ init_maxwellian_bimaxwellian(struct gkyl_gyrokinetic_app *app, struct gk_species
       .max_iter = max_iter,
       .eps = iter_eps,
       .use_last_converged = use_last_converged,
-      .use_gpu = app->use_gpu,
-    };
+      .use_gpu = app->use_gpu };
     proj->corr_max = gkyl_gk_maxwellian_correct_inew(&inp_corr);
   }
 }
@@ -434,8 +428,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   proj->proj_on_basis_c2p_ctx.vel_map = s->vel_map;
   proj->proj_on_basis_c2p_ctx.pos_map = app->position_map;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &s->grid,
+    proj->proj_func = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &s->grid,
       .basis = &s->basis,
       .qtype = GKYL_GAUSS_QUAD,
       .num_quad = app->basis.poly_order + 1,
@@ -443,8 +436,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .eval = inp.func,
       .ctx = inp.ctx_func,
       .c2p_func = proj_on_basis_c2p_phase_func,
-      .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx,
-    });
+      .c2p_func_ctx = &proj->proj_on_basis_c2p_ctx });
     if (app->use_gpu)
       proj->proj_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
 

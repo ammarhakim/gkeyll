@@ -40,7 +40,7 @@ gk_geometry_mapc2p_advance(struct gk_geometry *up, struct gkyl_range *nrange, do
   dpsi *= dx_fact;
   dalpha *= dx_fact;
 
-  int cidx[3] = {0};
+  int cidx[3] = { 0 };
   for (int ia = nrange->lower[AL_IDX]; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia * dalpha;
@@ -59,9 +59,9 @@ gk_geometry_mapc2p_advance(struct gk_geometry *up, struct gkyl_range *nrange, do
           (double *)gkyl_array_fetch(up->geo_corn.mc2p_nodal, gkyl_range_idx(nrange, cidx));
         double *bmag_n =
           (double *)gkyl_array_fetch(up->geo_corn.bmag_nodal, gkyl_range_idx(nrange, cidx));
-        double xyz[3] = {psi_curr, alpha_curr, theta_curr};
-        double XYZ[3] = {0.};
-        double B[3] = {0.};
+        double xyz[3] = { psi_curr, alpha_curr, theta_curr };
+        double XYZ[3] = { 0. };
+        double B[3] = { 0. };
         mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
         bfield_func(0.0, xyz, B, bfield_ctx);
 
@@ -110,7 +110,7 @@ gk_geometry_mapc2p_advance_interior(struct gk_geometry *up, struct gkyl_range *n
          alpha_lo = up->grid.lower[AL_IDX] +
     (up->local.lower[AL_IDX] - up->global.lower[AL_IDX]) * up->grid.dx[AL_IDX];
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   theta_lo = theta_lo + dels[1] * dtheta / 2.0;
   psi_lo = psi_lo + dels[1] * dpsi / 2.0;
   alpha_lo = alpha_lo + dels[1] * dalpha / 2.0;
@@ -127,9 +127,9 @@ gk_geometry_mapc2p_advance_interior(struct gk_geometry *up, struct gkyl_range *n
   dzc[0] = delta_psi;
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
-  int modifiers[5] = {0, -1, 1, -2, 2};
+  int modifiers[5] = { 0, -1, 1, -2, 2 };
 
-  int cidx[3] = {0};
+  int cidx[3] = { 0 };
   for (int ia = nrange->lower[AL_IDX]; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
     for (int ia_delta = 0; ia_delta < 3; ia_delta++) { // interior stencil
@@ -174,9 +174,9 @@ gk_geometry_mapc2p_advance_interior(struct gk_geometry *up, struct gkyl_range *n
               double *bhat_quad_fd_n =
                 (double *)gkyl_array_fetch(up->geo_int.b_i_nodal_fd, gkyl_range_idx(nrange, cidx));
 
-              double xyz[3] = {psi_curr, alpha_curr, theta_curr};
-              double XYZ[3] = {0.};
-              double B[3] = {0.};
+              double xyz[3] = { psi_curr, alpha_curr, theta_curr };
+              double XYZ[3] = { 0. };
+              double B[3] = { 0. };
               mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
               bfield_func(0.0, xyz, B, bfield_ctx);
 
@@ -247,7 +247,7 @@ gk_geometry_mapc2p_advance_surface(struct gk_geometry *up, int dir, struct gkyl_
          alpha_lo = up->grid.lower[AL_IDX] +
     (up->local.lower[AL_IDX] - up->global.lower[AL_IDX]) * up->grid.dx[AL_IDX];
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   theta_lo += dir == 2 ? 0.0 : dels[1] * dtheta / 2.0;
   psi_lo += dir == 0 ? 0.0 : dels[1] * dpsi / 2.0;
   alpha_lo += dir == 1 ? 0. : dels[1] * dalpha / 2.0;
@@ -264,9 +264,9 @@ gk_geometry_mapc2p_advance_surface(struct gk_geometry *up, int dir, struct gkyl_
   dzc[0] = delta_psi;
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
-  int modifiers[5] = {0, -1, 1, -2, 2};
+  int modifiers[5] = { 0, -1, 1, -2, 2 };
 
-  int cidx[3] = {0};
+  int cidx[3] = { 0 };
   for (int ia = nrange->lower[AL_IDX]; ia <= nrange->upper[AL_IDX]; ++ia) {
     cidx[AL_IDX] = ia;
     for (int ia_delta = 0; ia_delta < 5; ia_delta++) { // should be <5
@@ -353,9 +353,9 @@ gk_geometry_mapc2p_advance_surface(struct gk_geometry *up, int dir, struct gkyl_
               double *bhat_fd_n = (double *)gkyl_array_fetch(
                 up->geo_surf[dir].b_i_nodal_fd, gkyl_range_idx(nrange, cidx));
 
-              double xyz[3] = {psi_curr, alpha_curr, theta_curr};
-              double XYZ[3] = {0.};
-              double B[3] = {0.};
+              double xyz[3] = { psi_curr, alpha_curr, theta_curr };
+              double XYZ[3] = { 0. };
+              double B[3] = { 0. };
               mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
               bfield_func(0.0, xyz, B, bfield_ctx);
 
@@ -466,7 +466,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
 
   // Store metadata for I/O.
   struct gkyl_msgpack_map_elem io_meta_basic[] = {
-    {.key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id},
+    { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id }
   };
   up->io_meta_basic_len = sizeof(io_meta_basic) / sizeof(io_meta_basic[0]);
   up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);

@@ -23,7 +23,7 @@
 // Type of Riemann-solver to use:
 enum gkyl_wv_iso_euler_rp {
   WV_ISO_EULER_RP_LAX = 0, // Default (Lax fluxes).
-  WV_ISO_EULER_RP_ROE,
+  WV_ISO_EULER_RP_ROE
 };
 
 // Input context, packaged as a struct.

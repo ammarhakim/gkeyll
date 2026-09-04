@@ -23,7 +23,7 @@ gkyl_bc_emission_flux_ranges(struct gkyl_range *flux_r, int dir, const struct gk
   const int *nghost, enum gkyl_edge_loc edge)
 {
   int ndim = parent->ndim;
-  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+  int lo[GKYL_MAX_DIM] = { 0 }, up[GKYL_MAX_DIM] = { 0 };
 
   if (edge == GKYL_LOWER_EDGE) {
     incr_int_array(ndim, 0, nghost, parent->lower, lo);
@@ -145,7 +145,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   }
 #endif
   double xc[GKYL_MAX_DIM];
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = {0};
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < impact_cbuff_r->ndim; ++d)
     rem_dir[d] = 1;
 

@@ -24,11 +24,11 @@ gkyl_dg_updater_fpo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
   int vdim = 3;
   int cdim = pdim - vdim;
   int num_up_dirs = vdim;
-  int up_dirs[GKYL_MAX_DIM] = {0};
+  int up_dirs[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < vdim; ++d)
     up_dirs[d] = d + pbasis->ndim - vdim;
 
-  int zero_flux_flags[2 * GKYL_MAX_DIM] = {0};
+  int zero_flux_flags[2 * GKYL_MAX_DIM] = { 0 };
   for (int d = cdim; d < pdim; ++d)
     zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1;
 
@@ -51,9 +51,9 @@ gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
 {
   // Set arrays needed
   gkyl_fpo_vlasov_drag_set_auxfields(
-    fpo->coll_drag, (struct gkyl_dg_fpo_vlasov_drag_auxfields){.h = h});
+    fpo->coll_drag, (struct gkyl_dg_fpo_vlasov_drag_auxfields){ .h = h });
   gkyl_fpo_vlasov_diff_set_auxfields(
-    fpo->coll_diff, (struct gkyl_dg_fpo_vlasov_diff_auxfields){.g = g});
+    fpo->coll_diff, (struct gkyl_dg_fpo_vlasov_diff_auxfields){ .g = g });
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(fpo->drag, update_rng, fIn, cflrate, rhs);
@@ -69,7 +69,8 @@ gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
 struct gkyl_dg_updater_fpo_vlasov_tm
 gkyl_dg_updater_fpo_vlasov_get_tm(const struct gkyl_dg_updater_collisions *coll)
 {
-  return (struct gkyl_dg_updater_fpo_vlasov_tm){.diff_tm = coll->diff_tm, .drag_tm = coll->drag_tm};
+  return (
+    struct gkyl_dg_updater_fpo_vlasov_tm){ .diff_tm = coll->diff_tm, .drag_tm = coll->drag_tm };
 }
 
 void
@@ -92,9 +93,9 @@ gkyl_dg_updater_fpo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *fpo,
 {
   // Set arrays needed
   gkyl_fpo_vlasov_drag_set_auxfields(
-    fpo->coll_drag, (struct gkyl_dg_fpo_vlasov_drag_auxfields){.h = h});
+    fpo->coll_drag, (struct gkyl_dg_fpo_vlasov_drag_auxfields){ .h = h });
   gkyl_fpo_vlasov_diff_set_auxfields(
-    fpo->coll_diff, (struct gkyl_dg_fpo_vlasov_diff_auxfields){.g = g});
+    fpo->coll_diff, (struct gkyl_dg_fpo_vlasov_diff_auxfields){ .g = g });
 
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(fpo->drag, update_rng, fIn, cflrate, rhs);

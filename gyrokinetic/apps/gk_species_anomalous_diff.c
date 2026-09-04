@@ -45,10 +45,11 @@ gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app *app, struct gk_species 
   gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", stime);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = description}};
-  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description }
+  };
+  int io_meta_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_conf, app->gk_geom->io_meta_basic,
+    desc };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -101,15 +102,14 @@ gk_species_anomalous_diff_init(
     gkad->diffD = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *diffD_ho = app->use_gpu ? mkarr(false, gkad->diffD->ncomp, gkad->diffD->size)
                                                : gkyl_array_acquire(gkad->diffD);
-    struct gkyl_eval_on_nodes *diffDproj = gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
-      .grid = &app->grid,
-      .basis = &app->basis,
-      .num_ret_vals = 1,
-      .eval = gks->info.anomalous_diffusion.D_profile,
-      .ctx = gks->info.anomalous_diffusion.D_profile_ctx,
-      .c2p_func = eval_on_nodes_c2p_position_func,
-      .c2p_func_ctx = app->position_map,
-    });
+    struct gkyl_eval_on_nodes *diffDproj =
+      gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){ .grid = &app->grid,
+        .basis = &app->basis,
+        .num_ret_vals = 1,
+        .eval = gks->info.anomalous_diffusion.D_profile,
+        .ctx = gks->info.anomalous_diffusion.D_profile_ctx,
+        .c2p_func = eval_on_nodes_c2p_position_func,
+        .c2p_func_ctx = app->position_map });
     gkyl_eval_on_nodes_advance(diffDproj, 0.0, &app->local, diffD_ho);
     gkyl_array_copy(gkad->diffD, diffD_ho);
 

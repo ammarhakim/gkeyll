@@ -106,145 +106,98 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_vol_kern_list ser_vol_kernels[] =
   // { NULL, kernel_fpo_vlasov_diff_vol_1x3v_ser_p1, kernel_fpo_vlasov_diff_vol_1x3v_ser_p2 }, // 0
   // { NULL, kernel_fpo_vlasov_diff_vol_2x3v_ser_p1, kernel_fpo_vlasov_diff_vol_2x3v_ser_p2 }, // 1
   // { NULL, kernel_fpo_vlasov_diff_vol_3x3v_ser_p1, NULL }, // 2
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: xx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_xx_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: xy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_xy_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: xz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_xz_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: yx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_yx_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: yy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_yy_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: yz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_yz_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: zx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_zx_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: zy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_zy_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: zz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_surf_kern_list ser_surf_zz_kernels[] = {
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Boundary Surface kernel list: xx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_xx_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_xx_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: xy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_xy_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_xy_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: xz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_xz_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_xz_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: yx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_yx_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_yx_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: yy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_yy_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_yy_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: yz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_yz_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_yz_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: zx-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_zx_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_zx_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: zy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_zy_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_zy_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 // Boundary Surface kernel list: zz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list
-  ser_boundary_surf_zz_kernels[] = {
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+  ser_boundary_surf_zz_kernels[] = { { NULL, NULL, NULL }, { NULL, NULL, NULL },
+    { NULL, NULL, NULL } };
 
 /**
  * Free fpo_vlasov_diff equation object

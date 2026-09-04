@@ -142,12 +142,12 @@ test_array_non_numeric_ho()
 void
 test_grid_sub_array_read_1_ho()
 {
-  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
-  int cells[] = {20, 60};
+  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
+  int cells[] = { 20, 60 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  int nghost[] = {1, 2};
+  int nghost[] = { 1, 2 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -239,12 +239,12 @@ test_grid_sub_array_read_1_ho()
 void
 test_grid_sub_array_read_2_ho()
 {
-  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
-  int cells[] = {20, 60};
+  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
+  int cells[] = { 20, 60 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  int nghost[] = {1, 2};
+  int nghost[] = { 1, 2 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -267,7 +267,7 @@ test_grid_sub_array_read_2_ho()
   struct gkyl_rect_grid grid2;
 
   struct gkyl_range srange;
-  gkyl_range_init(&srange, grid.ndim, (int[]){5, 5}, (int[]){10, 15});
+  gkyl_range_init(&srange, grid.ndim, (int[]){ 5, 5 }, (int[]){ 10, 15 });
 
   struct gkyl_array *arr2 = gkyl_array_new(GKYL_DOUBLE, 2, srange.volume);
   set_array_to_zero_ho(arr2);
@@ -303,12 +303,12 @@ test_grid_sub_array_read_2_ho()
 void
 test_grid_array_new_from_file_1_ho()
 {
-  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
-  int cells[] = {20, 60};
+  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
+  int cells[] = { 20, 60 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  int nghost[] = {1, 2};
+  int nghost[] = { 1, 2 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -412,7 +412,7 @@ test_grid_array_read_p1_ho(void)
 
   size_t nc = hdr.esznc / gkyl_elem_type_size[hdr.etype];
 
-  int nghost[] = {1, 2};
+  int nghost[] = { 1, 2 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -447,7 +447,7 @@ test_grid_array_read_p1_ho(void)
   // read parallel data (partial domain)
   do {
     struct gkyl_range prange;
-    gkyl_range_init(&prange, 2, (int[]){10, 10}, (int[]){30, 40});
+    gkyl_range_init(&prange, 2, (int[]){ 10, 10 }, (int[]){ 30, 40 });
 
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, prange.volume);
@@ -471,7 +471,7 @@ test_grid_array_read_p1_ho(void)
   // read parallel data (partial domain)
   do {
     struct gkyl_range prange;
-    gkyl_range_init(&prange, 2, (int[]){4, 5}, (int[]){10, 10});
+    gkyl_range_init(&prange, 2, (int[]){ 4, 5 }, (int[]){ 10, 10 });
 
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, prange.volume);
@@ -672,19 +672,14 @@ test_array_kernel_dev()
 
 #endif
 
-TEST_LIST = {
-  {"array_0_ho", test_array_0_ho},
-  {"array_base_ho", test_array_base_ho},
-  {"array_fetch_ho", test_array_fetch_ho},
-  {"array_non_numeric_ho", test_array_non_numeric_ho},
-  {"grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho},
-  {"grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho},
-  {"grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho},
-  {"grid_array_read_p1_ho", test_grid_array_read_p1_ho},
-  {"array_from_buff_ho", test_array_from_buff_ho},
+TEST_LIST = { { "array_0_ho", test_array_0_ho }, { "array_base_ho", test_array_base_ho },
+  { "array_fetch_ho", test_array_fetch_ho }, { "array_non_numeric_ho", test_array_non_numeric_ho },
+  { "grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho },
+  { "grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho },
+  { "grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho },
+  { "grid_array_read_p1_ho", test_grid_array_read_p1_ho },
+  { "array_from_buff_ho", test_array_from_buff_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"array_base_dev", test_array_base_dev},
-  {"array_kernel_dev", test_array_kernel_dev},
+  { "array_base_dev", test_array_base_dev }, { "array_kernel_dev", test_array_kernel_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

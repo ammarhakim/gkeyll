@@ -95,8 +95,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_brill_lindquist_ctx ctx = {
-    .mass1 = mass1,
+  struct einstein_brill_lindquist_ctx ctx = { .mass1 = mass1,
     .mass2 = mass2,
     .pos_x1 = pos_x1,
     .pos_y1 = pos_y1,
@@ -118,8 +117,7 @@ create_ctx(void)
     .field_energy_calcs = field_energy_calcs,
     .integrated_mom_calcs = integrated_mom_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -402,8 +400,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(
     ctx.excision_threshold, ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
-  struct gkyl_moment_species einstein = {
-    .name = "vacuum_einstein",
+  struct gkyl_moment_species einstein = { .name = "vacuum_einstein",
     .equation = vacuum_einstein,
 
     .init = evalVacuumEinsteinInit,
@@ -415,9 +412,8 @@ main(int argc, char **argv)
     .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
     .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution,
 
-    .bcx = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-    .bcy = {GKYL_SPECIES_COPY, GKYL_SPECIES_COPY},
-  };
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -427,7 +423,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = {NX, NY};
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -449,14 +445,12 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -478,13 +472,12 @@ main(int argc, char **argv)
   }
 
   // Moment app.
-  struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_brill_lindquist",
+  struct gkyl_moment app_inp = { .name = "vacuum_einstein_brill_lindquist",
 
     .ndim = 2,
-    .lower = {0.0, 0.0},
-    .upper = {ctx.Lx, ctx.Ly},
-    .cells = {NX, NY},
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
 
     .scheme_type = GKYL_MOMENT_WAVE_PROP,
     .mp_recon = app_args.mp_recon,
@@ -492,15 +485,10 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
-    .species = {einstein},
+    .species = { einstein },
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1]},
-        .comm = comm,
-      },
-  };
+    .parallelism = {
+      .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0], app_args.cuts[1] }, .comm = comm } };
 
   // Create app object.
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
@@ -532,21 +520,24 @@ main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 

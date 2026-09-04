@@ -97,14 +97,14 @@ test_bop(bool use_gpu)
   int c_oop = 0;
   // create the 2d field
   // create xz grid
-  double lower[] = {-M_PI, 0.0}, upper[] = {M_PI, 1.0};
-  int cells[] = {12, 8};
+  double lower[] = { -M_PI, 0.0 }, upper[] = { M_PI, 1.0 };
+  int cells[] = { 12, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
   //ranges
   struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = {1, 1};
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
   struct gkyl_range global_sub_range = local;
 
@@ -219,10 +219,8 @@ test_deflated_bop_dev(void)
   test_bop(true);
 }
 
-TEST_LIST = {
-  {"test_deflated_bop_ho", test_deflated_bop_ho},
+TEST_LIST = { { "test_deflated_bop_ho", test_deflated_bop_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"test_deflated_bop_dev", test_deflated_bop_dev},
+  { "test_deflated_bop_dev", test_deflated_bop_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

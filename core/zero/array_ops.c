@@ -699,11 +699,11 @@ struct gkyl_array_diff
 gkyl_array_diff(
   const struct gkyl_array *arr1, const struct gkyl_array *arr2, const struct gkyl_range *range)
 {
-  struct gkyl_array_diff incompat = {.is_compatible = false,
+  struct gkyl_array_diff incompat = { .is_compatible = false,
     .max_abs_diff = DBL_MAX,
     .min_abs_diff = DBL_MAX,
     .max_rel_diff = DBL_MAX,
-    .min_rel_diff = DBL_MAX};
+    .min_rel_diff = DBL_MAX };
 
   if ((arr1->type != GKYL_DOUBLE) && (arr2->type != GKYL_DOUBLE))
     return incompat;
@@ -739,11 +739,11 @@ gkyl_array_diff(
     }
   }
 
-  return (struct gkyl_array_diff){.is_compatible = true,
+  return (struct gkyl_array_diff){ .is_compatible = true,
     .max_abs_diff = max_abs_diff,
     .min_abs_diff = min_abs_diff,
     .max_rel_diff = max_rel_diff,
-    .min_rel_diff = min_rel_diff};
+    .min_rel_diff = min_rel_diff };
 }
 
 struct gkyl_array *

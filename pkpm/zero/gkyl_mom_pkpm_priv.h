@@ -76,21 +76,21 @@ kernel_mom_pkpm_3x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, 
 // PKPM coupling moment kernel list (Serendipity basis)
 GKYL_CU_D static const gkyl_mom_pkpm_kern_list ser_mom_pkpm_kernels[] = {
   // 1x kernels
-  {NULL, kernel_mom_pkpm_1x1v_ser_p1, kernel_mom_pkpm_1x1v_ser_p2}, // 0
+  { NULL, kernel_mom_pkpm_1x1v_ser_p1, kernel_mom_pkpm_1x1v_ser_p2 }, // 0
   // 2x kernels
-  {NULL, kernel_mom_pkpm_2x1v_ser_p1, NULL}, // 1
+  { NULL, kernel_mom_pkpm_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
-  {NULL, kernel_mom_pkpm_3x1v_ser_p1, NULL}, // 2
+  { NULL, kernel_mom_pkpm_3x1v_ser_p1, NULL } // 2
 };
 
 // PKPM coupling moment kernel list (Tensor basis)
 GKYL_CU_D static const gkyl_mom_pkpm_kern_list ten_mom_pkpm_kernels[] = {
   // 1x kernels
-  {NULL, kernel_mom_pkpm_1x1v_ser_p1, kernel_mom_pkpm_1x1v_tensor_p2}, // 0
+  { NULL, kernel_mom_pkpm_1x1v_ser_p1, kernel_mom_pkpm_1x1v_tensor_p2 }, // 0
   // 2x kernels
-  {NULL, kernel_mom_pkpm_2x1v_ser_p1, kernel_mom_pkpm_2x1v_tensor_p2}, // 1
+  { NULL, kernel_mom_pkpm_2x1v_ser_p1, kernel_mom_pkpm_2x1v_tensor_p2 }, // 1
   // 3x kernels
-  {NULL, kernel_mom_pkpm_3x1v_ser_p1, NULL}, // 2
+  { NULL, kernel_mom_pkpm_3x1v_ser_p1, NULL } // 2
 };
 
 GKYL_CU_DH static void
@@ -150,21 +150,21 @@ kernel_mom_pkpm_diag_3x1v_ser_p1(const struct gkyl_mom_type *momt, const double 
 // PKPM diagnostic kernel list (Serendipity basis)
 GKYL_CU_D static const gkyl_mom_pkpm_kern_list ser_mom_pkpm_diag_kernels[] = {
   // 1x kernels
-  {NULL, kernel_mom_pkpm_diag_1x1v_ser_p1, kernel_mom_pkpm_diag_1x1v_ser_p2}, // 0
+  { NULL, kernel_mom_pkpm_diag_1x1v_ser_p1, kernel_mom_pkpm_diag_1x1v_ser_p2 }, // 0
   // 2x kernels
-  {NULL, kernel_mom_pkpm_diag_2x1v_ser_p1, NULL}, // 1
+  { NULL, kernel_mom_pkpm_diag_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
-  {NULL, kernel_mom_pkpm_diag_3x1v_ser_p1, NULL}, // 2
+  { NULL, kernel_mom_pkpm_diag_3x1v_ser_p1, NULL } // 2
 };
 
 // PKPM diagnostic kernel list (Tensor basis)
 GKYL_CU_D static const gkyl_mom_pkpm_kern_list ten_mom_pkpm_diag_kernels[] = {
   // 1x kernels
-  {NULL, kernel_mom_pkpm_diag_1x1v_ser_p1, kernel_mom_pkpm_diag_1x1v_tensor_p2}, // 0
+  { NULL, kernel_mom_pkpm_diag_1x1v_ser_p1, kernel_mom_pkpm_diag_1x1v_tensor_p2 }, // 0
   // 2x kernels
-  {NULL, kernel_mom_pkpm_diag_2x1v_ser_p1, kernel_mom_pkpm_diag_2x1v_tensor_p2}, // 1
+  { NULL, kernel_mom_pkpm_diag_2x1v_ser_p1, kernel_mom_pkpm_diag_2x1v_tensor_p2 }, // 1
   // 3x kernels
-  {NULL, kernel_mom_pkpm_diag_3x1v_ser_p1, NULL}, // 2
+  { NULL, kernel_mom_pkpm_diag_3x1v_ser_p1, NULL } // 2
 };
 
 /**

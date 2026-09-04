@@ -99,9 +99,7 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_vol_kern_list ser_vol_kernels[] =
   // { NULL, kernel_fpo_vlasov_drag_vol_1x3v_ser_p1, kernel_fpo_vlasov_drag_vol_1x3v_ser_p2 }, // 0
   // { NULL, kernel_fpo_vlasov_drag_vol_2x3v_ser_p1, kernel_fpo_vlasov_drag_vol_2x3v_ser_p2 }, // 1
   // { NULL, kernel_fpo_vlasov_drag_vol_3x3v_ser_p1, NULL }, // 2
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: vx-direction
@@ -109,9 +107,7 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vx_kernel
   // { NULL, fpo_vlasov_drag_surfvx_1x3v_ser_p1, fpo_vlasov_drag_surfvx_1x3v_ser_p2 }, // 0
   // { NULL, fpo_vlasov_drag_surfvx_2x3v_ser_p1, fpo_vlasov_drag_surfvx_2x3v_ser_p2 }, // 1
   // { NULL, fpo_vlasov_drag_surfvx_3x3v_ser_p1, NULL }, // 2
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: vy-direction
@@ -119,9 +115,7 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vy_kernel
   // { NULL, fpo_vlasov_drag_surfvy_1x3v_ser_p1, fpo_vlasov_drag_surfvy_1x3v_ser_p2 }, // 0
   // { NULL, fpo_vlasov_drag_surfvy_2x3v_ser_p1, fpo_vlasov_drag_surfvy_2x3v_ser_p2 }, // 1
   // { NULL, fpo_vlasov_drag_surfvy_3x3v_ser_p1, NULL }, // 2
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Surface kernel list: vz-direction
@@ -129,9 +123,7 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vz_kernel
   // { NULL, fpo_vlasov_drag_surfvz_1x3v_ser_p1, fpo_vlasov_drag_surfvz_1x3v_ser_p2 }, // 0
   // { NULL, fpo_vlasov_drag_surfvz_2x3v_ser_p1, fpo_vlasov_drag_surfvz_2x3v_ser_p2 }, // 1
   // { NULL, fpo_vlasov_drag_surfvz_3x3v_ser_p1, NULL }, // 2
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
-  {NULL, NULL, NULL},
+  { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
 };
 
 // Boundary Surface kernel list: vx-direction
@@ -140,10 +132,8 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list
     // { NULL, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p2 }, // 0
     // { NULL, fpo_vlasov_drag_boundary_surfvx_2x3v_ser_p1, fpo_vlasov_drag_boundary_surfvx_2x3v_ser_p2 }, // 1
     // { NULL, fpo_vlasov_drag_boundary_surfvx_3x3v_ser_p1, NULL }, // 2
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+    { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  };
 
 // Boundary Surface kernel list: vy-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list
@@ -151,10 +141,8 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list
     // { NULL, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p2 }, // 0
     // { NULL, fpo_vlasov_drag_boundary_surfvy_2x3v_ser_p1, fpo_vlasov_drag_boundary_surfvy_2x3v_ser_p2 }, // 1
     // { NULL, fpo_vlasov_drag_boundary_surfvy_3x3v_ser_p1, NULL }, // 2
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+    { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  };
 
 // Boundary Surface kernel list: vz-direction
 GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list
@@ -162,10 +150,8 @@ GKYL_CU_D static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list
     // { NULL, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p2 }, // 0
     // { NULL, fpo_vlasov_drag_boundary_surfvz_2x3v_ser_p1, fpo_vlasov_drag_boundary_surfvz_2x3v_ser_p2 }, // 1
     // { NULL, fpo_vlasov_drag_boundary_surfvz_3x3v_ser_p1, NULL }, // 2
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-    {NULL, NULL, NULL},
-};
+    { NULL, NULL, NULL }, { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  };
 
 void gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count *ref);
 

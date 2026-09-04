@@ -36,7 +36,7 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
     up->kernels = gkyl_cu_malloc(sizeof(struct gkyl_positivity_shift_gyrokinetic_kernels));
 
     up->ffloor = gkyl_cu_malloc(sizeof(double[1]));
-    double ffloor_zero[] = {0.}; // Gets updated after 1st call to _advance.
+    double ffloor_zero[] = { 0. }; // Gets updated after 1st call to _advance.
     gkyl_cu_memcpy(up->ffloor, ffloor_zero, sizeof(double[1]), GKYL_CU_MEMCPY_H2D);
 
     up->shiftedf = gkyl_array_cu_dev_new(GKYL_INT, 1, conf_rng_ext->volume);
@@ -71,7 +71,7 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic *up,
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int rem_dir[GKYL_MAX_DIM] = {0};
+  int rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < conf_rng->ndim; ++d)
     rem_dir[d] = 1;
 
@@ -207,7 +207,7 @@ gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gy
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int rem_dir[GKYL_MAX_DIM] = {0};
+  int rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < conf_rng->ndim; ++d)
     rem_dir[d] = 1;
 

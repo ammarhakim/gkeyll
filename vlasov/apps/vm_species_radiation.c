@@ -34,8 +34,8 @@ vm_species_radiation_init(
   gkyl_array_release(nu_rad_drag_host);
 
   // Radiation operator uses the LBO kernels, so create auxiliary field struct for LBO
-  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = {
-    .nuSum = rad->nu, .nuPrimMomsSum = rad->nu_rad_drag};
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = rad->nu,
+    .nuPrimMomsSum = rad->nu_rad_drag };
   rad->rad_slvr = gkyl_dg_updater_rad_vlasov_new(
     &s->grid, &app->confBasis, &app->basis, &app->local, &drag_inp, app->use_gpu);
 }

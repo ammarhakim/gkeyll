@@ -48,14 +48,14 @@ gkyl_dg_updater_gk_anomalous_diffusion_new(const struct gkyl_rect_grid *grid,
     gkyl_gk_anomalous_diffusion_new(basis, cbasis, conf_range, bc_x_lower, bc_x_upper, up->use_gpu);
 
   gkyl_gk_anomalous_diffusion_set_auxfields(up->dgeqn,
-    (struct gkyl_gk_anomalous_diffusion_auxfields){.nu = nu, .jacobgeo_inv = jacobgeo_inv});
+    (struct gkyl_gk_anomalous_diffusion_auxfields){ .nu = nu, .jacobgeo_inv = jacobgeo_inv });
 
   int num_up_dirs = 1;
   int up_dirs[GKYL_MAX_DIM];
   up_dirs[0] = 0;
 
   // Determine if hyper_dg should apply boundary_surf kernels.
-  int use_boundary_surf[2 * GKYL_MAX_DIM] = {0};
+  int use_boundary_surf[2 * GKYL_MAX_DIM] = { 0 };
   if (!((bc_x_lower == GKYL_BC_GK_SKIP) || (bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) ||
         (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC) ||
         (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)))
@@ -87,9 +87,7 @@ struct gkyl_dg_updater_gk_anomalous_diffusion_tm
 gkyl_dg_updater_gk_anomalous_diffusion_get_tm(
   const struct gkyl_dg_updater_gk_anomalous_diffusion *up)
 {
-  return (struct gkyl_dg_updater_gk_anomalous_diffusion_tm){
-    .diffusion_tm = up->diffusion_tm,
-  };
+  return (struct gkyl_dg_updater_gk_anomalous_diffusion_tm){ .diffusion_tm = up->diffusion_tm };
 }
 
 void

@@ -59,84 +59,84 @@ ker_gk_anomalous_diffusion_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const 
 
 // Volume kernel list.
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_vol_kern_list ser_vol_kernels[] = {
-  {NULL, NULL}, // 1x1v
-  {NULL, NULL}, // 1x2v
-  {ker_gk_anomalous_diffusion_vol_2x2v_ser_p1, NULL}, // 2x2v
-  {NULL, NULL}, // 3x2v
+  { NULL, NULL }, // 1x1v
+  { NULL, NULL }, // 1x2v
+  { ker_gk_anomalous_diffusion_vol_2x2v_ser_p1, NULL }, // 2x2v
+  { NULL, NULL } // 3x2v
 };
 
 // Surface kernel list: x-direction
-GKYL_CU_D static const gkyl_gk_anomalous_diffusion_surf_kern_list ser_gyrokinetic_surfx_kernels[] =
-  {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_surfx_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+GKYL_CU_D static const gkyl_gk_anomalous_diffusion_surf_kern_list
+  ser_gyrokinetic_surfx_kernels[] = {
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_surfx_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 
 // Zero-flux boundary surface kernel list: x-direction
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
   ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels[] = {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_boundary_surfx_lower_zero_flux_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_boundary_surfx_lower_zero_flux_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
   ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels[] = {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_boundary_surfx_upper_zero_flux_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_boundary_surfx_upper_zero_flux_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 
 // Boundary-local boundary surface kernel list: x-direction
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
   ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels[] = {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_boundary_surfx_lower_bound_local_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_boundary_surfx_lower_bound_local_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
   ser_gyrokinetic_boundary_surfx_upper_boundlocal_kernels[] = {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_boundary_surfx_upper_bound_local_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_boundary_surfx_upper_bound_local_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 
 // Bound-local boundary diagnostic kernel list: x-direction
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
   ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels[] = {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_boundary_diagx_lower_bound_local_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_boundary_diagx_lower_bound_local_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
   ser_gyrokinetic_boundary_diagx_upper_boundlocal_kernels[] = {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_boundary_diagx_upper_bound_local_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_boundary_diagx_upper_bound_local_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 
 // Bound-recovery boundary diagnostic kernel list: x-direction
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
   ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels[] = {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_boundary_diagx_lower_bound_recovery_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_boundary_diagx_lower_bound_recovery_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 GKYL_CU_D static const gkyl_gk_anomalous_diffusion_boundary_surf_kern_list
   ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels[] = {
-    {NULL, NULL}, // 1x1v
-    {NULL, NULL}, // 1x2v
-    {gk_anomalous_diffusion_boundary_diagx_upper_bound_recovery_2x2v_ser_p1, NULL}, // 2x2v
-    {NULL, NULL}, // 3x2v
-};
+    { NULL, NULL }, // 1x1v
+    { NULL, NULL }, // 1x2v
+    { gk_anomalous_diffusion_boundary_diagx_upper_bound_recovery_2x2v_ser_p1, NULL }, // 2x2v
+    { NULL, NULL } // 3x2v
+  };
 
 // Macro for choosing volume and surface kernels.
 #define CKVOL(lst, pdim, poly_order) lst[pdim - 2].kernels[poly_order - 1]

@@ -436,12 +436,12 @@ gk_neut_species_kinetic_file_import_init(struct gkyl_gyrokinetic_app *app,
 
     // Read basis info from header, check its consistency.
     struct gkyl_msgpack_map_elem elem_list[] = {
-      {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
-      {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0},
+      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = 0 }
     };
     int elem_list_len = sizeof(elem_list) / sizeof(elem_list[0]);
     gkyl_msgpack_to_map_elem_list(
-      &(struct gkyl_msgpack_data){.meta = hdr.meta, .meta_sz = hdr.meta_size}, elem_list_len,
+      &(struct gkyl_msgpack_data){ .meta = hdr.meta, .meta_sz = hdr.meta_size }, elem_list_len,
       elem_list);
     assert(strcmp(s->basis.id,
              gkyl_msgpack_map_elem_get_string(elem_list_len, elem_list, "basis_type")) == 0);
@@ -470,7 +470,7 @@ gk_neut_species_kinetic_file_import_init(struct gkyl_gyrokinetic_app *app,
   gkyl_create_grid_ranges(&grid_do, ghost_do, &global_ext_do, &global_do);
 
   // Create a donor communicator.
-  int cuts_tar[GKYL_MAX_DIM] = {-1}, cuts_do[GKYL_MAX_CDIM] = {-1};
+  int cuts_tar[GKYL_MAX_DIM] = { -1 }, cuts_do[GKYL_MAX_CDIM] = { -1 };
   gkyl_rect_decomp_get_cuts(app->decomp, cuts_tar);
   if (cdim_do == cdim - 1) {
     for (int d = 0; d < cdim_do - 1; d++) {
@@ -715,47 +715,47 @@ gk_neut_species_kinetic_init(
 
   // Species properties metadata.
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
-    {.key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = s->info.mass},
-    {.key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->info.vdim},
+    { .key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = s->info.mass },
+    { .key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->info.vdim }
   };
 
   // Metadata for integrated quantities.
-  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {app->io_meta_basic, io_meta_sprop};
-  int io_meta_basic_union_len[] = {
-    app->io_meta_basic_len, sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0])};
+  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = { app->io_meta_basic, io_meta_sprop };
+  int io_meta_basic_union_len[] = { app->io_meta_basic_len,
+    sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]) };
   s->io_meta_basic =
     gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union) / sizeof(io_meta_basic_union[0]),
       io_meta_basic_union_len, io_meta_basic_union, &s->io_meta_basic_len);
 
   // Metadata for conf-space quantities.
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
-    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 }
   };
-  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {
-    app->io_meta_basic, io_meta_sprop, io_meta_conf};
-  int io_meta_conf_union_len[] = {app->io_meta_basic_len,
+  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = { app->io_meta_basic, io_meta_sprop,
+    io_meta_conf };
+  int io_meta_conf_union_len[] = { app->io_meta_basic_len,
     sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
-    sizeof(io_meta_conf) / sizeof(io_meta_conf[0])};
+    sizeof(io_meta_conf) / sizeof(io_meta_conf[0]) };
   s->io_meta_conf =
     gkyl_msgpack_map_elem_union(sizeof(io_meta_conf_union) / sizeof(io_meta_conf_union[0]),
       io_meta_conf_union_len, io_meta_conf_union, &s->io_meta_conf_len);
 
   // Metadata for phase-space quantities.
   struct gkyl_msgpack_map_elem io_meta_phase[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->basis.poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = s->basis.id},
-    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = s->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 }
   };
-  const struct gkyl_msgpack_map_elem *io_meta_phase_union[] = {
-    app->io_meta_basic, io_meta_sprop, io_meta_phase};
-  int io_meta_phase_union_len[] = {app->io_meta_basic_len,
+  const struct gkyl_msgpack_map_elem *io_meta_phase_union[] = { app->io_meta_basic, io_meta_sprop,
+    io_meta_phase };
+  int io_meta_phase_union_len[] = { app->io_meta_basic_len,
     sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
-    sizeof(io_meta_phase) / sizeof(io_meta_phase[0])};
+    sizeof(io_meta_phase) / sizeof(io_meta_phase[0]) };
   s->io_meta_phase =
     gkyl_msgpack_map_elem_union(sizeof(io_meta_phase_union) / sizeof(io_meta_phase_union[0]),
       io_meta_phase_union_len, io_meta_phase_union, &s->io_meta_phase_len);
@@ -776,8 +776,8 @@ gk_neut_species_kinetic_init(
       app->use_gpu, app->gk_geom->geo_int.g_ij_neut->ncomp, app->gk_geom->geo_int.g_ij_neut->size);
 
     // Reorganize the metric tensor so ignorable coordinates are last.
-    int metric_reorg_idxs_1x[] = {5, 2, 4, 0, 1, 3};
-    int metric_reorg_idxs_2x[] = {0, 2, 1, 5, 4, 3};
+    int metric_reorg_idxs_1x[] = { 5, 2, 4, 0, 1, 3 };
+    int metric_reorg_idxs_2x[] = { 0, 2, 1, 5, 4, 3 };
     int *metric_reorg_idxs = app->cdim == 1 ? metric_reorg_idxs_1x : metric_reorg_idxs_2x;
     int num_basis_conf = app->basis.num_basis;
     struct gkyl_array *tmp_arr =
@@ -868,10 +868,10 @@ gk_neut_species_kinetic_init(
   int max_iter = s->info.correct.max_iter > 0 ? s->info.correct.max_iter : 50;
   double iter_eps = s->info.correct.iter_eps > 0 ? s->info.correct.iter_eps : 1e-10;
   bool use_last_converged = s->info.correct.use_last_converged;
-  struct correct_all_moms_inp corr_inp = {.correct_all_moms = correct_all_moms,
+  struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms,
     .max_iter = max_iter,
     .iter_eps = iter_eps,
-    .use_last_converged = use_last_converged};
+    .use_last_converged = use_last_converged };
   gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
 
   // Initialize elastic collisions.

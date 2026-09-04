@@ -360,9 +360,7 @@ gkyl_gr_minkowski_free(const struct gkyl_ref_count *ref)
 struct gkyl_gr_spacetime *
 gkyl_gr_minkowski_new(bool use_gpu)
 {
-  return gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){
-    .use_gpu = use_gpu,
-  });
+  return gkyl_gr_minkowski_inew(&(struct gkyl_gr_minkowski_inp){ .use_gpu = use_gpu });
 }
 
 struct gkyl_gr_spacetime *

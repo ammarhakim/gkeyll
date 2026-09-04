@@ -581,7 +581,7 @@ test_mat_mm_arrays_ho()
   gkyl_mat_mm_array(ctest_prob_mem, array_x, array_y);
 
   // check the expected result
-  double expected_array[8] = {10.0, 13.0, 28.0, 40.0, 46.0, 67.0, 64.0, 94.0};
+  double expected_array[8] = { 10.0, 13.0, 28.0, 40.0, 46.0, 67.0, 64.0, 94.0 };
   for (size_t j = 0; j < array_y->size; ++j) {
     double *y = gkyl_array_fetch(array_y, j);
     for (size_t i = 0; i < array_y->ncomp; ++i) {
@@ -857,7 +857,7 @@ test_mat_mm_arrays_dev()
   gkyl_array_copy(array_y, array_ycu);
 
   // check the expected result
-  double expected_array[8] = {10.0, 13.0, 28.0, 40.0, 46.0, 67.0, 64.0, 94.0};
+  double expected_array[8] = { 10.0, 13.0, 28.0, 40.0, 46.0, 67.0, 64.0, 94.0 };
   for (size_t j = 0; j < array_y->size; ++j) {
     double *y = gkyl_array_fetch(array_y, j);
     for (size_t i = 0; i < array_y->ncomp; ++i) {
@@ -877,25 +877,16 @@ test_mat_mm_arrays_dev()
 
 #endif
 
-TEST_LIST = {
-  {"mat_base_ho", test_mat_base_ho},
-  {"mat_mm_op_ho", test_mat_mm_op_ho},
-  {"mat_linsolve_ho", test_mat_linsolve_ho},
-  {"nmat_base_ho", test_nmat_base_ho},
-  {"nmat_linsolve_ho", test_nmat_linsolve_ho},
-  {"nmat_linsolve_pa_ho", test_nmat_linsolve_pa_ho},
-  {"mat_mv_ho", test_mat_mv_ho},
-  {"nmat_mv_ho", test_nmat_mv_ho},
-  {"nmat_mm_ho", test_nmat_mm_ho},
-  {"mat_mm_arrays_ho", test_mat_mm_arrays_ho},
+TEST_LIST = { { "mat_base_ho", test_mat_base_ho }, { "mat_mm_op_ho", test_mat_mm_op_ho },
+  { "mat_linsolve_ho", test_mat_linsolve_ho }, { "nmat_base_ho", test_nmat_base_ho },
+  { "nmat_linsolve_ho", test_nmat_linsolve_ho },
+  { "nmat_linsolve_pa_ho", test_nmat_linsolve_pa_ho }, { "mat_mv_ho", test_mat_mv_ho },
+  { "nmat_mv_ho", test_nmat_mv_ho }, { "nmat_mm_ho", test_nmat_mm_ho },
+  { "mat_mm_arrays_ho", test_mat_mm_arrays_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"nmat_base_dev", test_nmat_base_dev},
-  {"nmat_linsolve_dev", test_nmat_linsolve_dev},
-  {"nmat_linsolve_pa_dev", test_nmat_linsolve_pa_dev},
-  {"nmat_mv_dev", test_nmat_mv_dev},
-  {"mat_mm_dev", test_mat_mm_dev},
-  {"nmat_mm_dev", test_nmat_mm_dev},
-  {"mat_mm_arrays_dev", test_mat_mm_arrays_dev},
+  { "nmat_base_dev", test_nmat_base_dev }, { "nmat_linsolve_dev", test_nmat_linsolve_dev },
+  { "nmat_linsolve_pa_dev", test_nmat_linsolve_pa_dev }, { "nmat_mv_dev", test_nmat_mv_dev },
+  { "mat_mm_dev", test_mat_mm_dev }, { "nmat_mm_dev", test_nmat_mm_dev },
+  { "mat_mm_arrays_dev", test_mat_mm_arrays_dev },
 #endif
-  {NULL, NULL},
-};
+  { NULL, NULL } };

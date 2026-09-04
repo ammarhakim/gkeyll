@@ -61,7 +61,7 @@ static void
 vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
 
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
@@ -157,7 +157,8 @@ vm_fluid_species_euler_init(
     f->equation, app->geom, &app->confBasis, &app->local, limiter_fac, app->use_gpu);
 
   struct gkyl_dg_euler_auxfields aux_inp = {
-    .u = f->u, .p = f->p, .u_surf = f->u_surf, .p_surf = f->p_surf};
+    .u = f->u, .p = f->p, .u_surf = f->u_surf, .p_surf = f->p_surf
+  };
   f->advect_slvr = gkyl_dg_updater_fluid_new(
     &app->grid, &app->confBasis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
 
@@ -228,7 +229,7 @@ vm_fluid_species_advect_write(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
 
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
@@ -290,7 +291,7 @@ vm_fluid_species_advect_init(
   }
   gkyl_eval_on_nodes_release(app_advect_proj);
 
-  struct gkyl_dg_advection_auxfields aux_inp = {.u_i = f->app_advect};
+  struct gkyl_dg_advection_auxfields aux_inp = { .u_i = f->app_advect };
   f->advect_slvr = gkyl_dg_updater_fluid_new(
     &app->grid, &app->confBasis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
 
@@ -392,7 +393,7 @@ vm_fluid_species_can_pb_fluid_write(
   gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = vlasov_array_meta_new((struct vlasov_output_meta){
-    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id});
+    .frame = frame, .stime = tm, .poly_order = app->poly_order, .basis_type = app->confBasis.id });
 
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
@@ -502,10 +503,9 @@ vm_fluid_species_can_pb_fluid_init(
   gkyl_array_shiftc(f->epsilon, -1.0 * pow(sqrt(2.0), app->cdim), 0);
 
   // Create Poisson solver. Only supports periodic boundary conditions for now.
-  struct gkyl_poisson_bc poisson_bcs = {
-    .lo_type = {GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC},
-    .up_type = {GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC},
-  };
+  struct gkyl_poisson_bc poisson_bcs = { .lo_type = { GKYL_POISSON_PERIODIC,
+                                           GKYL_POISSON_PERIODIC },
+    .up_type = { GKYL_POISSON_PERIODIC, GKYL_POISSON_PERIODIC } };
   if (f->eqn_type == GKYL_EQN_CAN_PB_HASEGAWA_MIMA) {
     // If Hasegawa-Mima, we solve a Helmholtz equations (grad^2 - 1)phi = zeta
     // where zeta is vorticity (the quantity we are evolving).
@@ -548,10 +548,10 @@ vm_fluid_species_can_pb_fluid_init(
   f->calc_can_pb_fluid_vars = gkyl_dg_calc_canonical_pb_fluid_vars_new(
     &app->grid, &app->confBasis, &app->local, &app->local_ext, f->equation, app->use_gpu);
 
-  struct gkyl_dg_canonical_pb_fluid_auxfields aux_inp = {.phi = f->phi,
+  struct gkyl_dg_canonical_pb_fluid_auxfields aux_inp = { .phi = f->phi,
     .alpha_surf = f->alpha_surf,
     .sgn_alpha_surf = f->sgn_alpha_surf,
-    .const_sgn_alpha = f->const_sgn_alpha};
+    .const_sgn_alpha = f->const_sgn_alpha };
   f->advect_slvr = gkyl_dg_updater_fluid_new(
     &app->grid, &app->confBasis, &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
 
@@ -632,7 +632,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
   }
 
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
+  int up_dirs[GKYL_MAX_DIM] = { 0, 1, 2 }, zero_flux_flags[GKYL_MAX_DIM] = { 0, 0, 0 };
 
   f->has_diffusion = false;
   f->diffD = NULL;
@@ -647,13 +647,13 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       diffD_host = mkarr(false, szD * app->confBasis.num_basis, app->local_ext.volume);
 
     gkyl_proj_on_basis *diff_proj =
-      gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){.grid = &app->grid,
+      gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &app->grid,
         .basis = &app->confBasis,
         .qtype = GKYL_GAUSS_LOBATTO_QUAD,
         .num_quad = 8,
         .num_ret_vals = szD,
         .eval = f->info.diffusion.Dij,
-        .ctx = f->info.diffusion.Dij_ctx});
+        .ctx = f->info.diffusion.Dij_ctx });
     gkyl_proj_on_basis_advance(diff_proj, 0.0, &app->local_ext, diffD_host);
     if (app->use_gpu) { // note: diffD_host is same as diffD when not on GPUs
       gkyl_array_copy(f->diffD, diffD_host);
@@ -683,7 +683,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       gkyl_array_release(diffD_host);
     }
 
-    const bool is_zero_flux[GKYL_MAX_CDIM] = {false};
+    const bool is_zero_flux[GKYL_MAX_CDIM] = { false };
 
     f->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(&app->grid, &app->confBasis, true,
       f->num_equations, NULL, f->info.diffusion.order, &app->local, is_zero_flux, app->use_gpu);
@@ -714,7 +714,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->source_id = f->info.source.source_id;
 
   // determine which directions are not periodic
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = { 1, 1, 1 };
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np[app->periodic_dirs[d]] = 0;
 
@@ -922,7 +922,7 @@ vm_fluid_species_apply_bc(
   gkyl_comm_array_per_sync(
     app->comm, &app->local, &app->local_ext, num_periodic_dir, app->periodic_dirs, f);
 
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  int is_np_bc[3] = { 1, 1, 1 }; // flags to indicate if direction is periodic
   for (int d = 0; d < num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
 

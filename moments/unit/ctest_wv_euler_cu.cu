@@ -35,17 +35,15 @@ ker_cu_wv_euler_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   q[4] = pr / (gas_gamma - 1) + 0.5 * rho * (u * u + v * v + w * w);
   double E = q[4];
 
-  double fluxes[3][5] = {
-    {rho * u, rho * u * u + pr, rho * u * v, rho * u * w, (E + pr) * u},
-    {rho * v, rho * u * v, rho * v * v + pr, rho * v * w, (E + pr) * v},
-    {rho * w, rho * u * w, rho * v * w, rho * w * w, (E + pr) * w},
-  };
+  double fluxes[3][5] = { { rho * u, rho * u * u + pr, rho * u * v, rho * u * w, (E + pr) * u },
+    { rho * v, rho * u * v, rho * v * v + pr, rho * v * w, (E + pr) * v },
+    { rho * w, rho * u * w, rho * v * w, rho * w * w, (E + pr) * w } };
 
-  double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+  double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-  double tau1[3][3] = {{0.0, 1.0, 0.0}, {1.0, 0.0, 0.0}, {1.0, 0.0, 0.0}};
+  double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-  double tau2[3][3] = {{0.0, 0.0, 1.0}, {0.0, 0.0, -1.0}, {0.0, 1.0, 0.0}};
+  double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
   GKYL_CU_CHECK(pr == gkyl_euler_pressure(gas_gamma, q), nfail);
 

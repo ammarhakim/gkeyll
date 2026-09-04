@@ -9,7 +9,7 @@ enum gkyl_poisson_bc_type {
   GKYL_POISSON_DIRICHLET, // Sets the value.
   GKYL_POISSON_NEUMANN, // Sets the slope normal to the boundary.
   GKYL_POISSON_ROBIN, // A combination of dirichlet and neumann.
-  GKYL_POISSON_DIRICHLET_VARYING, // Sets the value, spatially varying.
+  GKYL_POISSON_DIRICHLET_VARYING // Sets the value, spatially varying.
 };
 
 // Boundary condition values. Dirichlet and Neumann use only one value,

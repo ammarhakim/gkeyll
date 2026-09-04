@@ -36,15 +36,13 @@ struct gkyl_eval_on_nodes *
 gkyl_eval_on_nodes_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   int num_ret_vals, evalf_t eval, void *ctx)
 {
-  return gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){
-    .grid = grid,
+  return gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){ .grid = grid,
     .basis = basis,
     .num_ret_vals = num_ret_vals,
     .eval = eval,
     .ctx = ctx,
     .c2p_func = 0,
-    .c2p_func_ctx = NULL,
-  });
+    .c2p_func_ctx = NULL });
 }
 
 struct gkyl_eval_on_nodes *

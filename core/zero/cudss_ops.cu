@@ -135,7 +135,7 @@ gkyl_culinsolver_amat_from_triples(
     for (size_t i = 0; i < prob->nnz; ++i) {
       gkyl_mat_triples_iter_next(iter); // bump iterator.
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-      size_t idx[2] = {mt.row, mt.col};
+      size_t idx[2] = { mt.row, mt.col };
 
       prob->csr_val_ho[k * prob->nnz + i] = mt.val;
       if (k == 0) {

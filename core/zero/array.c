@@ -41,13 +41,11 @@ g_array_free(void *ptr)
 }
 
 // size in bytes for various data-types
-static const size_t array_elem_size[] = {
-  [GKYL_INT] = sizeof(int),
+static const size_t array_elem_size[] = { [GKYL_INT] = sizeof(int),
   [GKYL_LONG] = sizeof(long),
   [GKYL_FLOAT] = sizeof(float),
   [GKYL_DOUBLE] = sizeof(double),
-  [GKYL_USER] = 1,
-};
+  [GKYL_USER] = 1 };
 
 static void
 array_free(const struct gkyl_ref_count *ref)

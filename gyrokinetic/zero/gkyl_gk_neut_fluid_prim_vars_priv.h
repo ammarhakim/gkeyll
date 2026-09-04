@@ -105,82 +105,78 @@ struct gkyl_gk_neut_fluid_prim_vars {
 // Set matrices for computing fluid flow velocity (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_udrift_set_prob_kern_list
   ser_gk_nf_prim_vars_udrift_set_prob_kernels[] = {
-    {gk_neut_fluid_prim_vars_udrift_set_prob_1x_ser_p1,
-      gk_neut_fluid_prim_vars_udrift_set_prob_1x_ser_p2, NULL},
-    {gk_neut_fluid_prim_vars_udrift_set_prob_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_udrift_set_prob_3x_ser_p1, NULL, NULL},
-};
+    { gk_neut_fluid_prim_vars_udrift_set_prob_1x_ser_p1,
+      gk_neut_fluid_prim_vars_udrift_set_prob_1x_ser_p2, NULL },
+    { gk_neut_fluid_prim_vars_udrift_set_prob_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_udrift_set_prob_3x_ser_p1, NULL, NULL }
+  };
 
 // Copy solution for fluid flow velocity (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_udrift_get_sol_kern_list
   ser_gk_nf_prim_vars_udrift_get_sol_kernels[] = {
-    {gk_neut_fluid_prim_vars_udrift_get_sol_1x_ser_p1,
-      gk_neut_fluid_prim_vars_udrift_get_sol_1x_ser_p2, NULL},
-    {gk_neut_fluid_prim_vars_udrift_get_sol_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_udrift_get_sol_3x_ser_p1, NULL, NULL},
-};
+    { gk_neut_fluid_prim_vars_udrift_get_sol_1x_ser_p1,
+      gk_neut_fluid_prim_vars_udrift_get_sol_1x_ser_p2, NULL },
+    { gk_neut_fluid_prim_vars_udrift_get_sol_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_udrift_get_sol_3x_ser_p1, NULL, NULL }
+  };
 
 // Scalar pressure p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_pressure_kern_list
-  ser_gk_nf_prim_vars_pressure_kernels[] = {
-    {gk_neut_fluid_prim_vars_pressure_1x_ser_p1, gk_neut_fluid_prim_vars_pressure_1x_ser_p2, NULL},
-    {gk_neut_fluid_prim_vars_pressure_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_pressure_3x_ser_p1, NULL, NULL},
-};
+  ser_gk_nf_prim_vars_pressure_kernels[] = { { gk_neut_fluid_prim_vars_pressure_1x_ser_p1,
+                                               gk_neut_fluid_prim_vars_pressure_1x_ser_p2, NULL },
+    { gk_neut_fluid_prim_vars_pressure_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_pressure_3x_ser_p1, NULL, NULL } };
 
 // Set matrices for computing temperature (Serendipity kernels).
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_temp_set_prob_kern_list
-  ser_gk_nf_prim_vars_temp_set_prob_kernels[] = {
-    {gk_neut_fluid_prim_vars_temp_set_prob_1x_ser_p1,
-      gk_neut_fluid_prim_vars_temp_set_prob_1x_ser_p2, NULL},
-    {gk_neut_fluid_prim_vars_temp_set_prob_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_temp_set_prob_3x_ser_p1, NULL, NULL},
-};
+  ser_gk_nf_prim_vars_temp_set_prob_kernels[] = { { gk_neut_fluid_prim_vars_temp_set_prob_1x_ser_p1,
+                                                    gk_neut_fluid_prim_vars_temp_set_prob_1x_ser_p2,
+                                                    NULL },
+    { gk_neut_fluid_prim_vars_temp_set_prob_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_temp_set_prob_3x_ser_p1, NULL, NULL } };
 
 // Copy solution for temperature. (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_temp_get_sol_kern_list
-  ser_gk_nf_prim_vars_temp_get_sol_kernels[] = {
-    {gk_neut_fluid_prim_vars_temp_get_sol_1x_ser_p1, gk_neut_fluid_prim_vars_temp_get_sol_1x_ser_p2,
-      NULL},
-    {gk_neut_fluid_prim_vars_temp_get_sol_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_temp_get_sol_3x_ser_p1, NULL, NULL},
-};
+  ser_gk_nf_prim_vars_temp_get_sol_kernels[] = { { gk_neut_fluid_prim_vars_temp_get_sol_1x_ser_p1,
+                                                   gk_neut_fluid_prim_vars_temp_get_sol_1x_ser_p2,
+                                                   NULL },
+    { gk_neut_fluid_prim_vars_temp_get_sol_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_temp_get_sol_3x_ser_p1, NULL, NULL } };
 
 // Set matrices for computing temperature (Serendipity kernels).
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_udrift_temp_set_prob_kern_list
   ser_gk_nf_prim_vars_udrift_temp_set_prob_kernels[] = {
-    {gk_neut_fluid_prim_vars_udrift_temp_set_prob_1x_ser_p1,
-      gk_neut_fluid_prim_vars_udrift_temp_set_prob_1x_ser_p2, NULL},
-    {gk_neut_fluid_prim_vars_udrift_temp_set_prob_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_udrift_temp_set_prob_3x_ser_p1, NULL, NULL},
-};
+    { gk_neut_fluid_prim_vars_udrift_temp_set_prob_1x_ser_p1,
+      gk_neut_fluid_prim_vars_udrift_temp_set_prob_1x_ser_p2, NULL },
+    { gk_neut_fluid_prim_vars_udrift_temp_set_prob_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_udrift_temp_set_prob_3x_ser_p1, NULL, NULL }
+  };
 
 // Copy solution for temperature. (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_udrift_temp_get_sol_kern_list
   ser_gk_nf_prim_vars_udrift_temp_get_sol_kernels[] = {
-    {gk_neut_fluid_prim_vars_udrift_temp_get_sol_1x_ser_p1,
-      gk_neut_fluid_prim_vars_udrift_temp_get_sol_1x_ser_p2, NULL},
-    {gk_neut_fluid_prim_vars_udrift_temp_get_sol_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_udrift_temp_get_sol_3x_ser_p1, NULL, NULL},
-};
+    { gk_neut_fluid_prim_vars_udrift_temp_get_sol_1x_ser_p1,
+      gk_neut_fluid_prim_vars_udrift_temp_get_sol_1x_ser_p2, NULL },
+    { gk_neut_fluid_prim_vars_udrift_temp_get_sol_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_udrift_temp_get_sol_3x_ser_p1, NULL, NULL }
+  };
 
 // Set matrices for computing fluid flow energy (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_flowE_set_prob_kern_list
   ser_gk_nf_prim_vars_flowE_set_prob_kernels[] = {
-    {gk_neut_fluid_prim_vars_flowE_set_prob_1x_ser_p1,
-      gk_neut_fluid_prim_vars_flowE_set_prob_1x_ser_p2, NULL},
-    {gk_neut_fluid_prim_vars_flowE_set_prob_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_flowE_set_prob_3x_ser_p1, NULL, NULL},
-};
+    { gk_neut_fluid_prim_vars_flowE_set_prob_1x_ser_p1,
+      gk_neut_fluid_prim_vars_flowE_set_prob_1x_ser_p2, NULL },
+    { gk_neut_fluid_prim_vars_flowE_set_prob_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_flowE_set_prob_3x_ser_p1, NULL, NULL }
+  };
 
 // Copy solution for fluid flow energy (Serendipity kernels)
 GKYL_CU_D static const gkyl_gk_nf_prim_vars_flowE_get_sol_kern_list
-  ser_gk_nf_prim_vars_flowE_get_sol_kernels[] = {
-    {gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p1,
-      gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p2, NULL},
-    {gk_neut_fluid_prim_vars_flowE_get_sol_2x_ser_p1, NULL, NULL},
-    {gk_neut_fluid_prim_vars_flowE_get_sol_3x_ser_p1, NULL, NULL},
-};
+  ser_gk_nf_prim_vars_flowE_get_sol_kernels[] = { { gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p1,
+                                                    gk_neut_fluid_prim_vars_flowE_get_sol_1x_ser_p2,
+                                                    NULL },
+    { gk_neut_fluid_prim_vars_flowE_get_sol_2x_ser_p1, NULL, NULL },
+    { gk_neut_fluid_prim_vars_flowE_get_sol_3x_ser_p1, NULL, NULL } };
 
 GKYL_CU_D static gk_nf_udrift_set_prob_t
 choose_udrift_set_prob_ker(enum gkyl_basis_type b_type, int cdim, int poly_order)

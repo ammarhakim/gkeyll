@@ -55,7 +55,7 @@ enum gkyl_tok_geo_type {
   GKYL_GEOMETRY_TOKAMAK_CORE_L, // Left half of core (lower to upper xpt)
   GKYL_GEOMETRY_TOKAMAK_CORE_R, // Right half of core (upper to lower xpt)
 
-  GKYL_GEOMETRY_TOKAMAK_IWL, // Inner Wall Limited
+  GKYL_GEOMETRY_TOKAMAK_IWL // Inner Wall Limited
 };
 
 struct gkyl_tok_geo {

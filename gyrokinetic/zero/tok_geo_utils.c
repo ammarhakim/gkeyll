@@ -261,13 +261,13 @@ tok_geo_set_extent(
   double *arc_memo_left = gkyl_malloc(sizeof(double[nzcells]));
   double *arc_memo_right = gkyl_malloc(sizeof(double[nzcells]));
 
-  struct arc_length_ctx arc_ctx = {.geo = geo,
+  struct arc_length_ctx arc_ctx = { .geo = geo,
     .arc_memo = arc_memo,
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = geo->zmaxis};
-  struct plate_ctx pctx = {.geo = geo};
+    .zmaxis = geo->zmaxis };
+  struct plate_ctx pctx = { .geo = geo };
 
   double del = 1.0e-14;
 

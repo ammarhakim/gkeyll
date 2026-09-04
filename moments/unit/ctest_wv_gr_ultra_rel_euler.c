@@ -172,49 +172,37 @@ test_gr_ultra_rel_euler_basic_minkowski_ho()
       TEST_CHECK(gkyl_compare(prims[3], w, 1e-13));
 
       double fluxes[3][4] = {
-        {(lapse * sqrt(spatial_det)) *
+        { (lapse * sqrt(spatial_det)) *
             ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
           (lapse * sqrt(spatial_det)) *
             ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
           (lapse * sqrt(spatial_det)) *
             ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
           (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse))))},
-        {(lapse * sqrt(spatial_det)) *
+            ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))) },
+        { (lapse * sqrt(spatial_det)) *
             ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
           (lapse * sqrt(spatial_det)) *
             ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
           (lapse * sqrt(spatial_det)) *
             ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
           (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse))))},
-        {(lapse * sqrt(spatial_det)) *
+            ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))) },
+        { (lapse * sqrt(spatial_det)) *
             ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
           (lapse * sqrt(spatial_det)) *
             ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
           (lapse * sqrt(spatial_det)) *
             ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
           (lapse * sqrt(spatial_det)) *
-            ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p)},
+            ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p) }
       };
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       double q_local[70], flux_local[70], flux[70];
       for (int d = 0; d < 3; d++) {
@@ -451,49 +439,37 @@ test_gr_ultra_rel_euler_basic_schwarzschild_ho()
         shift[2] = prims[7];
 
         double fluxes[3][4] = {
-          {(lapse * sqrt(spatial_det)) *
+          { (lapse * sqrt(spatial_det)) *
               ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
             (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse))))},
-          {(lapse * sqrt(spatial_det)) *
+              ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))) },
+          { (lapse * sqrt(spatial_det)) *
               ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse))))},
-          {(lapse * sqrt(spatial_det)) *
+              ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))) },
+          { (lapse * sqrt(spatial_det)) *
               ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
             (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p)},
+              ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p) }
         };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[70], flux_local[70], flux[70];
         for (int d = 0; d < 3; d++) {
@@ -733,49 +709,37 @@ test_gr_ultra_rel_euler_basic_kerr_ho()
         shift[2] = prims[7];
 
         double fluxes[3][4] = {
-          {(lapse * sqrt(spatial_det)) *
+          { (lapse * sqrt(spatial_det)) *
               ((((rho + p) * (W * W)) - p) * (vel[0] - (shift[0] / lapse)) + (p * vel[0])),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[1] * (vel[0] - (shift[0] / lapse)))),
             (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse))))},
-          {(lapse * sqrt(spatial_det)) *
+              ((rho + p) * (W * W) * (vel[2] * (vel[0] - (shift[0] / lapse)))) },
+          { (lapse * sqrt(spatial_det)) *
               ((((rho + p) * (W * W)) - p) * (vel[1] - (shift[1] / lapse)) + (p * vel[1])),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[1] * (vel[1] - (shift[1] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse))))},
-          {(lapse * sqrt(spatial_det)) *
+              ((rho + p) * (W * W) * (vel[2] * (vel[1] - (shift[1] / lapse)))) },
+          { (lapse * sqrt(spatial_det)) *
               ((((rho + p) * (W * W)) - p) * (vel[2] - (shift[2] / lapse)) + (p * vel[2])),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
             (lapse * sqrt(spatial_det)) *
               ((rho + p) * (W * W) * (vel[1] * (vel[2] - (shift[2] / lapse)))),
             (lapse * sqrt(spatial_det)) *
-              ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p)},
+              ((rho + p) * (W * W) * (vel[2] * (vel[2] - (shift[2] / lapse))) + p) }
         };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[70], flux_local[70], flux[70];
         for (int d = 0; d < 3; d++) {
@@ -1096,23 +1060,11 @@ test_gr_ultra_rel_euler_waves_minkowski_ho()
       qr[68] = y;
       qr[69] = 0.0;
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       for (int d = 0; d < 3; d++) {
         double speeds[3], waves[3 * 70], waves_local[3 * 70];
@@ -1460,23 +1412,11 @@ test_gr_ultra_rel_euler_waves_schwarzschild_ho()
         qr[68] = y;
         qr[69] = 0.0;
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[3], waves[3 * 70], waves_local[3 * 70];
@@ -1825,23 +1765,11 @@ test_gr_ultra_rel_euler_waves_kerr_ho()
         qr[68] = y;
         qr[69] = 0.0;
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[3], waves[3 * 70], waves_local[3 * 70];
@@ -1923,12 +1851,10 @@ test_gr_ultra_rel_euler_waves_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-TEST_LIST = {
-  {"gr_ultra_rel_euler_basic_minkowski_ho", test_gr_ultra_rel_euler_basic_minkowski_ho},
-  {"gr_ultra_rel_euler_basic_schwarzschild_ho", test_gr_ultra_rel_euler_basic_schwarzschild_ho},
-  {"gr_ultra_rel_euler_basic_kerr_ho", test_gr_ultra_rel_euler_basic_kerr_ho},
-  {"gr_ultra_rel_euler_waves_minkowski_ho", test_gr_ultra_rel_euler_waves_minkowski_ho},
-  {"gr_ultra_rel_euler_waves_schwarzschild_ho", test_gr_ultra_rel_euler_waves_schwarzschild_ho},
-  {"gr_ultra_rel_euler_waves_kerr_ho", test_gr_ultra_rel_euler_waves_kerr_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "gr_ultra_rel_euler_basic_minkowski_ho",
+                test_gr_ultra_rel_euler_basic_minkowski_ho },
+  { "gr_ultra_rel_euler_basic_schwarzschild_ho", test_gr_ultra_rel_euler_basic_schwarzschild_ho },
+  { "gr_ultra_rel_euler_basic_kerr_ho", test_gr_ultra_rel_euler_basic_kerr_ho },
+  { "gr_ultra_rel_euler_waves_minkowski_ho", test_gr_ultra_rel_euler_waves_minkowski_ho },
+  { "gr_ultra_rel_euler_waves_schwarzschild_ho", test_gr_ultra_rel_euler_waves_schwarzschild_ho },
+  { "gr_ultra_rel_euler_waves_kerr_ho", test_gr_ultra_rel_euler_waves_kerr_ho }, { NULL, NULL } };

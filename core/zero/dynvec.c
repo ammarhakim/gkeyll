@@ -316,7 +316,7 @@ gkyl_dynvec_read_ncomp_1(FILE *fp, struct gkyl_dynvec_etype_ncomp *enc)
 struct gkyl_dynvec_etype_ncomp
 gkyl_dynvec_read_ncomp(const char *fname)
 {
-  struct gkyl_dynvec_etype_ncomp enc = {.type = GKYL_DOUBLE, .ncomp = 0};
+  struct gkyl_dynvec_etype_ncomp enc = { .type = GKYL_DOUBLE, .ncomp = 0 };
   FILE *fp = 0;
   with_file(fp, fname, "r") gkyl_dynvec_read_ncomp_1(fp, &enc);
   return enc;

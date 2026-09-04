@@ -38,7 +38,7 @@ gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
     basis, cbasis, is_diff_const, is_dir_diffusive, diff_order, diff_range, up->use_gpu);
 
   gkyl_dg_diffusion_gyrokinetic_set_auxfields(up->dgeqn,
-    (struct gkyl_dg_diffusion_gyrokinetic_auxfields){.D = coeff, .jacobgeo_inv = jacobgeo_inv});
+    (struct gkyl_dg_diffusion_gyrokinetic_auxfields){ .D = coeff, .jacobgeo_inv = jacobgeo_inv });
 
   int num_up_dirs = 0;
   for (int d = 0; d < cdim; d++)
@@ -75,9 +75,7 @@ gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffusion_g
 struct gkyl_dg_updater_diffusion_gyrokinetic_tm
 gkyl_dg_updater_diffusion_gyrokinetic_get_tm(const struct gkyl_dg_updater_diffusion_gyrokinetic *up)
 {
-  return (struct gkyl_dg_updater_diffusion_gyrokinetic_tm){
-    .diffusion_tm = up->diffusion_tm,
-  };
+  return (struct gkyl_dg_updater_diffusion_gyrokinetic_tm){ .diffusion_tm = up->diffusion_tm };
 }
 
 void

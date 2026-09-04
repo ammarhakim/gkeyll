@@ -222,7 +222,7 @@ test_gr_twofluid_tetrad_basic_minkowski_ho()
       double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
       double fluxes[3][18] = {
-        {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[0] - (shift[0] / lapse))),
+        { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[0] - (shift[0] / lapse))),
           (lapse * sqrt(spatial_det)) *
             (rho_elc * he * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
           (lapse * sqrt(spatial_det)) *
@@ -244,8 +244,8 @@ test_gr_twofluid_tetrad_basic_minkowski_ho()
               (p * vel[0])),
           e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
           -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
-          b_fact * (light_speed * light_speed) * Bx},
-        {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[1] - (shift[1] / lapse))),
+          b_fact * (light_speed * light_speed) * Bx },
+        { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[1] - (shift[1] / lapse))),
           (lapse * sqrt(spatial_det)) *
             (rho_elc * he * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
           (lapse * sqrt(spatial_det)) *
@@ -267,8 +267,8 @@ test_gr_twofluid_tetrad_basic_minkowski_ho()
               (p * vel[1])),
           -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
           (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
-          b_fact * (light_speed * light_speed) * By},
-        {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[2] - (shift[2] / lapse))),
+          b_fact * (light_speed * light_speed) * By },
+        { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[2] - (shift[2] / lapse))),
           (lapse * sqrt(spatial_det)) *
             (rho_elc * he * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
           (lapse * sqrt(spatial_det)) *
@@ -290,26 +290,14 @@ test_gr_twofluid_tetrad_basic_minkowski_ho()
               (p * vel[2])),
           (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
           e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
-          b_fact * (light_speed * light_speed) * Bz},
+          b_fact * (light_speed * light_speed) * Bz }
       };
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
       for (int d = 0; d < 3; d++) {
@@ -586,7 +574,7 @@ test_gr_twofluid_tetrad_basic_schwarzschild_ho()
         double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
         double fluxes[3][18] = {
-          {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[0] - (shift[0] / lapse))),
+          { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[0] - (shift[0] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_elc * he * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
@@ -608,8 +596,8 @@ test_gr_twofluid_tetrad_basic_schwarzschild_ho()
                 (p * vel[0])),
             e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
             -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
-            b_fact * (light_speed * light_speed) * Bx},
-          {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[1] - (shift[1] / lapse))),
+            b_fact * (light_speed * light_speed) * Bx },
+          { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[1] - (shift[1] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_elc * he * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) *
@@ -631,8 +619,8 @@ test_gr_twofluid_tetrad_basic_schwarzschild_ho()
                 (p * vel[1])),
             -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
             (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
-            b_fact * (light_speed * light_speed) * By},
-          {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[2] - (shift[2] / lapse))),
+            b_fact * (light_speed * light_speed) * By },
+          { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[2] - (shift[2] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_elc * he * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
             (lapse * sqrt(spatial_det)) *
@@ -654,26 +642,14 @@ test_gr_twofluid_tetrad_basic_schwarzschild_ho()
                 (p * vel[2])),
             (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
             e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
-            b_fact * (light_speed * light_speed) * Bz},
+            b_fact * (light_speed * light_speed) * Bz }
         };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
         for (int d = 0; d < 3; d++) {
@@ -951,7 +927,7 @@ test_gr_twofluid_tetrad_basic_kerr_ho()
         double Hz = (lapse * Bz) - ((shift[0] * Dy) - (shift[1] * Dx));
 
         double fluxes[3][18] = {
-          {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[0] - (shift[0] / lapse))),
+          { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[0] - (shift[0] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_elc * he * (W * W) * (vel[0] * (vel[0] - (shift[0] / lapse))) + p),
             (lapse * sqrt(spatial_det)) *
@@ -973,8 +949,8 @@ test_gr_twofluid_tetrad_basic_kerr_ho()
                 (p * vel[0])),
             e_fact * (light_speed * light_speed) * phi, (light_speed * light_speed) * Hz,
             -(light_speed * light_speed) * Hy, b_fact * psi, -Ez, Ey, e_fact * Dx,
-            b_fact * (light_speed * light_speed) * Bx},
-          {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[1] - (shift[1] / lapse))),
+            b_fact * (light_speed * light_speed) * Bx },
+          { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[1] - (shift[1] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_elc * he * (W * W) * (vel[0] * (vel[1] - (shift[1] / lapse)))),
             (lapse * sqrt(spatial_det)) *
@@ -996,8 +972,8 @@ test_gr_twofluid_tetrad_basic_kerr_ho()
                 (p * vel[1])),
             -(light_speed * light_speed) * Hz, e_fact * (light_speed * light_speed) * phi,
             (light_speed * light_speed) * Hx, Ez, b_fact * psi, -Ex, e_fact * Dy,
-            b_fact * (light_speed * light_speed) * By},
-          {(lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[2] - (shift[2] / lapse))),
+            b_fact * (light_speed * light_speed) * By },
+          { (lapse * sqrt(spatial_det)) * (rho_elc * W * (vel[2] - (shift[2] / lapse))),
             (lapse * sqrt(spatial_det)) *
               (rho_elc * he * (W * W) * (vel[0] * (vel[2] - (shift[2] / lapse)))),
             (lapse * sqrt(spatial_det)) *
@@ -1019,26 +995,14 @@ test_gr_twofluid_tetrad_basic_kerr_ho()
                 (p * vel[2])),
             (light_speed * light_speed) * Hy, -(light_speed * light_speed) * Hx,
             e_fact * (light_speed * light_speed) * phi, -Ey, Ex, b_fact * psi, e_fact * Dz,
-            b_fact * (light_speed * light_speed) * Bz},
+            b_fact * (light_speed * light_speed) * Bz }
         };
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         double q_local[84], flux_local_sr[84], flux_local_gr[84], flux[84];
         for (int d = 0; d < 3; d++) {
@@ -1418,23 +1382,11 @@ test_gr_twofluid_tetrad_waves_minkowski_ho()
       qr[82] = y;
       qr[83] = 0.0;
 
-      double norm[3][3] = {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0},
-      };
+      double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-      double tau1[3][3] = {
-        {0.0, 1.0, 0.0},
-        {1.0, 0.0, 0.0},
-        {1.0, 0.0, 0.0},
-      };
+      double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-      double tau2[3][3] = {
-        {0.0, 0.0, 1.0},
-        {0.0, 0.0, -1.0},
-        {0.0, 1.0, 0.0},
-      };
+      double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
       for (int d = 0; d < 3; d++) {
         double speeds[3], waves[3 * 84], waves_local[3 * 84];
@@ -1848,23 +1800,11 @@ test_gr_twofluid_tetrad_waves_schwarzschild_ho()
         qr[82] = y;
         qr[83] = 0.0;
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[3], waves[3 * 84], waves_local[3 * 84];
@@ -2279,23 +2219,11 @@ test_gr_twofluid_tetrad_waves_kerr_ho()
         qr[82] = y;
         qr[83] = 0.0;
 
-        double norm[3][3] = {
-          {1.0, 0.0, 0.0},
-          {0.0, 1.0, 0.0},
-          {0.0, 0.0, 1.0},
-        };
+        double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
-        double tau1[3][3] = {
-          {0.0, 1.0, 0.0},
-          {1.0, 0.0, 0.0},
-          {1.0, 0.0, 0.0},
-        };
+        double tau1[3][3] = { { 0.0, 1.0, 0.0 }, { 1.0, 0.0, 0.0 }, { 1.0, 0.0, 0.0 } };
 
-        double tau2[3][3] = {
-          {0.0, 0.0, 1.0},
-          {0.0, 0.0, -1.0},
-          {0.0, 1.0, 0.0},
-        };
+        double tau2[3][3] = { { 0.0, 0.0, 1.0 }, { 0.0, 0.0, -1.0 }, { 0.0, 1.0, 0.0 } };
 
         for (int d = 0; d < 3; d++) {
           double speeds[3], waves[3 * 84], waves_local[3 * 84];
@@ -2387,12 +2315,10 @@ test_gr_twofluid_tetrad_waves_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-TEST_LIST = {
-  {"gr_twofluid_tetrad_basic_minkowski_ho", test_gr_twofluid_tetrad_basic_minkowski_ho},
-  {"gr_twofluid_tetrad_basic_schwarzschild_ho", test_gr_twofluid_tetrad_basic_schwarzschild_ho},
-  {"gr_twofluid_tetrad_basic_kerr_ho", test_gr_twofluid_tetrad_basic_kerr_ho},
-  {"gr_twofluid_tetrad_waves_minkowski_ho", test_gr_twofluid_tetrad_waves_minkowski_ho},
-  {"gr_twofluid_tetrad_waves_schwarzschild_ho", test_gr_twofluid_tetrad_waves_schwarzschild_ho},
-  {"gr_twofluid_tetrad_waves_kerr_ho", test_gr_twofluid_tetrad_waves_kerr_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "gr_twofluid_tetrad_basic_minkowski_ho",
+                test_gr_twofluid_tetrad_basic_minkowski_ho },
+  { "gr_twofluid_tetrad_basic_schwarzschild_ho", test_gr_twofluid_tetrad_basic_schwarzschild_ho },
+  { "gr_twofluid_tetrad_basic_kerr_ho", test_gr_twofluid_tetrad_basic_kerr_ho },
+  { "gr_twofluid_tetrad_waves_minkowski_ho", test_gr_twofluid_tetrad_waves_minkowski_ho },
+  { "gr_twofluid_tetrad_waves_schwarzschild_ho", test_gr_twofluid_tetrad_waves_schwarzschild_ho },
+  { "gr_twofluid_tetrad_waves_kerr_ho", test_gr_twofluid_tetrad_waves_kerr_ho }, { NULL, NULL } };

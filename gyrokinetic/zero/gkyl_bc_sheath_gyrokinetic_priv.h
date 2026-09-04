@@ -19,24 +19,14 @@ typedef struct {
 
 // Serendipity  kernels.
 GKYL_CU_D static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
-  {
-    .list =
-      {
-        {bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, NULL},
-        {bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1, NULL},
-        {bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1, NULL},
-        {bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, NULL},
-      },
-  },
-  {
-    .list =
-      {
-        {bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, NULL},
-        {bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, NULL},
-        {bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1, NULL},
-        {bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, NULL},
-      },
-  },
+  { .list = { { bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, NULL } } },
+  { .list = { { bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, NULL } } }
 };
 
 struct gkyl_bc_sheath_gyrokinetic_kernels {

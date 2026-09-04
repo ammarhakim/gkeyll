@@ -89,8 +89,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct kh_2d_ctx ctx = {
-    .pi = pi,
+  struct kh_2d_ctx ctx = { .pi = pi,
     .gas_gamma = gas_gamma,
     .rhol = rhol,
     .ul = ul,
@@ -108,8 +107,7 @@ create_ctx(void)
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -214,10 +212,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_vlasov_fluid_species fluid = {
-    .name = "euler",
-    .equation = euler,
-    .init = evalEulerInit,
-    .ctx = &ctx,
+    .name = "euler", .equation = euler, .init = evalEulerInit, .ctx = &ctx
   };
 
   int nrank = 1; // Number of processors in simulation.
@@ -227,7 +222,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = {NX, NY};
+  int ccells[] = { NX, NY };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -250,22 +245,18 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -291,31 +282,28 @@ main(int argc, char **argv)
 
     .cdim = 2,
     .vdim = 0,
-    .lower = {-0.5 * ctx.Lx, -0.5 * ctx.Ly},
-    .upper = {0.5 * ctx.Lx, 0.5 * ctx.Ly},
-    .cells = {NX, NY},
+    .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
+    .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly },
+    .cells = { NX, NY },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 2,
-    .periodic_dirs = {0, 1},
+    .periodic_dirs = { 0, 1 },
 
     .num_species = 0,
     .species = {},
 
     .num_fluid_species = 1,
-    .fluid_species = {fluid},
+    .fluid_species = { fluid },
 
     .skip_field = true,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -328,7 +316,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.
   gkyl_vlasov_app_apply_ic(app, t_curr);

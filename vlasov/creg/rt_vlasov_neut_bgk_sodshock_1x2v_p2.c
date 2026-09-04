@@ -92,8 +92,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct sodshock_ctx ctx = {
-    .mass = mass,
+  struct sodshock_ctx ctx = { .mass = mass,
     .charge = charge,
     .nl = nl,
     .Tl = Tl,
@@ -117,8 +116,7 @@ create_ctx(void)
     .integrated_mom_calcs = integrated_mom_calcs,
     .integrated_L2_f_calcs = integrated_L2_f_calcs,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   return ctx;
 }
@@ -263,7 +261,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int ccells[] = {NX};
+  int ccells[] = { NX };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
 
   int cuts[cdim];
@@ -286,22 +284,18 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_nccl_comm_new(&(struct gkyl_nccl_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
 #else
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
   } else if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -323,47 +317,39 @@ main(int argc, char **argv)
   }
 
   // Neutral species.
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
+  struct gkyl_vlasov_species neut = { .name = "neut",
     .model_id = GKYL_MODEL_DEFAULT,
     .charge = ctx.charge,
     .mass = ctx.mass,
-    .lower = {-ctx.vx_max, -ctx.vy_max},
-    .upper = {ctx.vx_max, ctx.vy_max},
-    .cells = {NVX, NVY},
+    .lower = { -ctx.vx_max, -ctx.vy_max },
+    .upper = { ctx.vx_max, ctx.vy_max },
+    .cells = { NVX, NVY },
 
     .num_init = 1,
-    .projection[0] =
-      {
-        .proj_id = GKYL_PROJ_VLASOV_LTE,
-        .density = evalDensityInit,
-        .ctx_density = &ctx,
-        .temp = evalTempInit,
-        .ctx_temp = &ctx,
-        .V_drift = evalVDriftInit,
-        .ctx_V_drift = &ctx,
-        .correct_all_moms = true,
-      },
-    .collisions =
-      {
-        .collision_id = GKYL_BGK_COLLISIONS,
-        .self_nu = evalNu,
-        .ctx = &ctx,
-        .correct_all_moms = true,
-      },
+    .projection[0] = { .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .correct_all_moms = true },
+    .collisions = { .collision_id = GKYL_BGK_COLLISIONS,
+      .self_nu = evalNu,
+      .ctx = &ctx,
+      .correct_all_moms = true },
 
     .num_diag_moments = 3,
-    .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE},
-  };
+    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_LTE } };
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
 
     .cdim = 1,
     .vdim = 2,
-    .lower = {0.0},
-    .upper = {ctx.Lx},
-    .cells = {NX},
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
@@ -373,16 +359,11 @@ main(int argc, char **argv)
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {neut},
+    .species = { neut },
 
     .skip_field = true,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm }
   };
 
   // Create app object.
@@ -417,28 +398,32 @@ main(int argc, char **argv)
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
   struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
   struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for integrated L2 norm of the distribution function.
   int integrated_L2_f_calcs = ctx.integrated_L2_f_calcs;
   struct gkyl_tm_trigger l2f_trig = {
-    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr};
+    .dt = t_end / integrated_L2_f_calcs, .tcurr = t_curr, .curr = frame_curr
+  };
 
   calc_integrated_L2_f(&l2f_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr};
+    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
+  };
 
   write_data(&io_trig, app, t_curr, false);
 

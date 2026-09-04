@@ -157,7 +157,7 @@ struct block_data {
 void
 block_bc_updaters_init(struct block_data *bdata, const struct gkyl_block_connections *conn)
 {
-  int nghost[] = {2, 2, 2};
+  int nghost[] = { 2, 2, 2 };
 
   // create updaters for physical boundaries (at present, all assumed
   // to be solid walls)
@@ -326,11 +326,7 @@ update_all_blocks(const struct gkyl_job_pool *job_pool, const struct gkyl_block_
     struct update_block_ctx block_ctx[num_blocks];
     for (int i = 0; i < num_blocks; ++i)
       block_ctx[i] = (struct update_block_ctx){
-        .bdata = &bdata[i],
-        .tcurr = tcurr,
-        .dir = d,
-        .dt = dt,
-        .bidx = i,
+        .bdata = &bdata[i], .tcurr = tcurr, .dir = d, .dt = dt, .bidx = i
       };
 
     for (int i = 0; i < num_blocks; ++i)
@@ -341,8 +337,8 @@ update_all_blocks(const struct gkyl_job_pool *job_pool, const struct gkyl_block_
     for (int i = 0; i < num_blocks; ++i) {
       // return immediately if a block failed
       if (block_ctx[i].stat.success == 0)
-        return (struct gkyl_update_status){
-          .success = 0, .dt_suggested = block_ctx[i].stat.dt_suggested};
+        return (struct gkyl_update_status){ .success = 0,
+          .dt_suggested = block_ctx[i].stat.dt_suggested };
 
       dt_suggested = fmin(dt_suggested, block_ctx[i].stat.dt_suggested);
       fld[i] = bdata[i].f[d + 1]; // for use in block-boundary sync
@@ -352,7 +348,7 @@ update_all_blocks(const struct gkyl_job_pool *job_pool, const struct gkyl_block_
     sync_blocks(btopo, bdata, fld);
   }
 
-  return (struct gkyl_update_status){.success = 1, .dt_suggested = dt_suggested};
+  return (struct gkyl_update_status){ .success = 1, .dt_suggested = dt_suggested };
 }
 
 struct sim_stats {
@@ -389,13 +385,7 @@ update(const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo
   double dt_suggested = DBL_MAX;
 
   // time-stepper states
-  enum {
-    UPDATE_DONE = 0,
-    PRE_UPDATE,
-    POST_UPDATE,
-    FLUID_UPDATE,
-    UPDATE_REDO,
-  } state = PRE_UPDATE;
+  enum { UPDATE_DONE = 0, PRE_UPDATE, POST_UPDATE, FLUID_UPDATE, UPDATE_REDO } state = PRE_UPDATE;
 
   struct copy_job_ctx copy_ctx[num_blocks];
 
@@ -409,7 +399,8 @@ update(const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo
 
       // create context objects ...
       for (int i = 0; i < num_blocks; ++i)
-        copy_ctx[i] = (struct copy_job_ctx){.bidx = i, .inp = bdata[i].f[0], .out = bdata[i].fdup};
+        copy_ctx[i] =
+          (struct copy_job_ctx){ .bidx = i, .inp = bdata[i].f[0], .out = bdata[i].fdup };
 
       // ... run jobs
       for (int i = 0; i < num_blocks; ++i)
@@ -438,7 +429,8 @@ update(const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo
       // copy solution in prep for next time-step
 
       for (int i = 0; i < num_blocks; ++i)
-        copy_ctx[i] = (struct copy_job_ctx){.bidx = i, .inp = bdata[i].f[2], .out = bdata[i].f[0]};
+        copy_ctx[i] =
+          (struct copy_job_ctx){ .bidx = i, .inp = bdata[i].f[2], .out = bdata[i].f[0] };
 
       for (int i = 0; i < num_blocks; ++i)
         gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
@@ -452,7 +444,8 @@ update(const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo
       // restore solution and retake step
 
       for (int i = 0; i < num_blocks; ++i)
-        copy_ctx[i] = (struct copy_job_ctx){.bidx = i, .inp = bdata[i].fdup, .out = bdata[i].f[0]};
+        copy_ctx[i] =
+          (struct copy_job_ctx){ .bidx = i, .inp = bdata[i].fdup, .out = bdata[i].f[0] };
 
       for (int i = 0; i < num_blocks; ++i)
         gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
@@ -465,11 +458,7 @@ update(const struct gkyl_job_pool *job_pool, const struct gkyl_block_topo *btopo
     }
   }
 
-  return (struct gkyl_update_status){
-    .success = 1,
-    .dt_actual = dt,
-    .dt_suggested = dt_suggested,
-  };
+  return (struct gkyl_update_status){ .success = 1, .dt_actual = dt, .dt_suggested = dt_suggested };
 }
 
 void
@@ -509,9 +498,9 @@ main(int argc, char **argv)
   struct gkyl_job_pool *job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
   // construct grid for each block
-  gkyl_rect_grid_init(&bdata[0].grid, 2, (double[]){0, 1}, (double[]){1, 2}, (int[]){nx, ny});
-  gkyl_rect_grid_init(&bdata[1].grid, 2, (double[]){0, 0}, (double[]){1, 1}, (int[]){nx, ny});
-  gkyl_rect_grid_init(&bdata[2].grid, 2, (double[]){1, 0}, (double[]){2, 1}, (int[]){nx, ny});
+  gkyl_rect_grid_init(&bdata[0].grid, 2, (double[]){ 0, 1 }, (double[]){ 1, 2 }, (int[]){ nx, ny });
+  gkyl_rect_grid_init(&bdata[1].grid, 2, (double[]){ 0, 0 }, (double[]){ 1, 1 }, (int[]){ nx, ny });
+  gkyl_rect_grid_init(&bdata[2].grid, 2, (double[]){ 1, 0 }, (double[]){ 2, 1 }, (int[]){ nx, ny });
 
   // create projection updaters
   for (int i = 0; i < num_blocks; ++i)
@@ -519,7 +508,7 @@ main(int argc, char **argv)
 
   // create ranges and geometry
   for (int i = 0; i < num_blocks; ++i) {
-    gkyl_create_grid_ranges(&bdata[i].grid, (int[]){2, 2}, &bdata[i].ext_range, &bdata[i].range);
+    gkyl_create_grid_ranges(&bdata[i].grid, (int[]){ 2, 2 }, &bdata[i].ext_range, &bdata[i].range);
     bdata[i].geom = gkyl_wave_geom_new(&bdata[i].grid, &bdata[i].ext_range, 0, 0, false);
   }
 
@@ -528,13 +517,13 @@ main(int argc, char **argv)
     bdata[i].euler = gkyl_wv_euler_new(1.4, false);
 
     for (int d = 0; d < 2; ++d)
-      bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){.grid = &bdata[i].grid,
+      bdata[i].slvr[d] = gkyl_wave_prop_new(&(struct gkyl_wave_prop_inp){ .grid = &bdata[i].grid,
         .equation = bdata[i].euler,
         .limiter = GKYL_MONOTONIZED_CENTERED,
         .num_up_dirs = 1,
-        .update_dirs = {d},
+        .update_dirs = { d },
         .cfl = 0.95,
-        .geom = bdata[i].geom});
+        .geom = bdata[i].geom });
   }
 
   struct gkyl_block_topo *btopo = create_block_topo();

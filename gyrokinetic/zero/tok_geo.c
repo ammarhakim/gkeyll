@@ -35,7 +35,7 @@ tok_plate_psi_func(double s, void *ctx)
 
   // Now find the cell where this R and Z is
   if (gc->geo->use_cubics) {
-    double xn[2] = {R, Z};
+    double xn[2] = { R, Z };
     double psi;
     gc->geo->efit->evf->eval_cubic(0.0, xn, &psi, gc->geo->efit->evf->ctx);
     return psi - gc->psi_curr;
@@ -320,10 +320,10 @@ phi_func(double alpha_curr, double Z, void *ctx)
     }
   }
   // Now multiply by fpol
-  double R[4] = {0};
-  double dRdZ[4] = {0};
-  double dR[4] = {0};
-  double dZ[4] = {0};
+  double R[4] = { 0 };
+  double dRdZ[4] = { 0 };
+  double dR[4] = { 0 };
+  double dZ[4] = { 0 };
   int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dRdZ, dR, dZ);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
@@ -406,8 +406,8 @@ qprofile_func(void *ctx)
   }
 
   // Now multiply by fpol/2pi.
-  double R[4] = {0};
-  double dR[4] = {0};
+  double R[4] = { 0 };
+  double dR[4] = { 0 };
   double psi_fpol = psi;
   if ((psi_fpol < actx->geo->fgrid.lower[0]) ||
     (psi_fpol > actx->geo->fgrid.upper[0])) // F = F(psi_sep) in the SOL.
@@ -441,13 +441,13 @@ dphidtheta_func(double Z, void *ctx)
 
   // Get the integrand
   double integrand = 0.0;
-  struct contour_ctx cctx = {.geo = actx->geo, .psi = psi, .ncall = 0, .last_R = rclose};
+  struct contour_ctx cctx = { .geo = actx->geo, .psi = psi, .ncall = 0, .last_R = rclose };
   integrand = dphidtheta_integrand(Z, &cctx);
   // Now multiply by fpol
-  double R[4] = {0};
-  double dRdZ[4] = {0};
-  double dR[4] = {0};
-  double dZ[4] = {0};
+  double R[4] = { 0 };
+  double dRdZ[4] = { 0 };
+  double dR[4] = { 0 };
+  double dZ[4] = { 0 };
   int nr = gkyl_tok_geo_R_psiZ(actx->geo, psi, Z, 4, R, dRdZ, dR, dZ);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
@@ -493,7 +493,7 @@ bmag_func(double r_curr, double Z, void *ctx)
   double Br = 0.0, Bz = 0.0, bmag = 0.0;
 
   if (actx->geo->use_cubics) {
-    double xn[2] = {r_curr, Z};
+    double xn[2] = { r_curr, Z };
     double fout[3];
     actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
     double dpsidR = fout[1];
@@ -574,7 +574,7 @@ curlbhat_func(double psi, double r_curr, double Z, double phi, double *curlbhat,
   double dBzdR = 0.0, dBzdZ = 0.0;
 
   if (actx->geo->use_cubics) {
-    double xn[2] = {r_curr, Z};
+    double xn[2] = { r_curr, Z };
     double fout[4];
     actx->geo->efit->evf->eval_cubic_wgrad(0.0, xn, fout, actx->geo->efit->evf->ctx);
     dpsidR = fout[1];
@@ -641,7 +641,7 @@ curlbhat_func(double psi, double r_curr, double Z, double phi, double *curlbhat,
   dBdZ = 1 / bmag * (Br * dBrdZ + Bz * dBzdZ + fpol / r_curr * dFdZ);
 
   // Get the polar components (contravariant, upperscript components on tangent basis)
-  double polar_comp[3] = {0.0};
+  double polar_comp[3] = { 0.0 };
   polar_comp[0] = 1.0 / bmag * -1.0 / r_curr * dFdZ -
     1.0 / bmag * 1.0 / bmag * dBdZ * fpol / r_curr; // R component ^1
   polar_comp[1] = 1.0 / bmag * 1.0 / r_curr * (dBrdZ - dBzdR) +
@@ -776,15 +776,15 @@ gkyl_tok_geo_calc(struct gk_geometry *up, struct gkyl_range *nrange, struct gkyl
   double *arc_memo_left = gkyl_malloc(sizeof(double[nzcells]));
   double *arc_memo_right = gkyl_malloc(sizeof(double[nzcells]));
 
-  struct arc_length_ctx arc_ctx = {.geo = geo,
+  struct arc_length_ctx arc_ctx = { .geo = geo,
     .arc_memo = arc_memo,
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = geo->zmaxis};
-  struct plate_ctx pctx = {.geo = geo};
+    .zmaxis = geo->zmaxis };
+  struct plate_ctx pctx = { .geo = geo };
 
-  int cidx[3] = {0};
+  int cidx[3] = { 0 };
   for (int ia = nrange->lower[AL_IDX]; ia <= nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia * dalpha;
@@ -914,8 +914,8 @@ gkyl_tok_geo_calc(struct gk_geometry *up, struct gkyl_range *nrange, struct gkyl
           }
         }
 
-        double R[4] = {0}, dRdZ[4] = {0};
-        double dR[4] = {0}, dZ[4] = {0};
+        double R[4] = { 0 }, dRdZ[4] = { 0 };
+        double dR[4] = { 0 }, dZ[4] = { 0 };
         int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
         double r_curr = choose_closest(rclose, R, R, nr);
         double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
@@ -1042,7 +1042,7 @@ gkyl_tok_geo_calc_interior(struct gk_geometry *up, struct gkyl_range *nrange, do
          alpha_lo = up->grid.lower[AL_IDX] +
     (up->local.lower[AL_IDX] - up->global.lower[AL_IDX]) * up->grid.dx[AL_IDX];
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   theta_lo = theta_lo + dels[1] * dtheta / 2.0;
   psi_lo = psi_lo + dels[1] * dpsi / 2.0;
   alpha_lo = alpha_lo + dels[1] * dalpha / 2.0;
@@ -1059,7 +1059,7 @@ gkyl_tok_geo_calc_interior(struct gk_geometry *up, struct gkyl_range *nrange, do
   dzc[0] = delta_psi;
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
-  int modifiers[5] = {0, -1, 1, -2, 2};
+  int modifiers[5] = { 0, -1, 1, -2, 2 };
 
   double rclose = inp->rclose;
   double rright = inp->rright;
@@ -1074,19 +1074,19 @@ gkyl_tok_geo_calc_interior(struct gk_geometry *up, struct gkyl_range *nrange, do
   double *arc_memo_left = gkyl_malloc(sizeof(double[nzcells]));
   double *arc_memo_right = gkyl_malloc(sizeof(double[nzcells]));
 
-  struct arc_length_ctx arc_ctx = {.geo = geo,
+  struct arc_length_ctx arc_ctx = { .geo = geo,
     .arc_memo = arc_memo,
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = geo->zmaxis};
-  struct plate_ctx pctx = {.geo = geo};
+    .zmaxis = geo->zmaxis };
+  struct plate_ctx pctx = { .geo = geo };
 
   // Temporary array to store nodal q profile.
   struct gkyl_array *qprofile_nodal =
     gkyl_array_new(GKYL_DOUBLE, up->geo_int.bmag_nodal->ncomp, up->geo_int.bmag_nodal->size);
 
-  int cidx[3] = {0};
+  int cidx[3] = { 0 };
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
     double alpha_curr = calc_running_coord(alpha_lo, ia - nrange->lower[AL_IDX], dalpha);
@@ -1153,8 +1153,8 @@ gkyl_tok_geo_calc_interior(struct gk_geometry *up, struct gkyl_range *nrange, do
           double z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
 
-          double R[4] = {0}, dRdZ[4] = {0};
-          double dR[4] = {0}, dZ[4] = {0};
+          double R[4] = { 0 }, dRdZ[4] = { 0 };
+          double dR[4] = { 0 }, dZ[4] = { 0 };
           int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
           double r_curr = choose_closest(rclose, R, R, nr);
           double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
@@ -1326,7 +1326,7 @@ gkyl_tok_geo_calc_surface(struct gk_geometry *up, int dir, struct gkyl_range *nr
          alpha_lo = up->grid.lower[AL_IDX] +
     (up->local.lower[AL_IDX] - up->global.lower[AL_IDX]) * up->grid.dx[AL_IDX];
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   theta_lo += dir == 2 ? 0.0 : dels[1] * dtheta / 2.0;
   psi_lo += dir == 0 ? 0.0 : dels[1] * dpsi / 2.0;
   alpha_lo += dir == 1 ? 0. : dels[1] * dalpha / 2.0;
@@ -1343,7 +1343,7 @@ gkyl_tok_geo_calc_surface(struct gk_geometry *up, int dir, struct gkyl_range *nr
   dzc[0] = delta_psi;
   dzc[1] = delta_alpha;
   dzc[2] = delta_theta;
-  int modifiers[5] = {0, -1, 1, -2, 2};
+  int modifiers[5] = { 0, -1, 1, -2, 2 };
 
   double rclose = inp->rclose;
   double rright = inp->rright;
@@ -1358,15 +1358,15 @@ gkyl_tok_geo_calc_surface(struct gk_geometry *up, int dir, struct gkyl_range *nr
   double *arc_memo_left = gkyl_malloc(sizeof(double[nzcells]));
   double *arc_memo_right = gkyl_malloc(sizeof(double[nzcells]));
 
-  struct arc_length_ctx arc_ctx = {.geo = geo,
+  struct arc_length_ctx arc_ctx = { .geo = geo,
     .arc_memo = arc_memo,
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = geo->zmaxis};
-  struct plate_ctx pctx = {.geo = geo};
+    .zmaxis = geo->zmaxis };
+  struct plate_ctx pctx = { .geo = geo };
 
-  int cidx[3] = {0};
+  int cidx[3] = { 0 };
   for (int ia = nrange->lower[AL_IDX]; ia < nrange->lower[AL_IDX] + 1; ++ia) {
     cidx[AL_IDX] = ia;
     double alpha_curr = dir == 1 ? alpha_lo + ia * dalpha
@@ -1453,8 +1453,8 @@ gkyl_tok_geo_calc_surface(struct gk_geometry *up, int dir, struct gkyl_range *nr
             }
           }
 
-          double R[4] = {0}, dRdZ[4] = {0};
-          double dR[4] = {0}, dZ[4] = {0};
+          double R[4] = { 0 }, dRdZ[4] = { 0 };
+          double dR[4] = { 0 }, dZ[4] = { 0 };
           int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
           double r_curr = choose_closest(rclose, R, R, nr);
           double drdz_curr = choose_closest(rclose, R, dRdZ, nr);

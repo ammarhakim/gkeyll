@@ -55,20 +55,18 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
-  struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = N};
+  struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = N };
 
   for (int i = 0; i < N; ++i) {
     inp->vals[i][0] = xrange_n(xr, i);
     out->vals[i][0] = ufunc(inp->vals[i][0]);
   }
 
-  struct gkyl_kann_train_params params = {
-    .learning_rate = nn_inp->learning_rate,
+  struct gkyl_kann_train_params params = { .learning_rate = nn_inp->learning_rate,
     .mini_size = 64,
     .max_epoch = 50,
     .max_drop_streak = 10,
-    .frac_val = 0.1f,
-  };
+    .frac_val = 0.1f };
 
   if (nn_inp->use_gpu) {
     // create device kn_vecs and copy data H2D
@@ -184,7 +182,7 @@ main(int argc, char *argv[])
     fprintf(stdout, "*** Training%s\n", use_gpu ? " (GPU)" : "");
     train_ann(
       &(struct train_inp){
-        .ntrain = 1001, .ndepth = 2, .nwidth = 256, .learning_rate = 1e-3f, .use_gpu = use_gpu},
+        .ntrain = 1001, .ndepth = 2, .nwidth = 256, .learning_rate = 1e-3f, .use_gpu = use_gpu },
       "rt_kann_mlp_gkw.kann");
   }
 
@@ -194,7 +192,7 @@ main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = inp->nvec};
+    struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
     for (int i = 0; i < inp->nvec; ++i)
       inp->vals[i][0] = xrange_n(xr, i);
 

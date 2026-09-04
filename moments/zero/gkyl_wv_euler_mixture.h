@@ -5,7 +5,7 @@
 // Type of Riemann-solver to use:
 enum gkyl_wv_euler_mixture_rp {
   WV_EULER_MIXTURE_RP_LAX = 0, // Default (Lax fluxes).
-  WV_EULER_MIXTURE_RP_ROE,
+  WV_EULER_MIXTURE_RP_ROE
 };
 
 // Input context, packaged as a struct.

@@ -19,7 +19,7 @@ moment_update_one_step(gkyl_moment_app *app, double dt0)
     FIELD_UPDATE,
     SPECIES_UPDATE,
     SECOND_COUPLING_UPDATE,
-    UPDATE_REDO,
+    UPDATE_REDO
   } state = PRE_UPDATE;
 
   double tcurr = app->tcurr, dt = dt0;
@@ -147,8 +147,6 @@ moment_update_one_step(gkyl_moment_app *app, double dt0)
   }
 
   return (struct gkyl_update_status){
-    .success = have_nans_occured ? false : true,
-    .dt_actual = dt,
-    .dt_suggested = dt_suggested,
+    .success = have_nans_occured ? false : true, .dt_actual = dt, .dt_suggested = dt_suggested
   };
 }

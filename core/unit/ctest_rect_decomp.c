@@ -6,12 +6,12 @@
 void
 test_rect_decomp_ranges_1d_ho()
 {
-  double lower[] = {1.0}, upper[] = {2.5};
-  int cells[] = {20};
+  double lower[] = { 1.0 }, upper[] = { 2.5 };
+  int cells[] = { 20 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
 
-  int nghost[] = {1};
+  int nghost[] = { 1 };
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -31,12 +31,12 @@ test_rect_decomp_ranges_1d_ho()
 void
 test_rect_decomp_ranges_2d_ho()
 {
-  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
-  int cells[] = {20, 40};
+  double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
+  int cells[] = { 20, 40 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
-  int nghost[] = {1, 0};
+  int nghost[] = { 1, 0 };
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -60,12 +60,12 @@ test_rect_decomp_ranges_2d_ho()
 void
 test_rect_decomp_ranges_3d_ho()
 {
-  double lower[] = {1.0, 1.0, 1.0}, upper[] = {2.5, 5.0, 2.0};
-  int cells[] = {20, 40, 10};
+  double lower[] = { 1.0, 1.0, 1.0 }, upper[] = { 2.5, 5.0, 2.0 };
+  int cells[] = { 20, 40, 10 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
 
-  int nghost[] = {1, 0, 2};
+  int nghost[] = { 1, 0, 2 };
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -94,10 +94,10 @@ static void
 test_rect_decomp_ranges_from_range_2d_ho(void)
 {
   struct gkyl_range inlocal;
-  gkyl_range_init(&inlocal, 2, (int[]){1, 2}, (int[]){10, 20});
+  gkyl_range_init(&inlocal, 2, (int[]){ 1, 2 }, (int[]){ 10, 20 });
 
   struct gkyl_range local, local_ext;
-  gkyl_create_ranges(&inlocal, (int[]){2, 1}, &local_ext, &local);
+  gkyl_create_ranges(&inlocal, (int[]){ 2, 1 }, &local_ext, &local);
 
   TEST_CHECK(local.ndim == inlocal.ndim);
   TEST_CHECK(local_ext.ndim == inlocal.ndim);
@@ -114,10 +114,10 @@ static void
 test_rect_decomp_ranges_from_range_3d_ho(void)
 {
   struct gkyl_range inlocal;
-  gkyl_range_init(&inlocal, 3, (int[]){1, 2, 3}, (int[]){10, 20, 30});
+  gkyl_range_init(&inlocal, 3, (int[]){ 1, 2, 3 }, (int[]){ 10, 20, 30 });
 
   struct gkyl_range local, local_ext;
-  gkyl_create_ranges(&inlocal, (int[]){2, 1, 0}, &local_ext, &local);
+  gkyl_create_ranges(&inlocal, (int[]){ 2, 1, 0 }, &local_ext, &local);
 
   TEST_CHECK(local.ndim == inlocal.ndim);
   TEST_CHECK(local_ext.ndim == inlocal.ndim);
@@ -181,9 +181,9 @@ static void
 test_rect_decomp_2d_ho(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 2, (int[]){1, 2}, (int[]){100, 100});
+  gkyl_range_init(&range, 2, (int[]){ 1, 2 }, (int[]){ 100, 100 });
 
-  int cuts[] = {5, 6};
+  int cuts[] = { 5, 6 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
 
   TEST_CHECK(decomp->ndim == 2);
@@ -268,9 +268,9 @@ static void
 test_rect_decomp_3d_ho(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 3, (int[]){1, 2, 3}, (int[]){100, 200, 300});
+  gkyl_range_init(&range, 3, (int[]){ 1, 2, 3 }, (int[]){ 100, 200, 300 });
 
-  int cuts[] = {5, 6, 7};
+  int cuts[] = { 5, 6, 7 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(3, cuts, &range);
 
   TEST_CHECK(decomp->ndim == 3);
@@ -353,9 +353,9 @@ static void
 test_rect_decomp_4d_ho(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 4, (int[]){1, 2, 3, 4}, (int[]){10, 20, 30, 40});
+  gkyl_range_init(&range, 4, (int[]){ 1, 2, 3, 4 }, (int[]){ 10, 20, 30, 40 });
 
-  int cuts[] = {2, 1, 3, 4};
+  int cuts[] = { 2, 1, 3, 4 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(4, cuts, &range);
 
   TEST_CHECK(decomp->ndim == 4);
@@ -383,9 +383,9 @@ static void
 test_rect_decomp_per_2d_ho(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 2, (int[]){1, 2}, (int[]){100, 100});
+  gkyl_range_init(&range, 2, (int[]){ 1, 2 }, (int[]){ 100, 100 });
 
-  int cuts[GKYL_MAX_DIM] = {3, 3};
+  int cuts[GKYL_MAX_DIM] = { 3, 3 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
 
   struct gkyl_range crange;
@@ -420,9 +420,9 @@ static void
 test_rect_decomp_per_2d_2_ho(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 2, (int[]){1, 2}, (int[]){100, 100});
+  gkyl_range_init(&range, 2, (int[]){ 1, 2 }, (int[]){ 100, 100 });
 
-  int cuts[] = {1, 2};
+  int cuts[] = { 1, 2 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
 
   struct gkyl_range crange;
@@ -457,9 +457,9 @@ static void
 test_rect_decomp_per_2d_corner_ho(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 2, (int[]){1, 2}, (int[]){100, 100});
+  gkyl_range_init(&range, 2, (int[]){ 1, 2 }, (int[]){ 100, 100 });
 
-  int cuts[] = {2, 2};
+  int cuts[] = { 2, 2 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
 
   struct gkyl_range crange;
@@ -494,9 +494,9 @@ static void
 test_rect_decomp_per_3d_ho(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 3, (int[]){1, 1, 1}, (int[]){100, 100, 100});
+  gkyl_range_init(&range, 3, (int[]){ 1, 1, 1 }, (int[]){ 100, 100, 100 });
 
-  int cuts[] = {3, 3, 3};
+  int cuts[] = { 3, 3, 3 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
 
   struct gkyl_range crange;
@@ -531,16 +531,16 @@ static void
 test_rect_decomp_2d_2v_ho(void)
 {
   struct gkyl_range range;
-  gkyl_range_init(&range, 2, (int[]){1, 2}, (int[]){100, 100});
+  gkyl_range_init(&range, 2, (int[]){ 1, 2 }, (int[]){ 100, 100 });
 
-  int cuts[] = {5, 6};
+  int cuts[] = { 5, 6 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
 
   TEST_CHECK(decomp->ndim == 2);
   TEST_CHECK(decomp->ndecomp == cuts[0] * cuts[1]);
 
   struct gkyl_range vrange;
-  gkyl_range_init(&vrange, 2, (int[]){1, 2}, (int[]){16, 16});
+  gkyl_range_init(&vrange, 2, (int[]){ 1, 2 }, (int[]){ 16, 16 });
 
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(&vrange, decomp);
 
@@ -571,8 +571,8 @@ test_rect_decomp_2d_2v_ho(void)
 static void
 test_rect_decomp_from_cuts_and_cells_ho(void)
 {
-  int cuts[] = {5, 6, 7};
-  int cells[] = {100, 200, 300};
+  int cuts[] = { 5, 6, 7 };
+  int cells[] = { 100, 200, 300 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts_and_cells(3, cuts, cells);
 
   TEST_CHECK(decomp->ndim == 3);
@@ -589,27 +589,24 @@ test_rect_decomp_from_cuts_and_cells_ho(void)
   gkyl_rect_decomp_release(decomp);
 }
 
-TEST_LIST = {
-  {"rect_decomp_ranges_1d_ho", test_rect_decomp_ranges_1d_ho},
-  {"rect_decomp_ranges_2d_ho", test_rect_decomp_ranges_2d_ho},
-  {"rect_decomp_ranges_3d_ho", test_rect_decomp_ranges_3d_ho},
+TEST_LIST = { { "rect_decomp_ranges_1d_ho", test_rect_decomp_ranges_1d_ho },
+  { "rect_decomp_ranges_2d_ho", test_rect_decomp_ranges_2d_ho },
+  { "rect_decomp_ranges_3d_ho", test_rect_decomp_ranges_3d_ho },
 
-  {"rect_decomp_ranges_from_range_2d_ho", test_rect_decomp_ranges_from_range_2d_ho},
-  {"rect_decomp_ranges_from_range_3d_ho", test_rect_decomp_ranges_from_range_3d_ho},
+  { "rect_decomp_ranges_from_range_2d_ho", test_rect_decomp_ranges_from_range_2d_ho },
+  { "rect_decomp_ranges_from_range_3d_ho", test_rect_decomp_ranges_from_range_3d_ho },
 
-  {"rect_decomp_2d_ho", test_rect_decomp_2d_ho},
-  {"rect_decomp_3d_ho", test_rect_decomp_3d_ho},
-  {"rect_decomp_4d_ho", test_rect_decomp_4d_ho},
+  { "rect_decomp_2d_ho", test_rect_decomp_2d_ho }, { "rect_decomp_3d_ho", test_rect_decomp_3d_ho },
+  { "rect_decomp_4d_ho", test_rect_decomp_4d_ho },
 
-  {"rect_decomp_per_2d_ho", test_rect_decomp_per_2d_ho},
-  {"rect_decomp_per_2d_2_ho", test_rect_decomp_per_2d_2_ho},
-  {"rect_decomp_per_3d_ho", test_rect_decomp_per_3d_ho},
+  { "rect_decomp_per_2d_ho", test_rect_decomp_per_2d_ho },
+  { "rect_decomp_per_2d_2_ho", test_rect_decomp_per_2d_2_ho },
+  { "rect_decomp_per_3d_ho", test_rect_decomp_per_3d_ho },
 
-  {"rect_decomp_per_2d_corner_ho", test_rect_decomp_per_2d_corner_ho},
+  { "rect_decomp_per_2d_corner_ho", test_rect_decomp_per_2d_corner_ho },
 
-  {"rect_decomp_2d_2v_ho", test_rect_decomp_2d_2v_ho},
+  { "rect_decomp_2d_2v_ho", test_rect_decomp_2d_2v_ho },
 
-  {"rect_decomp_from_cuts_and_cells_ho", test_rect_decomp_from_cuts_and_cells_ho},
+  { "rect_decomp_from_cuts_and_cells_ho", test_rect_decomp_from_cuts_and_cells_ho },
 
-  {NULL, NULL},
-};
+  { NULL, NULL } };

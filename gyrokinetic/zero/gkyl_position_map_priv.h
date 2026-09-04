@@ -550,10 +550,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
 
   double dB_target, dB_global_lower, B_lower_region;
   double interval_lower, interval_upper, interval_lower_eval, interval_upper_eval;
-  struct opt_Theta_ctx ridders_ctx = {
-    .gpm = gpm,
-    .bmag_ctx = gpm->bmag_ctx,
-  };
+  struct opt_Theta_ctx ridders_ctx = { .gpm = gpm, .bmag_ctx = gpm->bmag_ctx };
   dB_target = dB_cell * it;
 
   bool outside_region = true; // Asuume that we identified the region incorrectly
@@ -751,10 +748,7 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
   // Keep sigma fixed at the original gaussian_std
   // This maintains consistent smoothing behavior even at boundaries
   struct gaussian_weight_ctx gw_ctx = {
-    .gpm = gpm,
-    .theta_c = theta_c,
-    .wd2 = wd2,
-    .sigma = sigma,
+    .gpm = gpm, .theta_c = theta_c, .wd2 = wd2, .sigma = sigma
   };
 
   struct gkyl_qr_res res =

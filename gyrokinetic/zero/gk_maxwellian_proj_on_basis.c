@@ -38,7 +38,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, enum gkyl_quad_type q
   int vdim = ndim - cdim;
   int num_quad_v = num_quad;
   // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[2] = {false}; // 2 is the max vdim for GK.
+  bool is_vdim_p2[2] = { false }; // 2 is the max vdim for GK.
   if (basis->b_type == GKYL_BASIS_MODAL_GKHYBRID) {
     num_quad_v = num_quad + 1;
     is_vdim_p2[0] = true; // only vpar is quadratic in GK hybrid.
@@ -232,7 +232,7 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
   // create a map between phase-space and conf-space ordinates.
   int num_quad_v = num_quad; // Hybrid basis have p=2 in velocity space.
   // hybrid basis have p=2 in velocity space.
-  bool is_vdim_p2[2] = {false}; // 2 is the max vdim for GK.
+  bool is_vdim_p2[2] = { false }; // 2 is the max vdim for GK.
   if (up->phase_basis.b_type == GKYL_BASIS_MODAL_GKHYBRID) {
     num_quad_v = num_quad + 1;
     is_vdim_p2[0] = true; // only vpar is quadratic in GK hybrid.
@@ -332,8 +332,7 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
     up, inp->conf_range, inp->gk_geom->geo_int.bmag, inp->gk_geom->geo_int.jacobtot);
 
   // Store a Maxwellian moment calculation updater to compute and correct the density
-  struct gkyl_gk_maxwellian_moments_inp inp_mom = {
-    .phase_grid = inp->phase_grid,
+  struct gkyl_gk_maxwellian_moments_inp inp_mom = { .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
     .conf_range = inp->conf_range,
@@ -342,8 +341,7 @@ gkyl_gk_maxwellian_proj_on_basis_inew(const struct gkyl_gk_maxwellian_proj_on_ba
     .gk_geom = inp->gk_geom,
     .vel_map = inp->vel_map,
     .divide_jacobgeo = inp->divide_jacobgeo,
-    .use_gpu = inp->use_gpu,
-  };
+    .use_gpu = inp->use_gpu };
   up->moments_up = gkyl_gk_maxwellian_moments_inew(&inp_mom);
 
   return up;
@@ -395,11 +393,11 @@ gkyl_gk_maxwellian_proj_on_basis_advance(gkyl_gk_maxwellian_proj_on_basis *up,
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = {0};
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d = 0; d < conf_range->ndim; ++d)
     rem_dir[d] = 1;
 
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.0};
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = { 0.0 };
   double n_quad[tot_conf_quad], upar_quad[tot_conf_quad], T_over_m_quad[tot_conf_quad];
   double Tperp_over_m_quad[tot_conf_quad];
   double expamp_quad[tot_conf_quad];

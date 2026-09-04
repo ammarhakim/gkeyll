@@ -180,7 +180,7 @@ mp_limiter(double qe, double q2m, double q1m, double q0, double q1p, double q2p)
 static inline long
 get_offset(int dir, int loc, const struct gkyl_range *range)
 {
-  int idx[GKYL_MAX_CDIM] = {0, 0, 0};
+  int idx[GKYL_MAX_CDIM] = { 0, 0, 0 };
   idx[dir] = loc;
   return gkyl_range_offset(range, idx);
 }
@@ -267,7 +267,7 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp, const struct gkyl_range *update_range
     const double *qavg[6]; // pointers to cells attached to edge
 
     // create range that includes one extra layer on the upper size
-    int upper[GKYL_MAX_CDIM] = {0};
+    int upper[GKYL_MAX_CDIM] = { 0 };
     for (int d = 0; d < update_range->ndim; ++d)
       upper[d] = update_range->upper[d];
     upper[dir] += 1;

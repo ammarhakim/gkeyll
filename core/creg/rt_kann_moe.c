@@ -135,7 +135,7 @@ train_mixture(struct train_inp *nn_inp, const char *nn_name)
     struct gkyl_kn_vec *inp_expert = gkyl_kn_vec_new(N_expert, 1);
     struct gkyl_kn_vec *out_expert = gkyl_kn_vec_new(N_expert, 1);
 
-    struct xrange xr_expert = {.xleft = -1.0, .xright = 1.0, .N = N_expert};
+    struct xrange xr_expert = { .xleft = -1.0, .xright = 1.0, .N = N_expert };
 
     // Initialize input/output mapping for individual experts.
     for (int j = 0; j < N_expert; j++) {
@@ -155,7 +155,7 @@ train_mixture(struct train_inp *nn_inp, const char *nn_name)
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
-  struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = N};
+  struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = N };
 
   // Initialize input/output mapping.
   for (int i = 0; i < N; i++) {
@@ -252,7 +252,7 @@ main(int argc, char *argv[])
     fprintf(stdout, "*** Training\n");
     train_mixture(
       &(struct train_inp){
-        .ntrain = 1001, .ndepth = 2, .nwidth = 256, .nexperts = 3, .learning_rate = 1e-3f},
+        .ntrain = 1001, .ndepth = 2, .nwidth = 256, .nexperts = 3, .learning_rate = 1e-3f },
       "rt_kann_moe.kann");
   }
 
@@ -263,7 +263,7 @@ main(int argc, char *argv[])
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
-    struct xrange xr = {.xleft = -1.0, .xright = 1.0, .N = inp->nvec};
+    struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
     for (int i = 0; i < inp->nvec; i++) {
       inp->vals[i][0] = xrange_n(xr, i);
     }

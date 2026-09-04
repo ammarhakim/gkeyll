@@ -152,7 +152,7 @@ gkyl_superlu_amat_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_t
     for (size_t i = 0; i < prob->nnz; ++i) {
       gkyl_mat_triples_iter_next(iter); // bump iterator.
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-      size_t idx[2] = {mt.row, mt.col};
+      size_t idx[2] = { mt.row, mt.col };
 
       nzval[i] = mt.val;
       rowind[i] = idx[0];
@@ -341,7 +341,7 @@ gkyl_superlu_amat_update_from_triples(struct gkyl_superlu_prob *prob, struct gky
     for (size_t i = 0; i < prob->nnz; ++i) {
       gkyl_mat_triples_iter_next(iter); // bump iterator.
       struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
-      size_t idx[2] = {mt.row, mt.col};
+      size_t idx[2] = { mt.row, mt.col };
 
       nzval[i] = mt.val;
     }

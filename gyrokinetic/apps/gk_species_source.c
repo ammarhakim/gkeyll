@@ -17,10 +17,11 @@ gk_species_source_write_enabled(
   gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
   gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_source[] = {
-    {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source."}};
-  int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem *io_meta[] = {
-    gks->io_meta_phase, app->gk_geom->io_meta_basic, io_meta_source};
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source." }
+  };
+  int io_meta_len[] = { gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1 };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_phase, app->gk_geom->io_meta_basic,
+    io_meta_source };
   struct gkyl_msgpack_data *mt =
     gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -80,13 +81,13 @@ gk_species_source_write_mom_enabled(
     if (app->use_gpu)
       gkyl_array_copy(gks->src.moms[m].marr_host, gks->src.moms[m].marr);
 
-    struct gkyl_msgpack_map_elem io_meta_mom[] = {{.key = "Description",
+    struct gkyl_msgpack_map_elem io_meta_mom[] = { { .key = "Description",
       .elem_type = GKYL_MP_STRING,
       .cval = (char *)
-        gkyl_distribution_moments_descriptions[gks->info.source.diagnostics.diag_moments[m]]}};
-    int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem *io_meta[] = {
-      gks->io_meta_conf, app->gk_geom->io_meta_basic, io_meta_mom};
+        gkyl_distribution_moments_descriptions[gks->info.source.diagnostics.diag_moments[m]] } };
+    int io_meta_len[] = { gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1 };
+    const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_conf,
+      app->gk_geom->io_meta_basic, io_meta_mom };
     struct gkyl_msgpack_data *mt =
       gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -199,12 +200,12 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
     if (gks->src.is_first_integ_write_call) {
-      struct gkyl_msgpack_map_elem io_meta_phi[] = {{.key = "Description",
+      struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
         .elem_type = GKYL_MP_STRING,
-        .cval = "Volume integrated moments of the source."}};
-      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-      const struct gkyl_msgpack_map_elem *io_meta[] = {
-        gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+        .cval = "Volume integrated moments of the source." } };
+      int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
+      const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
+        app->gk_geom->io_meta_basic, io_meta_phi };
       struct gkyl_msgpack_data *mt =
         gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -227,12 +228,12 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "particle");
 
       if (gks->src.is_first_integ_write_call_adapt) {
-        struct gkyl_msgpack_map_elem io_meta_phi[] = {{.key = "Description",
+        struct gkyl_msgpack_map_elem io_meta_phi[] = { { .key = "Description",
           .elem_type = GKYL_MP_STRING,
-          .cval = "Source particle injection rate."}};
-        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-        const struct gkyl_msgpack_map_elem *io_meta[] = {
-          gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+          .cval = "Source particle injection rate." } };
+        int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
+        const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
+          app->gk_geom->io_meta_basic, io_meta_phi };
         struct gkyl_msgpack_data *mt =
           gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -254,10 +255,11 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app, struct
 
       if (gks->src.is_first_integ_write_call_adapt) {
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          {.key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source temperature."}};
-        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-        const struct gkyl_msgpack_map_elem *io_meta[] = {
-          gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+          { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source temperature." }
+        };
+        int io_meta_len[] = { gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1 };
+        const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic,
+          app->gk_geom->io_meta_basic, io_meta_phi };
         struct gkyl_msgpack_data *mt =
           gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta);
 
@@ -553,7 +555,7 @@ gk_species_source_init(
         }
 
         adapt_src->num_boundaries = s->info.source.adapt[k].num_boundaries;
-        bool is_dir_periodic[GKYL_MAX_CDIM] = {0};
+        bool is_dir_periodic[GKYL_MAX_CDIM] = { 0 };
         for (int j = 0; j < app->num_periodic_dir; ++j) {
           is_dir_periodic[app->periodic_dirs[j]] = true;
         }

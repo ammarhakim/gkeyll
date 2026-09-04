@@ -37,7 +37,7 @@ create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 {
   // Box-spanning stencil.
   struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, (int[]){-1, -1, -1}, (int[]){0, 0, 0});
+  gkyl_range_init(&box3, range->ndim, (int[]){ -1, -1, -1 }, (int[]){ 0, 0, 0 });
 
   struct gkyl_range_iter iter3;
   gkyl_range_iter_init(&iter3, &box3);
@@ -55,7 +55,7 @@ create_offsets_centers(const struct gkyl_range *range, long offsets[])
 {
   // Box-spanning stencil.
   struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, (int[]){0, 0, 0}, (int[]){1, 1, 1});
+  gkyl_range_init(&box3, range->ndim, (int[]){ 0, 0, 0 }, (int[]){ 1, 1, 1 });
 
   struct gkyl_range_iter iter3;
   gkyl_range_iter_init(&iter3, &box3);
@@ -124,19 +124,19 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
   double drho_dx_dx = 0.0;
   double drho_dx_dy = 0.0;
 
-  double p_avg[6] = {0.0};
-  double dp_dx[6] = {0.0};
-  double dp_dy[6] = {0.0};
-  double dp_dz[6] = {0.0};
-  double dp_dx_dx[6] = {0.0};
-  double dp_dx_dy[6] = {0.0};
+  double p_avg[6] = { 0.0 };
+  double dp_dx[6] = { 0.0 };
+  double dp_dy[6] = { 0.0 };
+  double dp_dz[6] = { 0.0 };
+  double dp_dx_dx[6] = { 0.0 };
+  double dp_dx_dy[6] = { 0.0 };
 
-  double B_avg[3] = {0.0};
-  double dB_dx[3] = {0.0};
-  double dB_dy[3] = {0.0};
-  double dB_dz[3] = {0.0};
-  double dB_dx_dx[3] = {0.0};
-  double dB_dx_dy[3] = {0.0};
+  double B_avg[3] = { 0.0 };
+  double dB_dx[3] = { 0.0 };
+  double dB_dy[3] = { 0.0 };
+  double dB_dz[3] = { 0.0 };
+  double dB_dx_dx[3] = { 0.0 };
+  double dB_dx_dy[3] = { 0.0 };
 
   // Initialize the geometry cache (entries not touched by a given branch stay
   // zero, e.g. local_mag_dy in 1D).
@@ -154,8 +154,8 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
   if (ndim == 1) {
     if (poly_order == 1) {
       const double dx = nnclosure->grid.dx[0];
-      double rho[2] = {0.0};
-      double p[2][6] = {0.0};
+      double rho[2] = { 0.0 };
+      double p[2][6] = { 0.0 };
       var_setup(nnclosure, L_1D, U_1D, fluid_d, rho, p);
 
       rho_avg = calc_arithm_avg_1D(rho[L_1D], rho[U_1D]);
@@ -279,8 +279,8 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
       }
     } else if (poly_order == 2) {
       const double dx = nnclosure->grid.dx[0];
-      double rho[3] = {0.0};
-      double p[3][6] = {0.0};
+      double rho[3] = { 0.0 };
+      double p[3][6] = { 0.0 };
       var_setup(nnclosure, L2_1D, U2_1D, fluid_d, rho, p);
 
       rho_avg = calc_arithm_avg_1D(rho[L2_1D], rho[U2_1D]);
@@ -465,8 +465,8 @@ gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure
     if (poly_order == 1) {
       const double dx = nnclosure->grid.dx[0];
       const double dy = nnclosure->grid.dx[1];
-      double rho[4] = {0.0};
-      double p[4][6] = {0.0};
+      double rho[4] = { 0.0 };
+      double p[4][6] = { 0.0 };
       var_setup(nnclosure, LL_2D, UU_2D, fluid_d, rho, p);
 
       rho_avg = calc_arithm_avg_2D(rho[LL_2D], rho[LU_2D], rho[UL_2D], rho[UU_2D]);
@@ -717,10 +717,10 @@ gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure
     local_mag_dy[i] = geom->local_mag_dy[i];
   }
 
-  double output_data[8] = {0.0};
-  double divQx[6] = {0.0};
-  double divQy[6] = {0.0};
-  double divQz[6] = {0.0};
+  double output_data[8] = { 0.0 };
+  double divQx[6] = { 0.0 };
+  double divQy[6] = { 0.0 };
+  double divQz[6] = { 0.0 };
 
   if (ndim == 1) {
     if (poly_order == 1) {
@@ -1112,8 +1112,8 @@ gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure,
 {
   int poly_order = nnclosure->poly_order;
   int ndim = update_rng->ndim;
-  long sz[] = {2, 4, 8};
-  long sz_p2[] = {3, 9, 27};
+  long sz[] = { 2, 4, 8 };
+  long sz_p2[] = { 3, 9, 27 };
 
   long offsets_centers[sz[ndim - 1]];
   long offsets_centers_p2[sz_p2[ndim - 1]];

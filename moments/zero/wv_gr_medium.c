@@ -56,7 +56,7 @@ gkyl_gr_medium_prim_vars(double gas_gamma, const double q[15], double v[15])
 static inline double
 gkyl_gr_medium_max_abs_speed(double gas_gamma, const double q[15])
 {
-  double v[15] = {0.0};
+  double v[15] = { 0.0 };
   gkyl_gr_medium_prim_vars(gas_gamma, q, v);
 
   double vel = v[14];
@@ -69,7 +69,7 @@ gkyl_gr_medium_max_abs_speed(double gas_gamma, const double q[15])
 void
 gkyl_gr_medium_flux(double gas_gamma, double kappa, const double q[15], double flux[15])
 {
-  double v[15] = {0.0};
+  double v[15] = { 0.0 };
   gkyl_gr_medium_prim_vars(gas_gamma, q, v);
   double exp_2a = v[0];
 
@@ -245,7 +245,7 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   const struct wv_gr_medium *gr_medium = container_of(eqn, struct wv_gr_medium, eqn);
   double gas_gamma = gr_medium->gas_gamma;
 
-  double v[15] = {0.0};
+  double v[15] = { 0.0 };
   gkyl_gr_medium_prim_vars(gas_gamma, q, v);
 
   if (v[13] < 0.0) {
@@ -279,7 +279,7 @@ gr_medium_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
   double gas_gamma = gr_medium->gas_gamma;
   double kappa = gr_medium->kappa;
 
-  double v[15] = {0.0};
+  double v[15] = { 0.0 };
   gkyl_gr_medium_prim_vars(gas_gamma, qin, v);
   double exp_2a = v[0];
 
@@ -347,11 +347,7 @@ struct gkyl_wv_eqn *
 gkyl_wv_gr_medium_new(double gas_gamma, double kappa, bool use_gpu)
 {
   return gkyl_wv_gr_medium_inew(&(struct gkyl_wv_gr_medium_inp){
-    .gas_gamma = gas_gamma,
-    .kappa = kappa,
-    .rp_type = WV_GR_MEDIUM_RP_LAX,
-    .use_gpu = use_gpu,
-  });
+    .gas_gamma = gas_gamma, .kappa = kappa, .rp_type = WV_GR_MEDIUM_RP_LAX, .use_gpu = use_gpu });
 }
 
 struct gkyl_wv_eqn *

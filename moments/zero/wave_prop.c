@@ -129,7 +129,7 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
 
   up->split_type = winp->split_type;
 
-  int nghost[3] = {2, 2, 2};
+  int nghost[3] = { 2, 2, 2 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&up->grid, nghost, &ext_range, &range);
 
@@ -314,7 +314,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv, double tm, double dt,
     int upidx_c = update_range->upper[dir];
 
     struct gkyl_range slice_range;
-    gkyl_range_init(&slice_range, 1, (int[]){loidx}, (int[]){upidx});
+    gkyl_range_init(&slice_range, 1, (int[]){ loidx }, (int[]){ upidx });
 
     struct gkyl_range perp_range;
     gkyl_range_shorten_from_above(&perp_range, update_range, dir, 1);
@@ -572,8 +572,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv, double tm, double dt,
 outsideloop:;
 
   // compute actual CFL, status & max-speed across all domains
-  double red_vars[3] = {cfla, is_cfl_violated, max_speed};
-  double red_vars_global[3] = {0.0, 0.0, 0.0};
+  double red_vars[3] = { cfla, is_cfl_violated, max_speed };
+  double red_vars_global[3] = { 0.0, 0.0, 0.0 };
   gkyl_comm_allreduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 3, &red_vars, &red_vars_global);
 
   cfla = red_vars_global[0];
@@ -585,20 +585,16 @@ outsideloop:;
   if (is_cfl_violated > 0.0)
     // indicate failure, and return smaller stable time-step
     return (struct gkyl_wave_prop_status){
-      .success = 0,
-      .dt_suggested = dt_suggested,
-      .max_speed = max_speed,
+      .success = 0, .dt_suggested = dt_suggested, .max_speed = max_speed
     };
 
   // on success, suggest only bigger time-step; (Only way dt can
   // reduce is if the update fails. If the code comes here the update
   // succeeded and so we should not allow dt to reduce).
 
-  return (struct gkyl_wave_prop_status){
-    .success = is_cfl_violated > 0.0 ? 0 : 1,
+  return (struct gkyl_wave_prop_status){ .success = is_cfl_violated > 0.0 ? 0 : 1,
     .dt_suggested = dt_suggested > dt ? dt_suggested : dt,
-    .max_speed = max_speed,
-  };
+    .max_speed = max_speed };
 }
 
 double
@@ -626,10 +622,10 @@ gkyl_wave_prop_max_dt(
 struct gkyl_wave_prop_stats
 gkyl_wave_prop_stats(const gkyl_wave_prop *wv)
 {
-  return (struct gkyl_wave_prop_stats){.n_calls = wv->n_calls,
+  return (struct gkyl_wave_prop_stats){ .n_calls = wv->n_calls,
     .n_bad_advance_calls = wv->n_bad_advance_calls,
     .n_bad_cells = wv->n_bad_cells,
-    .n_max_bad_cells = wv->n_max_bad_cells};
+    .n_max_bad_cells = wv->n_max_bad_cells };
 }
 
 void

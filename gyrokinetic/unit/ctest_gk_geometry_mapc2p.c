@@ -130,21 +130,20 @@ test_mapc2p_3x_p1_ho()
   double Rmin = 0.5 * Rmax;
   int Nz = 10;
 
-  double lower[3] = {Rmin, -0.1, -Lz / 2};
-  double upper[3] = {Rmax, 0.1, Lz / 2};
-  int cells[3] = {8, 1, 8};
+  double lower[3] = { Rmin, -0.1, -Lz / 2 };
+  double upper[3] = { Rmax, 0.1, Lz / 2 };
+  int cells[3] = { 8, 1, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
 
   struct gkyl_range ext_range, range;
-  int nghost[3] = {1, 1, 1};
+  int nghost[3] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -161,8 +160,7 @@ test_mapc2p_3x_p1_ho()
     .geo_local_ext = ext_range,
     .geo_global = range,
     .geo_global_ext = ext_range,
-    .geo_basis = basis,
-  };
+    .geo_basis = basis };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   //write_geometry(gk_geom, grid, range, "geomapc2p");
@@ -170,13 +168,13 @@ test_mapc2p_3x_p1_ho()
   // Define nodal operations
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   int cidx[3];
-  int nodes[] = {1, 1, 1};
+  int nodes[] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] + 1;
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
 
-  int nodes_quad_interior[] = {1, 1, 1};
+  int nodes_quad_interior[] = { 1, 1, 1 };
   int num_quad_points = poly_order + 1;
   for (int d = 0; d < grid.ndim; ++d)
     nodes_quad_interior[d] = grid.cells[d] * num_quad_points;
@@ -287,7 +285,7 @@ test_mapc2p_3x_p1_ho()
           grid.lower[AL_IDX] + ia * (grid.upper[AL_IDX] - grid.lower[AL_IDX]) / grid.cells[AL_IDX];
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nrange_quad_interior, cidx));
         double bmag_anal[3];
         bfield_func(0, xn, bmag_anal, 0);
@@ -313,7 +311,7 @@ test_mapc2p_3x_p1_ho()
         double *mapc2p_n =
           gkyl_array_fetch(mapc2p_nodal_interior, gkyl_range_idx(&nrange_quad_interior, cidx));
         double r = sqrt(mapc2p_n[0] * mapc2p_n[0] + mapc2p_n[1] * mapc2p_n[1]);
-        double xn[3] = {r, 0.0, 0.0};
+        double xn[3] = { r, 0.0, 0.0 };
         double fout[6];
         exact_gij(0.0, xn, fout, 0);
         for (int i = 0; i < 6; ++i)
@@ -337,7 +335,7 @@ test_mapc2p_3x_p1_ho()
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
         // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double fout[3];
         mapc2p(0.0, xn, fout, 0);
         for (int i = 0; i < 3; ++i)
@@ -391,28 +389,24 @@ test_mapc2p_3x_p1_pmap_ho()
   double Rmin = 0.05 * Rmax;
   int Nz = 10;
 
-  double lower[3] = {Rmin, -M_PI, -Lz / 2};
-  double upper[3] = {Rmax, M_PI, Lz / 2};
-  int cells[3] = {18, 18, Nz};
+  double lower[3] = { Rmin, -M_PI, -Lz / 2 };
+  double upper[3] = { Rmax, M_PI, Lz / 2 };
+  int cells[3] = { 18, 18, Nz };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
 
   struct gkyl_range ext_range, range;
-  int nghost[3] = {1, 1, 1};
+  int nghost[3] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_position_map_inp pos_map_inp = {
-    .maps = {0, 0, mapz},
-    .ctxs = {0, 0, 0},
-  };
+  struct gkyl_position_map_inp pos_map_inp = { .maps = { 0, 0, mapz }, .ctxs = { 0, 0, 0 } };
 
   // Configuration space geometry initialization
   struct gkyl_position_map *pos_map =
     gkyl_position_map_new(pos_map_inp, grid, range, ext_range, range, ext_range, basis);
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
@@ -429,8 +423,7 @@ test_mapc2p_3x_p1_pmap_ho()
     .geo_global = range,
     .geo_global_ext = ext_range,
     .geo_basis = basis,
-    .position_map = pos_map,
-  };
+    .position_map = pos_map };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
@@ -438,13 +431,13 @@ test_mapc2p_3x_p1_pmap_ho()
 
   // Define the nodes for the script to calculate values at
   int cidx[3];
-  int nodes[] = {1, 1, 1};
+  int nodes[] = { 1, 1, 1 };
   for (int d = 0; d < grid.ndim; ++d)
     nodes[d] = grid.cells[d] + 1;
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
 
-  int nodes_quad_interior[] = {1, 1, 1};
+  int nodes_quad_interior[] = { 1, 1, 1 };
   int num_quad_points = poly_order + 1;
   for (int d = 0; d < grid.ndim; ++d)
     nodes_quad_interior[d] = grid.cells[d] * num_quad_points;
@@ -453,7 +446,7 @@ test_mapc2p_3x_p1_pmap_ho()
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
 
-  double dels[2] = {1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3)};
+  double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   double theta_lo = grid.lower[TH_IDX] + dels[1] * grid.dx[TH_IDX] / 2.0;
   double psi_lo = grid.lower[PSI_IDX] + dels[1] * grid.dx[PSI_IDX] / 2.0;
   double alpha_lo = grid.lower[AL_IDX] + dels[1] * grid.dx[AL_IDX] / 2.0;
@@ -483,7 +476,7 @@ test_mapc2p_3x_p1_pmap_ho()
         // mapc2p_n[0] = x, mapc2p_n[1] = y, mapc2p_n[2] = z
         double *mapc2p_n = gkyl_array_fetch(mapc2p_nodal, gkyl_range_idx(&nrange, cidx));
         mapz(0.0, &theta, &theta, 0);
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double fout[3];
         mapc2p(0.0, xn, fout, 0);
         for (int i = 0; i < 3; ++i) {
@@ -547,7 +540,7 @@ test_mapc2p_3x_p1_pmap_ho()
         double theta =
           grid.lower[TH_IDX] + it * (grid.upper[TH_IDX] - grid.lower[TH_IDX]) / grid.cells[TH_IDX];
         mapz(0.0, &theta, &theta, 0);
-        double xn[3] = {psi, alpha, theta};
+        double xn[3] = { psi, alpha, theta };
         double *bmag_n = gkyl_array_fetch(bmag_nodal, gkyl_range_idx(&nrange, cidx));
         double bmag_anal[3];
         bfield_func(0, xn, bmag_anal, 0);
@@ -566,8 +559,5 @@ test_mapc2p_3x_p1_pmap_ho()
   gkyl_gk_geometry_release(gk_geom);
 }
 
-TEST_LIST = {
-  {"test_mapc2p_3x_p1_ho", test_mapc2p_3x_p1_ho},
-  {"test_mapc2p_3x_p1_pmap_ho", test_mapc2p_3x_p1_pmap_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_mapc2p_3x_p1_ho", test_mapc2p_3x_p1_ho },
+  { "test_mapc2p_3x_p1_pmap_ho", test_mapc2p_3x_p1_pmap_ho }, { NULL, NULL } };

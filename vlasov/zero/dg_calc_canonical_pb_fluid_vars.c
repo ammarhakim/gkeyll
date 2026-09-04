@@ -56,8 +56,8 @@ gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid,
       gkyl_range_init(&up->x_local, 1, &conf_range->lower[0], &conf_range->upper[0]);
       gkyl_range_init(&up->x_local_ext, 1, &conf_ext_range->lower[0], &conf_ext_range->upper[0]);
       // Integration over y only, (x,y) to (x).
-      int int_dim_y[] = {0, 1, 0};
-      struct gkyl_array_average_inp inp_int_y = {.grid = &up->conf_grid,
+      int int_dim_y[] = { 0, 1, 0 };
+      struct gkyl_array_average_inp inp_int_y = { .grid = &up->conf_grid,
         .basis = up->conf_basis,
         .basis_avg = basis_x,
         .local = conf_range,
@@ -65,7 +65,7 @@ gkyl_dg_calc_canonical_pb_fluid_vars_new(const struct gkyl_rect_grid *conf_grid,
         .local_avg_ext = &up->x_local_ext,
         .weight = NULL,
         .avg_dim = int_dim_y,
-        .use_gpu = use_gpu};
+        .use_gpu = use_gpu };
       up->int_y = gkyl_array_average_inew(&inp_int_y);
       up->phi_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);
       up->n_zonal = gkyl_array_new(GKYL_DOUBLE, basis_x.num_basis, up->x_local_ext.volume);

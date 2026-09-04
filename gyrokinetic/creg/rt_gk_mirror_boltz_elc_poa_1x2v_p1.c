@@ -16,7 +16,7 @@ enum gk_poa_state {
   GK_POA_NONE = 0, // Haven't started.
   GK_POA_OAP, // Orbit averaged phase.
   GK_POA_FDP, // Full dynamics phase.
-  GK_POA_COMPLETED, // Finished simulation.
+  GK_POA_COMPLETED // Finished simulation.
 };
 
 struct gk_poa_phase_params {
@@ -585,8 +585,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_mirror_ctx ctx = {
-    .cdim = cdim,
+  struct gk_mirror_ctx ctx = { .cdim = cdim,
     .vdim = vdim,
     .mi = mi,
     .qi = qi,
@@ -647,7 +646,7 @@ create_ctx(void)
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nz, Nvpar, Nmu},
+    .cells = { Nz, Nvpar, Nmu },
     .poly_order = poly_order,
     // Time integration and I/O parameters.
     .t_end = t_end,
@@ -657,8 +656,7 @@ create_ctx(void)
     .write_phase_freq = write_phase_freq,
     .int_diag_calc_freq = int_diag_calc_freq,
     .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+    .num_failures_max = num_failures_max };
 
   // Populate a couple more values in the context.
   ctx.psi_eval = psi_RZ(ctx.RatZeq0, 0., &ctx);
@@ -764,30 +762,20 @@ run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_steps
   reset_io_triggers(ctx, tfs, trig_write_conf, trig_write_phase, trig_calc_intdiag);
 
   // Reset simulation parameters and function pointers.
-  struct gkyl_gyrokinetic_collisionless collisionless_inp = {
-    .type = GKYL_GK_COLLISIONLESS_ES,
-    .scale_factor = pparams->alpha,
-  };
-  struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
-    .num_multipliers = 1,
-    .multiplier[0] =
-      {
-        .type = pparams->fdot_mult_type,
-        .cellwise_const = true,
-        .write_diagnostics = true,
-      },
-  };
-  struct gkyl_gyrokinetic_field field_inp = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+  struct gkyl_gyrokinetic_collisionless collisionless_inp = { .type = GKYL_GK_COLLISIONLESS_ES,
+    .scale_factor = pparams->alpha };
+  struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = { .num_multipliers = 1,
+    .multiplier[0] = {
+      .type = pparams->fdot_mult_type, .cellwise_const = true, .write_diagnostics = true } };
+  struct gkyl_gyrokinetic_field field_inp = { .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx->me,
     .electron_charge = ctx->qe,
     .electron_temp = ctx->Te0,
     .polarization_bmag = ctx->B_p,
-    .is_static = pparams->is_static_field,
-  };
+    .is_static = pparams->is_static_field };
   struct gkyl_gyrokinetic_positivity positivity_inp = {
     .type = pparams->is_positivity_enabled ? GKYL_GK_POSITIVITY_SHIFT : GKYL_GK_POSITIVITY_NONE,
-    .write_diagnostics = pparams->is_positivity_enabled,
+    .write_diagnostics = pparams->is_positivity_enabled
   };
 
   gkyl_gyrokinetic_app_reset_species_collisionless(app, t_curr, "ion", collisionless_inp);
@@ -877,8 +865,7 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  struct gkyl_gyrokinetic_species ion = {
-    .name = "ion",
+  struct gkyl_gyrokinetic_species ion = {.name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
     .vdim = ctx.vdim,
@@ -888,129 +875,82 @@ main(int argc, char **argv)
 
     .polarization_density = ctx.n0,
 
-    .mapc2p =
-      {
-        .mapping = mapc2p_vel_ion,
-        .ctx = &ctx,
-      },
+    .mapc2p = {.mapping = mapc2p_vel_ion, .ctx = &ctx},
 
-    .projection =
-      {
-        .proj_id = GKYL_PROJ_BIMAXWELLIAN,
-        .density = eval_density_ion,
-        .upar = eval_upar_ion,
-        .temppar = eval_temp_par_ion,
-        .tempperp = eval_temp_perp_ion,
-        .ctx_density = &ctx,
-        .ctx_upar = &ctx,
-        .ctx_temppar = &ctx,
-        .ctx_tempperp = &ctx,
-      },
+    .projection = {.proj_id = GKYL_PROJ_BIMAXWELLIAN,
+      .density = eval_density_ion,
+      .upar = eval_upar_ion,
+      .temppar = eval_temp_par_ion,
+      .tempperp = eval_temp_perp_ion,
+      .ctx_density = &ctx,
+      .ctx_upar = &ctx,
+      .ctx_temppar = &ctx,
+      .ctx_tempperp = &ctx},
 
     .collisionless =
       {
         .type = GKYL_GK_COLLISIONLESS_ES,
-        .scale_factor = 1.0, // Will be replaced below.
+        .scale_factor = 1.0 // Will be replaced below.
       },
 
-    .collisions =
-      {
-        .collision_id = GKYL_LBO_COLLISIONS,
-        .self_nu = evalNuIon,
-        .self_nu_ctx = &ctx,
-      },
+    .collisions = {.collision_id = GKYL_LBO_COLLISIONS, .self_nu = evalNuIon, .self_nu_ctx = &ctx},
 
-    .source =
-      {
-        .source_id = GKYL_PROJ_SOURCE,
-        .num_sources = 1,
-        .projection[0] =
-          {
-            .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-            .density = eval_density_ion_source,
-            .upar = eval_upar_ion_source,
-            .temp = eval_temp_ion_source,
-            .ctx_density = &ctx,
-            .ctx_upar = &ctx,
-            .ctx_temp = &ctx,
-          },
-      },
+    .source = {.source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 1,
+      .projection[0] = {.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+        .density = eval_density_ion_source,
+        .upar = eval_upar_ion_source,
+        .temp = eval_temp_ion_source,
+        .ctx_density = &ctx,
+        .ctx_upar = &ctx,
+        .ctx_temp = &ctx}},
 
-    .time_rate_multiplier =
-      {
-        .num_multipliers = 1,
-        .multiplier[0] =
-          {
-            .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
-            .cellwise_const = true,
-            .write_diagnostics = true,
-          },
-      },
+    .time_rate_multiplier = {.num_multipliers = 1,
+      .multiplier[0] = {.type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
+        .cellwise_const = true,
+        .write_diagnostics = true}},
 
-    .positivity =
-      {
-        .type = GKYL_GK_POSITIVITY_SHIFT,
-        .write_diagnostics = true,
-      },
+    .positivity = {.type = GKYL_GK_POSITIVITY_SHIFT, .write_diagnostics = true},
 
-    .bcs =
-      {
-        {
-          .dir = 0,
-          .edge = GKYL_LOWER_EDGE,
-          .type = GKYL_BC_GK_SPECIES_SHEATH,
-        },
-        {
-          .dir = 0,
-          .edge = GKYL_UPPER_EDGE,
-          .type = GKYL_BC_GK_SPECIES_SHEATH,
-        },
-      },
+    .bcs = {{.dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+      {.dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH}},
 
     .num_diag_moments = 4,
-    .diag_moments = {GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP,
-      GKYL_F_MOMENT_BIMAXWELLIAN},
-  };
+    .diag_moments = {
+      GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_BIMAXWELLIAN}};
 
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
-    .is_static = false, // So solvers are allocated.
+    .is_static = false // So solvers are allocated.
   };
 
   // GK app
-  struct gkyl_gk app_inp = {
-    .cdim = ctx.cdim,
-    .lower = {ctx.z_min},
-    .upper = {ctx.z_max},
-    .cells = {cells_x[0]},
+  struct gkyl_gk app_inp = { .cdim = ctx.cdim,
+    .lower = { ctx.z_min },
+    .upper = { ctx.z_max },
+    .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
-    .geometry = {.geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = {ctx.psi_eval, 0.0},
+    .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+      .world = { ctx.psi_eval, 0.0 },
       .mapc2p = mapc2p, // Mapping of computational to physical space.
       .c2p_ctx = &ctx,
       .bfield_func = bfield_func, // Magnetic field.
-      .bfield_ctx = &ctx},
+      .bfield_ctx = &ctx },
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
 
     .num_species = 1,
-    .species = {ion},
+    .species = { ion },
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0]},
-        .comm = comm,
-      },
-  };
+    .parallelism = { .use_gpu = app_args.use_gpu, .cuts = { app_args.cuts[0] }, .comm = comm } };
 
   // Create app object.
   // Set app output name from the executable name (argv[0]).
@@ -1024,7 +964,7 @@ main(int argc, char **argv)
     .t_curr = 0.0, // Initial simulation time.
     .frame_curr = 0, // Initial frame.
     .t_end = ctx.poa_phases[0].duration, // Final time of 1st phase.
-    .num_frames = ctx.poa_phases[0].num_frames, // Number of frames in 1st phase.
+    .num_frames = ctx.poa_phases[0].num_frames // Number of frames in 1st phase.
   };
 
   int phase_idx_init = 0, phase_idx_end = ctx.num_phases; // Initial and final phase index.

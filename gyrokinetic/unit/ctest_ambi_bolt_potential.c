@@ -59,8 +59,8 @@ void
 test_ambi_bolt_init_1x_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0}, upper[] = {1.0};
-  int cells[] = {8};
+  double lower[] = { -1.0 }, upper[] = { 1.0 };
+  int cells[] = { 8 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -71,7 +71,7 @@ test_ambi_bolt_init_1x_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -97,8 +97,8 @@ void
 test_ambi_bolt_sheath_calc_1x_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0}, upper[] = {1.0};
-  int cells[] = {8};
+  double lower[] = { -1.0 }, upper[] = { 1.0 };
+  int cells[] = { 8 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -109,7 +109,7 @@ test_ambi_bolt_sheath_calc_1x_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -207,8 +207,8 @@ void
 test_ambi_bolt_phi_calc_1x_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0}, upper[] = {1.0};
-  int cells[] = {8};
+  double lower[] = { -1.0 }, upper[] = { 1.0 };
+  int cells[] = { 8 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -219,7 +219,7 @@ test_ambi_bolt_phi_calc_1x_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -302,8 +302,8 @@ void
 test_ambi_bolt_sheath_calc_1x_hat_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0}, upper[] = {1.0};
-  int cells[] = {8};
+  double lower[] = { -1.0 }, upper[] = { 1.0 };
+  int cells[] = { 8 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -314,7 +314,7 @@ test_ambi_bolt_sheath_calc_1x_hat_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -413,8 +413,8 @@ void
 test_ambi_bolt_phi_calc_1x_hat_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0}, upper[] = {1.0};
-  int cells[] = {32};
+  double lower[] = { -1.0 }, upper[] = { 1.0 };
+  int cells[] = { 32 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -425,7 +425,7 @@ test_ambi_bolt_phi_calc_1x_hat_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1};
+  int ghost[] = { 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -512,8 +512,8 @@ void
 test_ambi_bolt_init_2x_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {8, 16};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 8, 16 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -524,7 +524,7 @@ test_ambi_bolt_init_2x_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -551,8 +551,8 @@ void
 test_ambi_bolt_sheath_calc_2x_one_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {8, 16};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 8, 16 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -563,7 +563,7 @@ test_ambi_bolt_sheath_calc_2x_one_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -663,8 +663,8 @@ void
 test_ambi_bolt_sheath_calc_2x_hat_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {8, 8};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 8, 8 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -675,7 +675,7 @@ test_ambi_bolt_sheath_calc_2x_hat_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -778,8 +778,8 @@ void
 test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {8, 8};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 8, 8 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -790,7 +790,7 @@ test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -895,8 +895,8 @@ void
 test_ambi_bolt_phi_calc_2x_one_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {8, 16};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 8, 16 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -907,7 +907,7 @@ test_ambi_bolt_phi_calc_2x_one_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -993,8 +993,8 @@ void
 test_ambi_bolt_phi_calc_2x_hat_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {32, 32};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 32, 32 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1005,7 +1005,7 @@ test_ambi_bolt_phi_calc_2x_hat_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1093,8 +1093,8 @@ void
 test_ambi_bolt_phi_calc_2x_ramp_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {32, 32};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 32, 32 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1105,7 +1105,7 @@ test_ambi_bolt_phi_calc_2x_ramp_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1193,8 +1193,8 @@ void
 test_ambi_bolt_phi_calc_2x_parabola_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
-  int cells[] = {32, 32};
+  double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 32, 32 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1205,7 +1205,7 @@ test_ambi_bolt_phi_calc_2x_parabola_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1};
+  int ghost[] = { 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1299,8 +1299,8 @@ void
 test_ambi_bolt_phi_calc_3x_one_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};
-  int cells[] = {32, 32, 32};
+  double lower[] = { -1.0, -1.0, -1.0 }, upper[] = { 1.0, 1.0, 1.0 };
+  int cells[] = { 32, 32, 32 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1311,7 +1311,7 @@ test_ambi_bolt_phi_calc_3x_one_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1409,8 +1409,8 @@ void
 test_ambi_bolt_phi_calc_3x_parabola_ho()
 {
   int poly_order = 1;
-  double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};
-  int cells[] = {32, 32, 32};
+  double lower[] = { -1.0, -1.0, -1.0 }, upper[] = { 1.0, 1.0, 1.0 };
+  int cells[] = { 32, 32, 32 };
   int cdim = sizeof(lower) / sizeof(lower[0]);
 
   // Grid.
@@ -1421,7 +1421,7 @@ test_ambi_bolt_phi_calc_3x_parabola_ho()
   struct gkyl_basis *basis;
   basis = gkyl_cart_modal_serendip_new(cdim, poly_order);
 
-  int ghost[] = {1, 1, 1};
+  int ghost[] = { 1, 1, 1 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
@@ -1512,21 +1512,19 @@ test_ambi_bolt_phi_calc_3x_parabola_ho()
   gkyl_proj_on_basis_release(proj_func);
 }
 
-TEST_LIST = {
-  {"test_ambi_bolt_init_1x_ho", test_ambi_bolt_init_1x_ho},
-  {"test_ambi_bolt_sheath_calc_1x_ho", test_ambi_bolt_sheath_calc_1x_ho},
-  {"test_ambi_bolt_phi_calc_1x_ho", test_ambi_bolt_phi_calc_1x_ho},
-  {"test_ambi_bolt_sheath_calc_1x_hat_ho", test_ambi_bolt_sheath_calc_1x_hat_ho},
-  {"test_ambi_bolt_phi_calc_1x_hat_ho", test_ambi_bolt_phi_calc_1x_hat_ho},
-  {"test_ambi_bolt_init_2x_ho", test_ambi_bolt_init_2x_ho},
-  {"test_ambi_bolt_sheath_calc_2x_one_ho", test_ambi_bolt_sheath_calc_2x_one_ho},
-  {"test_ambi_bolt_sheath_calc_2x_hat_ho", test_ambi_bolt_sheath_calc_2x_hat_ho},
-  {"test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho", test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho},
-  {"test_ambi_bolt_phi_calc_2x_one_ho", test_ambi_bolt_phi_calc_2x_one_ho},
-  {"test_ambi_bolt_phi_calc_2x_hat_ho", test_ambi_bolt_phi_calc_2x_hat_ho},
-  {"test_ambi_bolt_phi_calc_2x_ramp_ho", test_ambi_bolt_phi_calc_2x_ramp_ho},
-  {"test_ambi_bolt_phi_calc_2x_parabola_ho", test_ambi_bolt_phi_calc_2x_parabola_ho},
-  {"test_ambi_bolt_phi_calc_3x_one_ho", test_ambi_bolt_phi_calc_3x_one_ho},
-  {"test_ambi_bolt_phi_calc_3x_parabola_ho", test_ambi_bolt_phi_calc_3x_parabola_ho},
-  {NULL, NULL},
-};
+TEST_LIST = { { "test_ambi_bolt_init_1x_ho", test_ambi_bolt_init_1x_ho },
+  { "test_ambi_bolt_sheath_calc_1x_ho", test_ambi_bolt_sheath_calc_1x_ho },
+  { "test_ambi_bolt_phi_calc_1x_ho", test_ambi_bolt_phi_calc_1x_ho },
+  { "test_ambi_bolt_sheath_calc_1x_hat_ho", test_ambi_bolt_sheath_calc_1x_hat_ho },
+  { "test_ambi_bolt_phi_calc_1x_hat_ho", test_ambi_bolt_phi_calc_1x_hat_ho },
+  { "test_ambi_bolt_init_2x_ho", test_ambi_bolt_init_2x_ho },
+  { "test_ambi_bolt_sheath_calc_2x_one_ho", test_ambi_bolt_sheath_calc_2x_one_ho },
+  { "test_ambi_bolt_sheath_calc_2x_hat_ho", test_ambi_bolt_sheath_calc_2x_hat_ho },
+  { "test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho", test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho },
+  { "test_ambi_bolt_phi_calc_2x_one_ho", test_ambi_bolt_phi_calc_2x_one_ho },
+  { "test_ambi_bolt_phi_calc_2x_hat_ho", test_ambi_bolt_phi_calc_2x_hat_ho },
+  { "test_ambi_bolt_phi_calc_2x_ramp_ho", test_ambi_bolt_phi_calc_2x_ramp_ho },
+  { "test_ambi_bolt_phi_calc_2x_parabola_ho", test_ambi_bolt_phi_calc_2x_parabola_ho },
+  { "test_ambi_bolt_phi_calc_3x_one_ho", test_ambi_bolt_phi_calc_3x_one_ho },
+  { "test_ambi_bolt_phi_calc_3x_parabola_ho", test_ambi_bolt_phi_calc_3x_parabola_ho },
+  { NULL, NULL } };

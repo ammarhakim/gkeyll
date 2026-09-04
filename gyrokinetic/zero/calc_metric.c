@@ -163,7 +163,7 @@ check_axisymmetric(struct gkyl_array *arr, struct gkyl_range *range, bool exit_a
 
   for (int ip = range->lower[PSI_IDX]; ip <= range->upper[PSI_IDX]; ++ip) {
     for (int it = range->lower[TH_IDX]; it <= range->upper[TH_IDX]; ++it) {
-      double g_ij_avg[6] = {0.0};
+      double g_ij_avg[6] = { 0.0 };
       int num_al = range->upper[AL_IDX] - range->lower[AL_IDX] + 1;
       for (int ia = range->lower[AL_IDX]; ia <= range->upper[AL_IDX]; ++ia) {
         cidx[PSI_IDX] = ip;
@@ -1676,9 +1676,9 @@ gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry *gk_g
         check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         // Check if bhat and e_3 are parallel.
-        double bhat_vec[3] = {bhat_n[X_IDX], bhat_n[Y_IDX], bhat_n[Z_IDX]};
-        double e_3_norm[3] = {tanvecFld_n[6] / sqrt(gFld_n[5]), tanvecFld_n[7] / sqrt(gFld_n[5]),
-          tanvecFld_n[8] / sqrt(gFld_n[5])};
+        double bhat_vec[3] = { bhat_n[X_IDX], bhat_n[Y_IDX], bhat_n[Z_IDX] };
+        double e_3_norm[3] = { tanvecFld_n[6] / sqrt(gFld_n[5]), tanvecFld_n[7] / sqrt(gFld_n[5]),
+          tanvecFld_n[8] / sqrt(gFld_n[5]) };
         check_parallel(bhat_vec, e_3_norm, up->exit_at_checks);
 
         double norm1 = sqrt(

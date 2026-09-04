@@ -15,7 +15,7 @@ enum gkyl_mp_recon {
   GKYL_MP_C4, // centered fourth-order
   GKYL_MP_C6, // centered sixth-order
   GKYL_MP_U1, // upwind-biased 1st order
-  GKYL_MP_U3, // upwind-biased 3rd order
+  GKYL_MP_U3 // upwind-biased 3rd order
 };
 
 // Object type for updater

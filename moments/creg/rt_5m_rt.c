@@ -110,8 +110,7 @@ create_ctx(void)
 
   double xloc = 0.5 * Lx; // Fluid boundary (x-coordinate).
 
-  struct rt_ctx ctx = {
-    .pi = pi,
+  struct rt_ctx ctx = { .pi = pi,
     .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -142,8 +141,7 @@ create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .xloc = xloc,
-  };
+    .xloc = xloc };
 
   return ctx;
 }
@@ -353,8 +351,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
   struct gkyl_wv_eqn *ion_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
-  struct gkyl_moment_species elc = {
-    .name = "elc",
+  struct gkyl_moment_species elc = { .name = "elc",
     .charge = ctx.charge_elc,
     .mass = ctx.mass_elc,
     .equation = elc_euler,
@@ -365,11 +362,9 @@ main(int argc, char **argv)
     .app_accel = evalAppAccel,
     .app_accel_ctx = &ctx,
 
-    .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-  };
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
 
-  struct gkyl_moment_species ion = {
-    .name = "ion",
+  struct gkyl_moment_species ion = { .name = "ion",
     .charge = ctx.charge_ion,
     .mass = ctx.mass_ion,
     .equation = ion_euler,
@@ -380,20 +375,17 @@ main(int argc, char **argv)
     .app_accel = evalAppAccel,
     .app_accel_ctx = &ctx,
 
-    .bcx = {GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT},
-  };
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT } };
 
   // Field.
-  struct gkyl_moment_field field = {
-    .epsilon0 = ctx.epsilon0,
+  struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
     .mu0 = ctx.mu0,
     .mag_error_speed_fact = 1.0,
 
     .init = evalFieldInit,
     .ctx = &ctx,
 
-    .bcx = {GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL},
-  };
+    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -402,7 +394,7 @@ main(int argc, char **argv)
   }
 #endif
 
-  int cells[] = {NX, NY};
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
 
   int cuts[dim];
@@ -424,14 +416,12 @@ main(int argc, char **argv)
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){
-      .mpi_comm = MPI_COMM_WORLD,
-    });
+    comm = gkyl_mpi_comm_new(&(struct gkyl_mpi_comm_inp){ .mpi_comm = MPI_COMM_WORLD });
   } else {
-    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+    comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
   }
 #else
-  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){.use_gpu = app_args.use_gpu});
+  comm = gkyl_null_comm_inew(&(struct gkyl_null_comm_inp){ .use_gpu = app_args.use_gpu });
 #endif
 
   int my_rank;
@@ -456,25 +446,22 @@ main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 2,
-    .lower = {0.0, 0.0},
-    .upper = {ctx.Lx, ctx.Ly},
-    .cells = {NX, NY},
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
 
     .num_periodic_dir = 1,
-    .periodic_dirs = {1},
+    .periodic_dirs = { 1 },
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 2,
-    .species = {elc, ion},
+    .species = { elc, ion },
 
     .field = field,
 
-    .parallelism =
-      {
-        .use_gpu = app_args.use_gpu,
-        .cuts = {app_args.cuts[0], app_args.cuts[1]},
-        .comm = comm,
-      },
+    .parallelism = { .use_gpu = app_args.use_gpu,
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .comm = comm }
   };
 
   // Create app object.
@@ -487,7 +474,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = {.dt = t_end / num_frames};
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);

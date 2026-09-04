@@ -199,7 +199,7 @@ calc_grad_u_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3]
 static inline void
 calc_ros_1D(double dx, double u_l[3], double u_u[3], double w[6])
 {
-  double grad_u[3] = {0.0};
+  double grad_u[3] = { 0.0 };
   calc_grad_u_1D(dx, u_l, u_u, grad_u);
 
   w[0] = 4.0 / 3.0 * grad_u[0];
@@ -215,7 +215,7 @@ static inline void
 calc_ros_2D(
   double dx, double dy, double u_ll[3], double u_lu[3], double u_ul[3], double u_uu[3], double w[6])
 {
-  double grad_u[6] = {0.0};
+  double grad_u[6] = { 0.0 };
   calc_grad_u_2D(dx, dy, u_ll, u_lu, u_ul, u_uu, grad_u);
 
   double divu = grad_u[0] + grad_u[4];
@@ -232,7 +232,7 @@ static inline void
 calc_ros_3D(double dx, double dy, double dz, double u_lll[3], double u_llu[3], double u_lul[3],
   double u_luu[3], double u_ull[3], double u_ulu[3], double u_uul[3], double u_uuu[3], double w[6])
 {
-  double grad_u[9] = {0.0};
+  double grad_u[9] = { 0.0 };
   calc_grad_u_3D(dx, dy, dz, u_lll, u_llu, u_lul, u_luu, u_ull, u_ulu, u_uul, u_uuu, grad_u);
 
   double divu = grad_u[0] + grad_u[4] + grad_u[8];

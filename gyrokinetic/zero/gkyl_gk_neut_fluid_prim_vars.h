@@ -15,7 +15,7 @@ enum gkyl_gk_neut_fluid_prim_vars_type {
   GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, // (n, ux, uy, uz, T/m).
   GKYL_GK_NEUT_FLUID_PRIM_VARS_FLOW_ENERGY, // 0.5*rho*u^2.
   GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY, // p/(gas_gamma-1)
-  GKYL_GK_NEUT_FLUID_PRIM_VARS_MASS_MOMENTUM_FLOW_THERMAL_ENERGY, // (rho, rho*ux, rho*uy, rho*uz, 0.5*rho*u^2, p/(gas_gamma-1))
+  GKYL_GK_NEUT_FLUID_PRIM_VARS_MASS_MOMENTUM_FLOW_THERMAL_ENERGY // (rho, rho*ux, rho*uy, rho*uz, 0.5*rho*u^2, p/(gas_gamma-1))
 };
 
 // Object type

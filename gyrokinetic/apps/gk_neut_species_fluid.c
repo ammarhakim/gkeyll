@@ -263,32 +263,32 @@ gk_neut_species_fluid_init(
 
   // Species properties metadata.
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
-    {.key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.mass},
-    {.key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "gas_gamma", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.gas_gamma},
-    {.key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->info.vdim},
+    { .key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.mass },
+    { .key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "gas_gamma", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.gas_gamma },
+    { .key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->info.vdim }
   };
 
   // Metadata for integrated quantities.
-  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {app->io_meta_basic, io_meta_sprop};
-  int io_meta_basic_union_len[] = {
-    app->io_meta_basic_len, sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0])};
+  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = { app->io_meta_basic, io_meta_sprop };
+  int io_meta_basic_union_len[] = { app->io_meta_basic_len,
+    sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]) };
   ns->io_meta_basic =
     gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union) / sizeof(io_meta_basic_union[0]),
       io_meta_basic_union_len, io_meta_basic_union, &ns->io_meta_basic_len);
 
   // Metadata for conf-space quantities.
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
-    {.key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order},
-    {.key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id},
-    {.key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0},
-    {.key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0},
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 }
   };
-  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {
-    app->io_meta_basic, io_meta_sprop, io_meta_conf};
-  int io_meta_conf_union_len[] = {app->io_meta_basic_len,
+  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = { app->io_meta_basic, io_meta_sprop,
+    io_meta_conf };
+  int io_meta_conf_union_len[] = { app->io_meta_basic_len,
     sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
-    sizeof(io_meta_conf) / sizeof(io_meta_conf[0])};
+    sizeof(io_meta_conf) / sizeof(io_meta_conf[0]) };
   ns->io_meta_conf =
     gkyl_msgpack_map_elem_union(sizeof(io_meta_conf_union) / sizeof(io_meta_conf_union[0]),
       io_meta_conf_union_len, io_meta_conf_union, &ns->io_meta_conf_len);
@@ -343,7 +343,8 @@ gk_neut_species_fluid_init(
   // This routine is utilized by both reactions and BGK collisions
   ns->lte = (struct gk_lte){};
   struct correct_all_moms_inp corr_inp = {
-    .correct_all_moms = false, .max_iter = 0, .iter_eps = 10, .use_last_converged = false};
+    .correct_all_moms = false, .max_iter = 0, .iter_eps = 10, .use_last_converged = false
+  };
   gk_neut_species_lte_init(app, ns, &ns->lte, corr_inp);
 
   // Initialize the object that scales the species according to a balance
