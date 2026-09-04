@@ -1,0 +1,33 @@
+In this branch we've added formatting rules and tools to enforce the format in .clang-format with the clang-format command. One thing I don't like is how trailing commas (which some users may place but others won't) in struct assignments cause lines to break, see for example how https://github.com/gkeyllorg/gkeyll/blob/ddce78fc071330a6983c9f25196a6d3601e29007/gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1.c#L734-L756 is now while it used to be like
+
+.bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+},
+
+could you create a plan to add clang-tidy to remove these trailing commas throughout? and like you did with clang-format, please: A) add instructions in README.md, B) add a pre-commit hook with this, and C) add it to GitHub workflows/CI.
+
+---
+
+In this branch we've added formatting rules and tools to enforce the format in .clang-format with the clang-format command. One thing I don't like is how trailing commas (which some users may place but others won't) in struct assignments cause lines to break, see for example how https://github.com/gkeyllorg/gkeyll/blob/ddce78fc071330a6983c9f25196a6d3601e29007/gyrokinetic/creg/rt_gk_tcv_iwl_adapt_source_3x2v_p1.c#L734-L756 is now while it used to be like
+
+.bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+},
+
+could you create a plan to add clang-tidy to remove these trailing commas throughout? and like you did with clang-format, please: A) add instructions in README.md, B) add a pre-commit hook with this, and C) add it to GitHub workflows/CI.
+
+---
+
+<task-notification>
+<task-id>b6q33xzar</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/6f89bea1-4fdc-4596-95ee-ce8feb67f4ff/tasks/b6q33xzar.output</output-file>
+<status>completed</status>
+<summary>Background command "Rebuild the project after the sweep to confirm no breakage" completed (exit code 0)</summary>
+</task-notification>
