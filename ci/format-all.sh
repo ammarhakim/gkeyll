@@ -7,8 +7,8 @@
 # .agents/skills/code_style/SKILL.md.
 #
 # Usage:
-#   dev/format-all.sh          # reformat all in-scope files in place
-#   dev/format-all.sh --check  # fail (exit 1) if any in-scope file is not formatted
+#   ci/format-all.sh          # reformat all in-scope files in place
+#   ci/format-all.sh --check  # fail (exit 1) if any in-scope file is not formatted
 set -euo pipefail
 
 PINNED_VERSION="18.1.8" # keep in sync with the `rev:` in .pre-commit-config.yaml

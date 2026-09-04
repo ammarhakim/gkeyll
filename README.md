@@ -402,15 +402,15 @@ isn't already formatted (excluding `ker/` and `core/minus/`). CI
 
 clang-format's output differs slightly across versions, so `pre-commit` and CI both
 pin `clang-format` `18.1.8` (see the `rev:` in `.pre-commit-config.yaml`). To run
-`dev/format-all.sh` or configure your editor's format-on-save, install the same
+`ci/format-all.sh` or configure your editor's format-on-save, install the same
 version so you don't fight the pinned one:
 
 ```
 pip install clang-format==18.1.8
 ```
 
-To format everything by hand (e.g. after pulling changes), run `dev/format-all.sh`,
-or `dev/format-all.sh --check` to only check without modifying files.
+To format everything by hand (e.g. after pulling changes), run `ci/format-all.sh`,
+or `ci/format-all.sh --check` to only check without modifying files.
 
 Since the repo's history includes a single large reformatting commit, run:
 

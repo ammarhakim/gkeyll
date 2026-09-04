@@ -4,7 +4,7 @@
 # pkpm/, gkeyll/ -- EXCLUDING anything under */ker/* (auto-generated DG kernel
 # code) or core/minus/* (vendored third-party libraries), which must never be
 # hand-formatted (see .agents/skills/code_style/SKILL.md). These exclusions
-# are enforced by the tooling (pre-commit, CI, dev/format-all.sh), not by this
+# are enforced by the tooling (pre-commit, CI, ci/format-all.sh), not by this
 # file, since clang-format configs can't express path excludes.
 Language: Cpp
 BasedOnStyle: LLVM
