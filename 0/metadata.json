@@ -1,0 +1,102 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M1PMKG3FG6WFPAV25Z5M1EKA",
+  "session_id": "9f41325e-7364-44b0-ab54-0c37dc1c68dd",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-04T16:39:08.667877Z",
+  "branch": "agent_tools-clang_format",
+  "checkpoints_count": 2,
+  "save_step_count": 3,
+  "files_touched": [
+    ".clang-format",
+    "README.md",
+    "ci/format-all.sh",
+    "dev/format-all.sh"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "2d2222c8ea4c",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 240,
+    "cache_creation_tokens": 948123,
+    "cache_read_tokens": 11832009,
+    "output_tokens": 77555,
+    "api_call_count": 120,
+    "subagent_tokens": {
+      "input_tokens": 0,
+      "cache_creation_tokens": 0,
+      "cache_read_tokens": 0,
+      "output_tokens": 0,
+      "api_call_count": 0
+    }
+  },
+  "session_metrics": {
+    "turn_count": 7
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-04T16:39:08.615478Z",
+    "agent_lines": 89,
+    "agent_removed": 50,
+    "human_added": 2,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 91,
+    "total_lines_changed": 141,
+    "agent_percentage": 98.58156028368793,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 58873,
+      "user_lines_removed": 0,
+      "agent_lines_added": 40,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1,
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/creg/rt_gk_detach_1d.c": 781,
+        "gyrokinetic/creg/rt_gk_ltx_aiwl_2x2v_p1.c": 1120,
+        "gyrokinetic/creg/rt_gk_ltx_iwl_ana_miller_3x2v_p1.c": 862,
+        "gyrokinetic/creg/rt_gk_multib_ltx_iwl_2x2v_p1.c": 1118,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/unit/ctest_fem_parproj_couplex.c.orig": 1128,
+        "gyrokinetic/unit/ctest_ts_qprofiles.c": 796,
+        "gyrokinetic/unit/run_test.c": 20,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 58871,
+      "user_lines_removed": 0,
+      "agent_lines_added": 42,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/creg/rt_gk_detach_1d.c": 781,
+        "gyrokinetic/creg/rt_gk_ltx_aiwl_2x2v_p1.c": 1120,
+        "gyrokinetic/creg/rt_gk_ltx_iwl_ana_miller_3x2v_p1.c": 862,
+        "gyrokinetic/creg/rt_gk_multib_ltx_iwl_2x2v_p1.c": 1118,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/unit/ctest_fem_parproj_couplex.c.orig": 1128,
+        "gyrokinetic/unit/ctest_ts_qprofiles.c": 796,
+        "gyrokinetic/unit/run_test.c": 20,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11
+      }
+    }
+  ]
+}
