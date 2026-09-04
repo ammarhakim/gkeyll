@@ -11,35 +11,29 @@
 #include <math.h>
 
 // 2D function to fit: sin(2*pi*x)*sin(2*t)*exp(-t)
-static inline float
-ufunc(float t, float x)
+static inline float ufunc(float t, float x)
 {
-  return sinf(2.0f*(float)M_PI*x)*sinf(2.0f*t)*expf(-t);
+  return sinf(2.0f * (float)M_PI * x) * sinf(2.0f * t) * expf(-t);
 }
 
-enum arch_type {
-  ARCH_MLP,
-  ARCH_GRU,
-  ARCH_GRU_NORM
-};
+enum arch_type { ARCH_MLP, ARCH_GRU, ARCH_GRU_NORM };
 
 static const char *arch_name[] = { "MLP", "GRU", "GRU+Norm" };
 
-static kad_node_t*
-build_net(enum arch_type arch, int nwidth, int ndepth)
+static kad_node_t *build_net(enum arch_type arch, int nwidth, int ndepth)
 {
   kad_node_t *t = kann_layer_input(2);
   for (int i = 0; i < ndepth; ++i) {
     switch (arch) {
-      case ARCH_MLP:
-        t = kann_layer_dense(t, nwidth);
-        break;
-      case ARCH_GRU:
-        t = kann_layer_gru(t, nwidth, 0);
-        break;
-      case ARCH_GRU_NORM:
-        t = kann_layer_gru(t, nwidth, KANN_RNN_NORM);
-        break;
+    case ARCH_MLP:
+      t = kann_layer_dense(t, nwidth);
+      break;
+    case ARCH_GRU:
+      t = kann_layer_gru(t, nwidth, 0);
+      break;
+    case ARCH_GRU_NORM:
+      t = kann_layer_gru(t, nwidth, KANN_RNN_NORM);
+      break;
     }
     t = kad_tanh(t);
   }
@@ -47,9 +41,7 @@ build_net(enum arch_type arch, int nwidth, int ndepth)
   return t;
 }
 
-static void
-fill_2d_data(struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out,
-  int Nt, int Nx)
+static void fill_2d_data(struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out, int Nt, int Nx)
 {
   float dt = 3.0f / (Nt - 1);
   float dx = 1.0f / (Nx - 1);
@@ -64,9 +56,8 @@ fill_2d_data(struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out,
     }
 }
 
-static double
-bench_train(enum arch_type arch, int ntrain_t, int ntrain_x,
-  int nwidth, int ndepth, bool use_gpu, const char *save_file)
+static double bench_train(enum arch_type arch, int ntrain_t, int ntrain_x, int nwidth, int ndepth,
+                          bool use_gpu, const char *save_file)
 {
   kad_node_t *cost = build_net(arch, nwidth, ndepth);
   struct gkyl_kann_net *net = gkyl_kann_net_new(cost, use_gpu);
@@ -87,13 +78,11 @@ bench_train(enum arch_type arch, int ntrain_t, int ntrain_x,
     out_t = out_cu;
   }
 
-  struct gkyl_kann_train_params params = {
-    .learning_rate = 1e-3f,
-    .mini_size = 64,
-    .max_epoch = 50,
-    .max_drop_streak = 10,
-    .frac_val = 0.1f,
-  };
+  struct gkyl_kann_train_params params = { .learning_rate = 1e-3f,
+                                           .mini_size = 64,
+                                           .max_epoch = 50,
+                                           .max_drop_streak = 10,
+                                           .frac_val = 0.1f };
 
   struct timespec t0, t1;
   clock_gettime(CLOCK_MONOTONIC, &t0);
@@ -116,8 +105,7 @@ bench_train(enum arch_type arch, int ntrain_t, int ntrain_x,
   return elapsed;
 }
 
-static double
-bench_infer_batch(const char *model_file, int nvec, bool use_gpu)
+static double bench_infer_batch(const char *model_file, int nvec, bool use_gpu)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(model_file, use_gpu);
 
@@ -163,8 +151,7 @@ bench_infer_batch(const char *model_file, int nvec, bool use_gpu)
   return elapsed;
 }
 
-static double
-bench_infer_rnn(const char *model_file, int nvec, bool use_gpu)
+static double bench_infer_rnn(const char *model_file, int nvec, bool use_gpu)
 {
   struct gkyl_kann_net *net = gkyl_kann_net_load(model_file, use_gpu);
 
@@ -210,8 +197,7 @@ bench_infer_rnn(const char *model_file, int nvec, bool use_gpu)
   return elapsed;
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int ntrain_t = 51, ntrain_x = 51;
   int ninfer = 101;
@@ -226,30 +212,28 @@ main(int argc, char *argv[])
 
   // ---- Training benchmark ----
   fprintf(stdout, "=== Training Benchmark (ntrain=%dx%d=%d, 50 epochs, mini_size=64) ===\n",
-    ntrain_t, ntrain_x, ntrain_t * ntrain_x);
-  fprintf(stdout, "%10s %6s %6s %10s %10s %10s\n",
-    "arch", "width", "depth", "CPU (s)", "GPU (s)", "speedup");
+          ntrain_t, ntrain_x, ntrain_t * ntrain_x);
+  fprintf(stdout, "%10s %6s %6s %10s %10s %10s\n", "arch", "width", "depth", "CPU (s)", "GPU (s)",
+          "speedup");
 
   for (int ai = 0; ai < na; ++ai) {
     for (int di = 0; di < nd; ++di) {
       for (int wi = 0; wi < nw; ++wi) {
         int w = widths[wi], d = depths[di];
 
-        double t_cpu = bench_train(archs[ai], ntrain_t, ntrain_x,
-          w, d, false, NULL);
-        double t_gpu = bench_train(archs[ai], ntrain_t, ntrain_x,
-          w, d, true, NULL);
+        double t_cpu = bench_train(archs[ai], ntrain_t, ntrain_x, w, d, false, NULL);
+        double t_gpu = bench_train(archs[ai], ntrain_t, ntrain_x, w, d, true, NULL);
 
-        fprintf(stdout, "%10s %6d %6d %10.4f %10.4f %10.2fx\n",
-          arch_name[archs[ai]], w, d, t_cpu, t_gpu, t_cpu / t_gpu);
+        fprintf(stdout, "%10s %6d %6d %10.4f %10.4f %10.2fx\n", arch_name[archs[ai]], w, d, t_cpu,
+                t_gpu, t_cpu / t_gpu);
       }
     }
   }
 
   // ---- Batch inference benchmark ----
   fprintf(stdout, "\n=== Batch Inference Benchmark (nvec=%d, avg of 100 reps) ===\n", ninfer);
-  fprintf(stdout, "%10s %6s %6s %10s %10s %10s\n",
-    "arch", "width", "depth", "CPU (ms)", "GPU (ms)", "speedup");
+  fprintf(stdout, "%10s %6s %6s %10s %10s %10s\n", "arch", "width", "depth", "CPU (ms)", "GPU (ms)",
+          "speedup");
 
   for (int ai = 0; ai < na; ++ai) {
     for (int di = 0; di < nd; ++di) {
@@ -257,15 +241,13 @@ main(int argc, char *argv[])
         int w = widths[wi], d = depths[di];
 
         // Quick train to get a model file
-        bench_train(archs[ai], ntrain_t, ntrain_x, w, d, false,
-          "bench_cmp_tmp.kann");
+        bench_train(archs[ai], ntrain_t, ntrain_x, w, d, false, "bench_cmp_tmp.kann");
 
         double t_cpu = bench_infer_batch("bench_cmp_tmp.kann", ninfer, false);
         double t_gpu = bench_infer_batch("bench_cmp_tmp.kann", ninfer, true);
 
-        fprintf(stdout, "%10s %6d %6d %10.4f %10.4f %10.2fx\n",
-          arch_name[archs[ai]], w, d, t_cpu * 1000, t_gpu * 1000,
-          t_cpu / t_gpu);
+        fprintf(stdout, "%10s %6d %6d %10.4f %10.4f %10.2fx\n", arch_name[archs[ai]], w, d,
+                t_cpu * 1000, t_gpu * 1000, t_cpu / t_gpu);
 
         remove("bench_cmp_tmp.kann");
       }
@@ -273,9 +255,10 @@ main(int argc, char *argv[])
   }
 
   // ---- Sequential RNN inference benchmark (GRU and GRU+Norm only) ----
-  fprintf(stdout, "\n=== Sequential RNN Inference Benchmark (nvec=%d, avg of 100 reps) ===\n", ninfer);
-  fprintf(stdout, "%10s %6s %6s %10s %10s %10s\n",
-    "arch", "width", "depth", "CPU (ms)", "GPU (ms)", "speedup");
+  fprintf(stdout, "\n=== Sequential RNN Inference Benchmark (nvec=%d, avg of 100 reps) ===\n",
+          ninfer);
+  fprintf(stdout, "%10s %6s %6s %10s %10s %10s\n", "arch", "width", "depth", "CPU (ms)", "GPU (ms)",
+          "speedup");
 
   enum arch_type rnn_archs[] = { ARCH_GRU, ARCH_GRU_NORM };
   int nra = sizeof(rnn_archs) / sizeof(rnn_archs[0]);
@@ -285,15 +268,13 @@ main(int argc, char *argv[])
       for (int wi = 0; wi < nw; ++wi) {
         int w = widths[wi], d = depths[di];
 
-        bench_train(rnn_archs[ai], ntrain_t, ntrain_x, w, d, false,
-          "bench_cmp_tmp.kann");
+        bench_train(rnn_archs[ai], ntrain_t, ntrain_x, w, d, false, "bench_cmp_tmp.kann");
 
         double t_cpu = bench_infer_rnn("bench_cmp_tmp.kann", ninfer, false);
         double t_gpu = bench_infer_rnn("bench_cmp_tmp.kann", ninfer, true);
 
-        fprintf(stdout, "%10s %6d %6d %10.4f %10.4f %10.2fx\n",
-          arch_name[rnn_archs[ai]], w, d, t_cpu * 1000, t_gpu * 1000,
-          t_cpu / t_gpu);
+        fprintf(stdout, "%10s %6d %6d %10.4f %10.4f %10.2fx\n", arch_name[rnn_archs[ai]], w, d,
+                t_cpu * 1000, t_gpu * 1000, t_cpu / t_gpu);
 
         remove("bench_cmp_tmp.kann");
       }

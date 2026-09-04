@@ -1,7 +1,6 @@
 #include <gkyl_amr_core.h>
 
-struct amr_euler_shock_bubble_ctx
-{
+struct amr_euler_shock_bubble_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -40,8 +39,7 @@ struct amr_euler_shock_bubble_ctx
   double bub_rad; // Bubble radius.
 };
 
-struct amr_euler_shock_bubble_ctx
-create_ctx(void)
+struct amr_euler_shock_bubble_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
@@ -80,42 +78,39 @@ create_ctx(void)
   double bub_loc = 0.25; // Bubble location (x-direction).
   double bub_rad = 0.15; // Bubble radius.
 
-  struct amr_euler_shock_bubble_ctx ctx = {
-    .gas_gamma = gas_gamma,
-    .rho_pre = rho_pre,
-    .u_pre = u_pre,
-    .p_pre = p_pre,
-    .rho_post = rho_post,
-    .u_post = u_post,
-    .p_post = p_post,
-    .rho_bub = rho_bub,
-    .u_bub = u_bub,
-    .p_bub = p_bub,
-    .Nx = Nx,
-    .Ny = Ny,
-    .ref_factor1 = ref_factor1,
-    .ref_factor2 = ref_factor2,
-    .Lx = Lx,
-    .Ly = Ly,
-    .intermediate_Lx = intermediate_Lx,
-    .intermediate_Ly = intermediate_Ly,
-    .fine_Lx = fine_Lx,
-    .fine_Ly = fine_Ly,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .x_loc = x_loc,
-    .bub_loc = bub_loc,
-    .bub_rad = bub_rad,
-  };
+  struct amr_euler_shock_bubble_ctx ctx = { .gas_gamma = gas_gamma,
+                                            .rho_pre = rho_pre,
+                                            .u_pre = u_pre,
+                                            .p_pre = p_pre,
+                                            .rho_post = rho_post,
+                                            .u_post = u_post,
+                                            .p_post = p_post,
+                                            .rho_bub = rho_bub,
+                                            .u_bub = u_bub,
+                                            .p_bub = p_bub,
+                                            .Nx = Nx,
+                                            .Ny = Ny,
+                                            .ref_factor1 = ref_factor1,
+                                            .ref_factor2 = ref_factor2,
+                                            .Lx = Lx,
+                                            .Ly = Ly,
+                                            .intermediate_Lx = intermediate_Lx,
+                                            .intermediate_Ly = intermediate_Ly,
+                                            .fine_Lx = fine_Lx,
+                                            .fine_Ly = fine_Ly,
+                                            .cfl_frac = cfl_frac,
+                                            .t_end = t_end,
+                                            .num_frames = num_frames,
+                                            .dt_failure_tol = dt_failure_tol,
+                                            .num_failures_max = num_failures_max,
+                                            .x_loc = x_loc,
+                                            .bub_loc = bub_loc,
+                                            .bub_rad = bub_rad };
 
   return ctx;
 }
 
-void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_euler_shock_bubble_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -149,8 +144,7 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     rho = rho_post; // Fluid mass density (post-shock).
     u = u_post; // Fluid velocity (post-shock).
     p = p_post; // Fluid pressure (post-shock).
-  }
-  else {
+  } else {
     rho = rho_pre; // Fluid mass density (pre-shock).
     u = u_pre; // Fluid velocity (pre-shock).
     p = p_pre; // Fluid pressure (pre-shock).
@@ -161,11 +155,13 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     u = u_bub; // Fluid velocity (bubble).
     p = p_bub; // Fluid pressure (bubble).
   }
-  
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = rho * u;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
@@ -212,7 +208,7 @@ int main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
+    .num_failures_max = ctx.num_failures_max
   };
 
   euler2d_run_double(argc, argv, &init);

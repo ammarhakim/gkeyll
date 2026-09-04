@@ -1,14 +1,13 @@
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_multib_comm_conn.h>
 
-
 // Identifiers for connection type
 enum gkyl_conn_id {
   GKYL_CONN_NEIGHBOR = 0, // Adjacent blocks
   GKYL_CONN_ALL = 1, // Blocks connected along one direction
   GKYL_CONN_CORNER = 2, // Blocks connected by a corner
   GKYL_CONN_BELOW = 3, // Block connected below
-  GKYL_CONN_ABOVE = 4, // Block connected above
+  GKYL_CONN_ABOVE = 4 // Block connected above
 };
 
 /** 
@@ -23,8 +22,7 @@ enum gkyl_conn_id {
  * return number of connected blocks
  */
 int gkyl_multib_conn_get_num_connected(struct gkyl_block_topo *block_topo, int bidx, int dir,
-  int corner_num, enum gkyl_conn_id conn_id);
-
+                                       int corner_num, enum gkyl_conn_id conn_id);
 
 /** 
  * Given a block topology, connection type, block id, and direction, 
@@ -40,5 +38,4 @@ int gkyl_multib_conn_get_num_connected(struct gkyl_block_topo *block_topo, int b
  * return number of connected blocks
  */
 int gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, int dir,
-  int corner_num, enum gkyl_conn_id conn_id, int *block_list);
-
+                                    int corner_num, enum gkyl_conn_id conn_id, int *block_list);

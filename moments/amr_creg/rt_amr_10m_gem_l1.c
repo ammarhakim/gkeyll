@@ -6,11 +6,10 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_10m_gem_ctx
-{
+struct amr_10m_gem_ctx {
   // Mathematical constants (dimensionless).
   double pi;
-  
+
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
@@ -27,7 +26,7 @@ struct amr_10m_gem_ctx
 
   double k0_elc; // Electron closure parameter.
   double k0_ion; // Ion closure parameter.
-  
+
   // Derived physical quantities (using normalized code units).
   double psi0; // Reference magnetic scalar potential.
 
@@ -51,8 +50,7 @@ struct amr_10m_gem_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_10m_gem_ctx
-create_ctx(void)
+struct amr_10m_gem_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -73,7 +71,7 @@ create_ctx(void)
 
   double k0_elc = 5.0; // Electron closure parameter.
   double k0_ion = 5.0; // Ion closure parameter.
-  
+
   // Derived physical quantities (using normalized code units).
   double psi0 = 0.1 * B0; // Reference magnetic scalar potential.
 
@@ -96,45 +94,42 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct amr_10m_gem_ctx ctx = {
-    .pi = pi,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .mass_ion = mass_ion,
-    .charge_ion = charge_ion,
-    .mass_elc = mass_elc,
-    .charge_elc = charge_elc,
-    .Ti_over_Te = Ti_over_Te,
-    .lambda = lambda,
-    .n0 = n0,
-    .nb_over_n0 = nb_over_n0,
-    .B0 = B0,
-    .beta = beta,
-    .k0_elc = k0_elc,
-    .k0_ion = k0_ion,
-    .psi0 = psi0,
-    .Ti_frac = Ti_frac,
-    .Te_frac = Te_frac,
-    .T_tot = T_tot,
-    .Nx = Nx,
-    .Ny = Ny,
-    .ref_factor = ref_factor,
-    .Lx = Lx,
-    .Ly = Ly,
-    .fine_Lx = fine_Lx,
-    .fine_Ly = fine_Ly,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+  struct amr_10m_gem_ctx ctx = { .pi = pi,
+                                 .epsilon0 = epsilon0,
+                                 .mu0 = mu0,
+                                 .mass_ion = mass_ion,
+                                 .charge_ion = charge_ion,
+                                 .mass_elc = mass_elc,
+                                 .charge_elc = charge_elc,
+                                 .Ti_over_Te = Ti_over_Te,
+                                 .lambda = lambda,
+                                 .n0 = n0,
+                                 .nb_over_n0 = nb_over_n0,
+                                 .B0 = B0,
+                                 .beta = beta,
+                                 .k0_elc = k0_elc,
+                                 .k0_ion = k0_ion,
+                                 .psi0 = psi0,
+                                 .Ti_frac = Ti_frac,
+                                 .Te_frac = Te_frac,
+                                 .T_tot = T_tot,
+                                 .Nx = Nx,
+                                 .Ny = Ny,
+                                 .ref_factor = ref_factor,
+                                 .Lx = Lx,
+                                 .Ly = Ly,
+                                 .fine_Lx = fine_Lx,
+                                 .fine_Ly = fine_Ly,
+                                 .cfl_frac = cfl_frac,
+                                 .t_end = t_end,
+                                 .num_frames = num_frames,
+                                 .dt_failure_tol = dt_failure_tol,
+                                 .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -151,7 +146,8 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Te_frac = app->Te_frac;
   double T_tot = app->T_tot;
 
-  double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
+  double sech_sq =
+    (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
   double n = n0 * (sech_sq + nb_over_n0); // Total number density.
   double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
@@ -163,14 +159,19 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   // Set electron mass density.
   fout[0] = rhoe;
   // Set electron momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momze;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = momze;
   // Set electron pressure tensor.
-  fout[4] = pre; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = pre; fout[8] = 0.0; fout[9] = pre + momze * momze / rhoe;
+  fout[4] = pre;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = pre;
+  fout[8] = 0.0;
+  fout[9] = pre + momze * momze / rhoe;
 }
 
-void
-evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -187,7 +188,8 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double Ti_frac = app->Ti_frac;
   double T_tot = app->T_tot;
 
-  double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
+  double sech_sq =
+    (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
   double n = n0 * (sech_sq + nb_over_n0); // Total number density.
   double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
@@ -199,14 +201,19 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   // Set ion mass density.
   fout[0] = rhoi;
   // Set ion momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momzi;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = momzi;
   // Set ion pressure tensor.
-  fout[4] = pri; fout[5] = 0.0; fout[6] = 0.0;
-  fout[7] = pri; fout[8] = 0.0; fout[9] = pri + momzi * momzi / rhoi;
+  fout[4] = pri;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = pri;
+  fout[8] = 0.0;
+  fout[9] = pri + momzi * momzi / rhoi;
 }
 
-void
-evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_10m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -223,70 +230,73 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app->Ly;
 
   double Bxb = B0 * tanh(y / lambda); // Total magnetic field strength.
-  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) * sin(pi * y / Ly); // Total magnetic field (x-direction).
-  double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) * cos(pi * y / Ly); // Total magnetic field (y-direction).
+  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) *
+                      sin(pi * y / Ly); // Total magnetic field (x-direction).
+  double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) *
+              cos(pi * y / Ly); // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = 0.0, fout[1] = 0.0;
+  fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx, fout[4] = By;
+  fout[5] = Bz;
   // Set correction potentials.
-  fout[6] = 0.0; fout[7] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
 }
 
 int main(int argc, char **argv)
 {
   struct amr_10m_gem_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct ten_moment_2d_single_init init = {
-    .base_Nx = ctx.Nx,
-    .base_Ny = ctx.Ny,
-    .ref_factor = ctx.ref_factor,
+  struct ten_moment_2d_single_init init = { .base_Nx = ctx.Nx,
+                                            .base_Ny = ctx.Ny,
+                                            .ref_factor = ctx.ref_factor,
 
-    .coarse_x1 = -0.5 * ctx.Lx,
-    .coarse_y1 = -0.5 * ctx.Ly,
-    .coarse_x2 = 0.5 * ctx.Lx,
-    .coarse_y2 = 0.5 * ctx.Ly,
+                                            .coarse_x1 = -0.5 * ctx.Lx,
+                                            .coarse_y1 = -0.5 * ctx.Ly,
+                                            .coarse_x2 = 0.5 * ctx.Lx,
+                                            .coarse_y2 = 0.5 * ctx.Ly,
 
-    .refined_x1 = -0.5 * ctx.fine_Lx,
-    .refined_y1 = -0.5 * ctx.fine_Ly,
-    .refined_x2 = 0.5 * ctx.fine_Lx,
-    .refined_y2 = 0.5 * ctx.fine_Ly,
+                                            .refined_x1 = -0.5 * ctx.fine_Lx,
+                                            .refined_y1 = -0.5 * ctx.fine_Ly,
+                                            .refined_x2 = 0.5 * ctx.fine_Lx,
+                                            .refined_y2 = 0.5 * ctx.fine_Ly,
 
-    .eval_elc = evalElcInit,
-    .eval_ion = evalIonInit,
-    .eval_field = evalFieldInit,
+                                            .eval_elc = evalElcInit,
+                                            .eval_ion = evalIonInit,
+                                            .eval_field = evalFieldInit,
 
-    .k0_elc = ctx.k0_elc,
-    .k0_ion = ctx.k0_ion,
+                                            .k0_elc = ctx.k0_elc,
+                                            .k0_ion = ctx.k0_ion,
 
-    .light_speed = 1.0,
-    .e_fact = 0.0,
-    .b_fact = 1.0,
+                                            .light_speed = 1.0,
+                                            .e_fact = 0.0,
+                                            .b_fact = 1.0,
 
-    .epsilon0 = ctx.epsilon0,
-    .mass_elc = ctx.mass_elc,
-    .charge_elc = ctx.charge_elc,
-    .mass_ion = ctx.mass_ion,
-    .charge_ion = ctx.charge_ion,
+                                            .epsilon0 = ctx.epsilon0,
+                                            .mass_elc = ctx.mass_elc,
+                                            .charge_elc = ctx.charge_elc,
+                                            .mass_ion = ctx.mass_ion,
+                                            .charge_ion = ctx.charge_ion,
 
-    .copy_x = true,
-    .copy_y = false,
+                                            .copy_x = true,
+                                            .copy_y = false,
 
-    .wall_x = false,
-    .wall_y = true,
+                                            .wall_x = false,
+                                            .wall_y = true,
 
-    .ten_moment_output = "amr_10m_gem_l1",
+                                            .ten_moment_output = "amr_10m_gem_l1",
 
-    .low_order_flux = false,
-    .cfl_frac = ctx.cfl_frac,
+                                            .low_order_flux = false,
+                                            .cfl_frac = ctx.cfl_frac,
 
-    .t_end = ctx.t_end,
-    .num_frames = ctx.num_frames,
-    .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
-  };
+                                            .t_end = ctx.t_end,
+                                            .num_frames = ctx.num_frames,
+                                            .dt_failure_tol = ctx.dt_failure_tol,
+                                            .num_failures_max = ctx.num_failures_max };
 
   ten_moment_2d_run_single(argc, argv, &init);
 }

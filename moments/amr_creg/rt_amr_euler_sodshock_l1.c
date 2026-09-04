@@ -6,8 +6,7 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_euler_sodshock_ctx
-{
+struct amr_euler_sodshock_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -32,8 +31,7 @@ struct amr_euler_sodshock_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_euler_sodshock_ctx
-create_ctx(void)
+struct amr_euler_sodshock_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
@@ -58,30 +56,27 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct amr_euler_sodshock_ctx ctx = {
-    .gas_gamma = gas_gamma,
-    .rhol = rhol,
-    .ul = ul,
-    .pl = pl,
-    .rhor = rhor,
-    .ur = ur,
-    .pr = pr,
-    .Nx = Nx,
-    .ref_factor = ref_factor,
-    .Lx = Lx,
-    .fine_Lx = fine_Lx,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-  };
+  struct amr_euler_sodshock_ctx ctx = { .gas_gamma = gas_gamma,
+                                        .rhol = rhol,
+                                        .ul = ul,
+                                        .pl = pl,
+                                        .rhor = rhor,
+                                        .ur = ur,
+                                        .pr = pr,
+                                        .Nx = Nx,
+                                        .ref_factor = ref_factor,
+                                        .Lx = Lx,
+                                        .fine_Lx = fine_Lx,
+                                        .cfl_frac = cfl_frac,
+                                        .t_end = t_end,
+                                        .num_frames = num_frames,
+                                        .dt_failure_tol = dt_failure_tol,
+                                        .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct amr_euler_sodshock_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -105,17 +100,18 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
-  }
-  else {
+  } else {
     rho = rhor; // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
   }
-  
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = rho * u;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
@@ -124,29 +120,27 @@ int main(int argc, char **argv)
 {
   struct amr_euler_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct euler1d_single_init init = {
-    .base_Nx = ctx.Nx,
-    .ref_factor = ctx.ref_factor,
+  struct euler1d_single_init init = { .base_Nx = ctx.Nx,
+                                      .ref_factor = ctx.ref_factor,
 
-    .coarse_x1 = 0.25,
-    .coarse_x2 = 0.25 + ctx.Lx,
+                                      .coarse_x1 = 0.25,
+                                      .coarse_x2 = 0.25 + ctx.Lx,
 
-    .refined_x1 = (0.25 + (0.5 * ctx.Lx)) - (0.5 * ctx.fine_Lx),
-    .refined_x2 = (0.25 + (0.5 * ctx.Lx)) + (0.5 * ctx.fine_Lx),
+                                      .refined_x1 = (0.25 + (0.5 * ctx.Lx)) - (0.5 * ctx.fine_Lx),
+                                      .refined_x2 = (0.25 + (0.5 * ctx.Lx)) + (0.5 * ctx.fine_Lx),
 
-    .eval = evalEulerInit,
-    .gas_gamma = ctx.gas_gamma,
+                                      .eval = evalEulerInit,
+                                      .gas_gamma = ctx.gas_gamma,
 
-    .euler_output = "amr_euler_sodshock_l1",
+                                      .euler_output = "amr_euler_sodshock_l1",
 
-    .low_order_flux = false,
-    .cfl_frac = ctx.cfl_frac,
+                                      .low_order_flux = false,
+                                      .cfl_frac = ctx.cfl_frac,
 
-    .t_end = ctx.t_end,
-    .num_frames = ctx.num_frames,
-    .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
-  };
+                                      .t_end = ctx.t_end,
+                                      .num_frames = ctx.num_frames,
+                                      .dt_failure_tol = ctx.dt_failure_tol,
+                                      .num_failures_max = ctx.num_failures_max };
 
   euler1d_run_single(argc, argv, &init);
 }

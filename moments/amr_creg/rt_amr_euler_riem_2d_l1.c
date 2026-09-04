@@ -6,8 +6,7 @@
 
 #include <gkyl_amr_core.h>
 
-struct amr_euler_riem_2d_ctx
-{
+struct amr_euler_riem_2d_ctx {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
@@ -20,7 +19,7 @@ struct amr_euler_riem_2d_ctx
   double u_ur; // Upper right fluid x-velocity.
   double v_ur; // Upper right fluid y-velocity.
   double p_ur; // Upper left fluid pressure.
-  
+
   double rho_ll; // Lower left fluid mass density.
   double u_ll; // Lower left fluid x-velocity.
   double v_ll; // Lower left fluid y-velocity.
@@ -49,8 +48,7 @@ struct amr_euler_riem_2d_ctx
   double loc; // Fluid boundaries (both x and y coordinates).
 };
 
-struct amr_euler_riem_2d_ctx
-create_ctx(void)
+struct amr_euler_riem_2d_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
@@ -64,7 +62,7 @@ create_ctx(void)
   double u_ur = 0.0; // Upper-right fluid x-velocity.
   double v_ur = 0.0; // Upper-right fluid y-velocity.
   double p_ur = 1.5; // Upper-right fluid pressure.
-  
+
   double rho_ll = 0.138; // Lower-left fluid mass density.
   double u_ll = 1.206; // Lower-left fluid x-velocity.
   double v_ll = 1.206; // Lower-left fluid y-velocity.
@@ -92,44 +90,41 @@ create_ctx(void)
 
   double loc = 0.8; // Fluid boundaries (both x and y coordinates).
 
-  struct amr_euler_riem_2d_ctx ctx = {
-    .gas_gamma = gas_gamma,
-    .rho_ul = rho_ul,
-    .u_ul = u_ul,
-    .v_ul = v_ul,
-    .p_ul = p_ul,
-    .rho_ur = rho_ur,
-    .u_ur = u_ur,
-    .v_ur = v_ur,
-    .p_ur = p_ur,
-    .rho_ll = rho_ll,
-    .u_ll = u_ll,
-    .v_ll = v_ll,
-    .p_ll = p_ll,
-    .rho_lr = rho_lr,
-    .u_lr = u_lr,
-    .v_lr = v_lr,
-    .p_lr = p_lr,
-    .Nx = Nx,
-    .Ny = Ny,
-    .ref_factor = ref_factor,
-    .Lx = Lx,
-    .Ly = Ly,
-    .fine_Lx = fine_Lx,
-    .fine_Ly = fine_Ly,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .loc = loc,
-  };
+  struct amr_euler_riem_2d_ctx ctx = { .gas_gamma = gas_gamma,
+                                       .rho_ul = rho_ul,
+                                       .u_ul = u_ul,
+                                       .v_ul = v_ul,
+                                       .p_ul = p_ul,
+                                       .rho_ur = rho_ur,
+                                       .u_ur = u_ur,
+                                       .v_ur = v_ur,
+                                       .p_ur = p_ur,
+                                       .rho_ll = rho_ll,
+                                       .u_ll = u_ll,
+                                       .v_ll = v_ll,
+                                       .p_ll = p_ll,
+                                       .rho_lr = rho_lr,
+                                       .u_lr = u_lr,
+                                       .v_lr = v_lr,
+                                       .p_lr = p_lr,
+                                       .Nx = Nx,
+                                       .Ny = Ny,
+                                       .ref_factor = ref_factor,
+                                       .Lx = Lx,
+                                       .Ly = Ly,
+                                       .fine_Lx = fine_Lx,
+                                       .fine_Ly = fine_Ly,
+                                       .cfl_frac = cfl_frac,
+                                       .t_end = t_end,
+                                       .num_frames = num_frames,
+                                       .dt_failure_tol = dt_failure_tol,
+                                       .num_failures_max = num_failures_max,
+                                       .loc = loc };
 
   return ctx;
 }
 
-void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_euler_riem_2d_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -170,33 +165,32 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
       u = u_ul; // Fluid x-velocity (upper-left).
       v = v_ul; // Fluid y-velocity (upper-left).
       p = p_ul; // Fluid pressure (upper-left).
-    }
-    else {
+    } else {
       rho = rho_ur; // Fluid mass density (upper-right).
       u = u_ur; // Fluid x-velocity (upper-right).
       v = v_ur; // Fluid y-velocity (upper-right).
       p = p_ur; // Fluid pressure (upper-right).
     }
-  }
-  else {
+  } else {
     if (x < loc) {
       rho = rho_ll; // Fluid mass density (lower-left).
       u = u_ll; // Fluid x-velocity (lower-left).
       v = v_ll; // Fluid y-velocity (lower-left).
       p = p_ll; // Fluid pressure (lower-left).
-    }
-    else {
+    } else {
       rho = rho_lr; // Fluid mass density (lower-right).
       u = u_lr; // Fluid x-velocity (lower-right).
       v = v_lr; // Fluid y-velocity (lower-right).
       p = p_lr; // Fluid pressure (lower-right).
     }
   }
-  
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
-  fout[1] = rho * u; fout[2] = rho * v; fout[3] = 0.0;
+  fout[1] = rho * u;
+  fout[2] = rho * v;
+  fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * (u * u + v * v);
 }
@@ -205,40 +199,38 @@ int main(int argc, char **argv)
 {
   struct amr_euler_riem_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct euler2d_single_init init = {
-    .base_Nx = ctx.Nx,
-    .base_Ny = ctx.Ny,
-    .ref_factor = ctx.ref_factor,
+  struct euler2d_single_init init = { .base_Nx = ctx.Nx,
+                                      .base_Ny = ctx.Ny,
+                                      .ref_factor = ctx.ref_factor,
 
-    .coarse_x1 = 0.0,
-    .coarse_y1 = 0.0,
-    .coarse_x2 = ctx.Lx,
-    .coarse_y2 = ctx.Ly,
+                                      .coarse_x1 = 0.0,
+                                      .coarse_y1 = 0.0,
+                                      .coarse_x2 = ctx.Lx,
+                                      .coarse_y2 = ctx.Ly,
 
-    .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
-    .refined_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.fine_Ly),
-    .refined_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.fine_Lx),
-    .refined_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.fine_Ly),
+                                      .refined_x1 = (0.5 * ctx.Lx) - (0.5 * ctx.fine_Lx),
+                                      .refined_y1 = (0.5 * ctx.Ly) - (0.5 * ctx.fine_Ly),
+                                      .refined_x2 = (0.5 * ctx.Lx) + (0.5 * ctx.fine_Lx),
+                                      .refined_y2 = (0.5 * ctx.Ly) + (0.5 * ctx.fine_Ly),
 
-    .eval = evalEulerInit,
-    .gas_gamma = ctx.gas_gamma,
+                                      .eval = evalEulerInit,
+                                      .gas_gamma = ctx.gas_gamma,
 
-    .copy_x = true,
-    .copy_y = true,
+                                      .copy_x = true,
+                                      .copy_y = true,
 
-    .wall_x = false,
-    .wall_y = false,
+                                      .wall_x = false,
+                                      .wall_y = false,
 
-    .euler_output = "amr_euler_riem_2d_l1",
+                                      .euler_output = "amr_euler_riem_2d_l1",
 
-    .low_order_flux = false,
-    .cfl_frac = ctx.cfl_frac,
+                                      .low_order_flux = false,
+                                      .cfl_frac = ctx.cfl_frac,
 
-    .t_end = ctx.t_end,
-    .num_frames = ctx.num_frames,
-    .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max,
-  };
+                                      .t_end = ctx.t_end,
+                                      .num_frames = ctx.num_frames,
+                                      .dt_failure_tol = ctx.dt_failure_tol,
+                                      .num_failures_max = ctx.num_failures_max };
 
   euler2d_run_single(argc, argv, &init);
 }

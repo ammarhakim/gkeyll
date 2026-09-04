@@ -1,10 +1,9 @@
 #include <gkyl_array.h>
 
 // Allocate double array (filled with zeros).
-static struct gkyl_array*
-mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
-  struct gkyl_array* a;
+  struct gkyl_array *a;
   if (on_gpu)
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
   else
@@ -18,8 +17,7 @@ mkarr(bool on_gpu, long nc, long size)
  *
  * @param ref Reference counter for this object.
  */
-void
-gkyl_velocity_map_free(const struct gkyl_ref_count *ref);
+void gkyl_velocity_map_free(const struct gkyl_ref_count *ref);
 
 #ifdef GKYL_HAVE_CUDA
 
@@ -30,6 +28,6 @@ gkyl_velocity_map_free(const struct gkyl_ref_count *ref);
  * @param gvm_ho Host side velocity map object.
  * @return New velocity map object with device pointers.
  */
-struct gkyl_velocity_map* gkyl_velocity_map_new_cu_dev(struct gkyl_velocity_map *gvm_ho);
+struct gkyl_velocity_map *gkyl_velocity_map_new_cu_dev(struct gkyl_velocity_map *gvm_ho);
 
 #endif
