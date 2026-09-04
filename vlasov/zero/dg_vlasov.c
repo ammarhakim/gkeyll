@@ -325,11 +325,13 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         if (inp->has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
       }
       else if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
-        if (inp->model_id == GKYL_MODEL_TRIAD && inp->hamil_id == GKYL_HAMIL_VEL_SPARSE) {
-          vlasov->hamil_vol = tensor_nc_hamil_vel_sparse_vol_kernels[kernel_index].kernels[poly_order];
+        if (inp->model_id == GKYL_MODEL_TRIAD) {
+          vlasov->hamil_vol = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE) ?
+            tensor_nc_hamil_vel_sparse_vol_kernels[kernel_index].kernels[poly_order] :
+            tensor_nc_hamil_vel_dense_vol_kernels[kernel_index].kernels[poly_order];
         }
-        else {
-          gkyl_exit("dg_vlasov: Tensor basis with the dense/phase Hamiltonian triad flavors not yet supported!");
+        else if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
+          vlasov->hamil_vol = tensor_nc_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
         }
 
         if ( inp->use_lo ) {

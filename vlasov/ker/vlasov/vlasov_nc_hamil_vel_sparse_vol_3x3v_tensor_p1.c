@@ -1,11 +1,11 @@
 #include <gkyl_nc_hamil_gen_vol_comps_kernels.h> 
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH static void dot_pb_3x3v_tensor_p1(const double *list_1, const double *list_2, double* GKYL_RESTRICT out) 
+GKYL_CU_DH GKYL_NOINLINE static void dot_pb_3x3v_tensor_p1(const double *list_1, const double *list_2, double* GKYL_RESTRICT out) 
 { 
   for (int i = 0; i<216; ++i) out[0] += list_1[i]*list_2[i]; 
 } 
   
-GKYL_CU_DH static inline void zero_pb_list(double *pb_list) 
+GKYL_CU_DH GKYL_NOINLINE static void zero_pb_list(double *pb_list) 
 { 
   for (int i = 0; i<216; ++i) pb_list[i] = 0.0; 
 } 

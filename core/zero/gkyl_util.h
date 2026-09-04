@@ -29,6 +29,12 @@
 # define GKYL_RESTRICT restrict
 #endif
 
+// Keep small helpers out of huge generated kernels: inlining them hundreds
+// of times into the comps-split volume wrappers makes the loop vectorizer's
+// compile time explode (minutes to hours at -O3); non-inlined they cost
+// nothing measurable and the file compiles in seconds.
+#define GKYL_NOINLINE __attribute__((noinline))
+
 // Maximum configuration-space dimensions supported
 #ifndef GKYL_MAX_CDIM
 # define GKYL_MAX_CDIM 3

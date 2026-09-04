@@ -328,12 +328,12 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_nc_hamil_vel_sparse_vol_kern
 
 // Tensor p=1 hybrid triad (non-canonical bracket) volume kernels: the C^1
 // cubic velocity map's quadratic Jacobian is divided nodally per derivative
-// direction in-kernel. Debug coverage: 1x3v and 2x2v only so far.
+// direction in-kernel (1V sparse aliases dense, as for Serendipity).
 GKYL_CU_D
 static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_vel_sparse_vol_kernels[] = {
   // 1x kernels
-  { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, vlasov_nc_hamil_vel_dense_vol_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_1x2v_tensor_p1, NULL, NULL }, // 1
   { NULL, vlasov_nc_hamil_vel_sparse_vol_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
@@ -341,6 +341,36 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_vel_sparse_vol_k
   { NULL, vlasov_nc_hamil_vel_sparse_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_nc_hamil_vel_sparse_vol_3x3v_tensor_p1, NULL, NULL }, // 6
+};
+
+// Tensor p=1 hybrid triad volumes, dense velocity-space Hamiltonian.
+GKYL_CU_D
+static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_vel_dense_vol_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_nc_hamil_vel_dense_vol_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, vlasov_nc_hamil_vel_dense_vol_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, vlasov_nc_hamil_vel_dense_vol_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_nc_hamil_vel_dense_vol_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, vlasov_nc_hamil_vel_dense_vol_2x3v_tensor_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_nc_hamil_vel_dense_vol_3x3v_tensor_p1, NULL, NULL }, // 6
+};
+
+// Tensor p=1 hybrid triad volumes, phase-space Hamiltonian (GR triads).
+GKYL_CU_D
+static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_phase_vol_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_nc_hamil_phase_vol_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, vlasov_nc_hamil_phase_vol_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, vlasov_nc_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_nc_hamil_phase_vol_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, vlasov_nc_hamil_phase_vol_2x3v_tensor_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_nc_hamil_phase_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Non-canonical Poisson Bracket, hamil phase space dependance, volume kernels (Serendipity basis). 
