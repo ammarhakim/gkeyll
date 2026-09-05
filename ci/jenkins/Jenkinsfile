@@ -10,9 +10,6 @@
 // parallel across a set of named nodes that will grow over time and may mix
 // operating systems (hence the per-node mkdeps/configure script choice).
 
-// Layers with a runregression MOAT (Mother Of All Tests) subset.
-def REGRESSION_LAYERS = ['moments', 'vlasov', 'gyrokinetic', 'pkpm']
-
 def buildAndTest(String mkdepsScript, String configureScript) {
     stage('Environment') {
         sh 'printenv'
@@ -81,6 +78,8 @@ def buildAndTest(String mkdepsScript, String configureScript) {
             // build's Clean stage anyway, so moving avoids briefly doubling
             // disk usage on what can be a large number of regression files.
             def moveCmd = "set -e\n"
+            // Layers with a runregression MOAT (Mother Of All Tests) subset.
+            def REGRESSION_LAYERS = ['moments', 'vlasov', 'gyrokinetic', 'pkpm']
             for (layer in REGRESSION_LAYERS) {
                 for (kind in ['luareg-accepted', 'creg-accepted']) {
                     moveCmd += "if [ -d \"${baselineResultsDir}/${layer}/${kind}\" ]; then rm -rf \"${resultsDir}/${layer}/${kind}\"; mv \"${baselineResultsDir}/${layer}/${kind}\" \"${resultsDir}/${layer}/${kind}\"; fi\n"
