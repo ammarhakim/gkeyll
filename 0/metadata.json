@@ -1,0 +1,69 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M1S6QN64159888GB9KQHBP5W",
+  "session_id": "19879743-1533-420b-91c3-4dbe1c92e8ce",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-05T16:34:28.103309Z",
+  "branch": "agent_tools-jenkins",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "Makefile",
+    "ci/jenkins/Jenkinsfile"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "ce9ab4db7872",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 66,
+    "cache_creation_tokens": 260253,
+    "cache_read_tokens": 2633350,
+    "output_tokens": 34887,
+    "api_call_count": 33
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-05T16:34:28.073556Z",
+    "agent_lines": 11,
+    "agent_removed": 3,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 11,
+    "total_lines_changed": 14,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 58896,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/scheduled_tasks.lock": 1,
+        ".git-blame-ignore-revs": 2,
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/creg/rt_gk_detach_1d.c": 781,
+        "gyrokinetic/creg/rt_gk_ltx_aiwl_2x2v_p1.c": 1120,
+        "gyrokinetic/creg/rt_gk_ltx_iwl_ana_miller_3x2v_p1.c": 862,
+        "gyrokinetic/creg/rt_gk_multib_ltx_iwl_2x2v_p1.c": 1118,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/unit/ctest_fem_parproj_couplex.c.orig": 1128,
+        "gyrokinetic/unit/ctest_ts_qprofiles.c": 796,
+        "gyrokinetic/unit/run_test.c": 20,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11,
+        "tmp.txt": 23
+      }
+    }
+  ]
+}

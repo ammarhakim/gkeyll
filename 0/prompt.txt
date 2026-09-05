@@ -1,0 +1,21 @@
+In this branch we are trying to set up Jenkins to build and run unit/regression tests when a PR is created. In my last claude session we attempted to plug in the runregression tool so that it runs regression tests, but in Jenkins the build failed and reported:
+
+make[1]: *** [install] Error 1
+make: *** [vlasov-install] Error 2
+make: *** Waiting for unfinished jobs....
+[Pipeline] }
+[Pipeline] // dir
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] archiveArtifacts
+Archiving artifacts
+No artifacts found that match the file pattern "build/**/*.log,gkylsoft/gkeyll-results/**/*.txt,gkylsoft/gkeyll-results/**/regressiondb". Configuration error?
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] }
+Failed in branch manauref_lt1
+[Pipeline] // parallel
+[Pipeline] End of Pipeline
+ERROR: script returned exit code 2
+
+Do you know what could've broken the build?
