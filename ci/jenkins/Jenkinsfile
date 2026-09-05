@@ -111,10 +111,11 @@ def buildAndTest(String mkdepsScript, String configureScript) {
 // without relying on a stale or cross-machine-generated baseline.
 def buildRegressionBaseline(String mkdepsScript, String configureScript, String baseBranch) {
     dir('_main_baseline') {
-        checkout([$class: 'GitSCM',
-            branches: [[name: "*/${baseBranch}"]],
-            userRemoteConfigs: [[url: 'https://github.com/gkeyllorg/gkeyll']],
-        ])
+        // A plain shallow, single-branch clone rather than a GitSCM
+        // checkout: the latter defaults to fetching every branch/tag in
+        // the whole repo (no refspec given), which timed out after 10
+        // minutes enumerating 100k+ objects. We only need this branch's tip.
+        sh "git clone --depth 1 --branch ${baseBranch} https://github.com/gkeyllorg/gkeyll ."
         sh "PREFIX=\"\$WORKSPACE/_main_baseline/gkylsoft\" ./machines/${mkdepsScript}"
         sh "PREFIX=\"\$WORKSPACE/_main_baseline/gkylsoft\" ./machines/${configureScript}"
         // See the comment on the 'Install' stage above re: install vs gkeyll-install.
