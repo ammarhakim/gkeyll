@@ -1,0 +1,137 @@
+At the moment Jenkins CI is only running the unit tests. Gkeyll also has a Lua tool, runregression (gkeyll/lua/Tool/runregression.lua, and see ../gkylsoft/gkeyll/bin/gkeyll runregression -h), to run regression tests. Can you advise on or create a plan for adjusting Jenkins CI so that it also runs runregression?
+
+---
+
+At the moment Jenkins CI is only running the unit tests. Gkeyll also has a Lua tool, runregression (gkeyll/lua/Tool/runregression.lua, and see ../gkylsoft/gkeyll/bin/gkeyll runregression -h), to run regression tests. Can you advise on or create a plan for adjusting Jenkins CI so that it also runs runregression?
+
+---
+
+<task-notification>
+<task-id>ad106084585b69871</task-id>
+<tool-use-id>toolu_vrtx_01EwvzbzS16iQcQKYMQSgKWv</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/fd550a79-3550-4aed-baf2-1e053808dae2/tasks/ad106084585b69871.output</output-file>
+<status>completed</status>
+<summary>Agent "Investigate runregression Lua tool" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result># Regression Test Infrastructure Research — Gkeyll
+
+Repo layout note: the git root is `/Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll`. It contains a *subdirectory* also named `gkeyll/` (like `core/`, `moments/`, etc.) which holds the `gkeyll` CLI wrapper source (`gkeyll/gkeyll.c`, `gkeyll/Makefile-gkeyll`) and the Lua standard library/tools, including `gkeyll/lua/Tool/runregression.lua`. All paths below are relative to the git root unless stated otherwise.
+
+## 1. `gkeyll/lua/Tool/runregression.lua` — full behavior
+
+This is a self-contained Lua CLI tool (parsed with `Lib.argparse`) that is invoked as `gkeyll runregression &lt;command&gt; ...` (it runs inside the `gkeyll` Lua interpreter/executable, requiring `lfs`, `sqlite3`, etc. — i.e. it needs the *installed* `gkeyll` binary, not just build artifacts). Header comment (lines 1–19) summarizes the design:
+
+- **Discovery**: Lua tests are discovered from `&lt;source_dir&gt;/&lt;layer&gt;/luareg/rt_*.lua`; C tests from `&lt;source_dir&gt;/&lt;layer&gt;/creg/rt_*.c`. Layers are `moments`, `vlasov`, `gyrokinetic`, `pkpm` (line 48–53); `core` is NOT a layer runregression scans (no `core/luareg`, and `core/creg` isn't scanned either, even though `core/creg` has 9 `rt_*.c` files built by `make regression`).
+- **Lua tests** run via `gkeyll &lt;file&gt;` from a per-test scratch dir (`prepareLuaRun`, lines 932–964).
+- **C tests** are compiled on the fly per test: `cp` the `.c` source plus the **installed** `share/Makefile` (`&lt;prefix&gt;/gkeyll/share/Makefile`, produced by `make install` — see §3) into a scratch dir and run `make &lt;testname&gt;` there (`compileCTest`, lines 894–926). This explicitly requires `make install` to have been run (error message at lines 898–903: *"Ensure 'make install' has been run for the current build."*). **No separate `make regression` step is needed** for runregression's own C-test path (explicitly stated in the header and again in the CLI `--description`, lines 2171–2173).
+
+**Hard dependency**: requires SQLite3 (lines 24–28) — if `GKYL_HAVE_SQLITE3 == false` it prints an error and returns 1. In practice SQLite3 is bundled (`core/minus/sqlite3.c`, compiled into `libg0core` per `core/Makefile-core`), and nothing in the repo ever sets `GKYL_HAVE_SQLITE3 = false`, so this should not be an obstacle.
+
+**Commands** (argparse tree, lines 2152–2273):
+- `configure -s/--source-dir &lt;path&gt; [-p/--prefix] [-m/--mpiexec] [--drop-tables]` — required first step; creates `&lt;prefix&gt;/gkeyll-results/&lt;layer&gt;/{regressiondb, luareg-runs, luareg-accepted, creg-runs, creg-accepted}` and writes `&lt;prefix&gt;/gkeyll-results/runregression.config.lua` (falls back to `~/runregression.config.lua` for legacy configs). `--source-dir` must be the gkeyll repo root (parent of `moments/`, `vlasov/`, etc.).
+- `list [-r/--run-only NAME] [-a/--all] [-m/--moat] [-c/--c-only] [-l/--lua-only]` — prints discovered tests without running them.
+- `run [layer] [check|create] [options]` — the main entry point. A layer name (`moments`/`vlasov`/`gyrokinetic`/`pkpm`) can be injected before `check`/`create`, e.g. `gkeyll runregression run moments check` (pre-parsed manually at lines 123–142 since argparse doesn't support this natively).
+  - `check` — compare outputs to accepted baselines, record pass/fail in DB.
+  - `create` — run tests and save output as the new accepted baseline (always forces CPU mode on GPU builds for determinism).
+  - No subcommand — tests run, but results are neither saved nor compared (status = -1 "skip").
+  - Options: `-r/--run-only NAME[,NAME...]` (bare name, absolute path, or directory), `-a/--all` (bypass ignore lists), `-m/--moat` (run only the curated **MOAT = "Mother Of All Tests"** subset — see §2/§5), `-c/--c-only`, `-l/--lua-only`, `-t/--timeout SECS` (default 0 = unlimited; per-test kill via `timeout`/`gtimeout`/Perl-fork fallback, lines 85–102, 310–366), `--gpu-tol` (default `1e-7`, for GPU-vs-accepted / CPU-vs-GPU comparisons), `--no-gpu` (skip GPU even on GPU build), `-j/--jobs N` (default 1 = serial; `0` = auto-detect physical CPU count via `sysctl`/`nproc`, lines 104–121; concurrent execution via shell background jobs, `executeBatch`, lines 1044–1102; C compilation and GPU variants always run serially).
+- `listunit` / `rununit` — separate unit-test runner (Lua `test_*.lua` and compiled `ctest_*` executables under `&lt;layer&gt;/unit/`), distinct from regression.
+
+**No explicit `-h`/help text is hand-written inline** beyond argparse's auto-generated `--help` (argparse library generates usage from the `:description`/`:option`/`:flag` calls above); the tool's own top-level `:description(...)` (lines 2157–2174) doubles as usage documentation and gives the canonical workflow:
+```
+1. make install -j4
+2. gkeyll runregression configure --source-dir /absolute/path/to/gkeyll/
+3. gkeyll runregression run create --timeout 120
+4. gkeyll runregression run check  --timeout 120
+5. gkeyll runregression run moments check
+```
+
+**Comparison/tolerance logic** (`compareFiles`, lines 1190–1298): uses the `G0.Zero` Lua-C API (registered by `gkyl_zero_lw_openlibs`, `core/apps/zero_lw.c`) to diff `.gkyl` output files — `dynvector` diff, `block-topology` diff, or grid+array diff via `gkyl_array_diff`/`rectGridCmp`. Default tolerance is `absTol=relTol=1e-12` for CPU-vs-accepted; a looser `--gpu-tol` (default `1e-7`) is used for GPU-related comparisons. A failure requires **both** abs and rel tolerance to be exceeded (avoids false positives near zero / at large magnitude). Failures are logged with per-file diff magnitudes and written to `&lt;runDir&gt;/_rr_failures.txt`.
+
+**Side effects**:
+- Writes `.gkyl` output files into per-test scratch directories under `&lt;prefix&gt;/gkeyll-results/&lt;layer&gt;/{luareg,creg}-runs/&lt;test&gt;/`.
+- `create` copies outputs into `.../{luareg,creg}-accepted/&lt;test&gt;/` as the new baseline (this is a mutation of tracked "golden" data on the machine's `gkylsoft` prefix, not in the git repo).
+- Writes/updates a SQLite DB per layer at `&lt;results_dir&gt;/&lt;layer&gt;/regressiondb` (schema at lines 221–249: `RegressionMeta` per-run summary, `RegressionData` per-test result incl. status codes: `-4` compile_fail, `-3` timeout, `-2` create, `-1` skip, `0` fail, `1` pass; plus GPU columns).
+- With `--timeout &gt; 0`, tests that time out are **auto-appended** to `&lt;layer&gt;/luareg/ignore_lua_tests.lua` / `&lt;layer&gt;/creg/ignore_c_tests.lua` (lines 1531–1622) — i.e. it can mutate source-tree ignore-list files as a side effect of a timed run. This is worth flagging for CI: a CI run with `--timeout` could silently rewrite repo files (though only inside a fresh clone's workspace, not pushed anywhere, unless someone commits them back).
+- Does not itself invoke MPI — an MPI-only Lua test (`--!` header specifying `numProc`) is detected and **skipped** (`prepareLuaRun`, lines 952–954: `mpiSkip=true`, logs `"**** NOT RUNNING PARALLEL TEST ..."`). Comment at line 2194 confirms: *"MPI parallelism not yet implemented"* for the `--mpiexec` config option — it's accepted but unused.
+- GPU: only exercised if the installed build is CUDA (`detectGpuBuild` reads `CC=nvcc` from installed `share/config.mak`, lines 68–83); on a GPU build it double-runs GPU-capable layers (`vlasov`, `gyrokinetic`, `pkpm`; NOT `moments`, line 62) in both CPU (`-G` flag) and GPU mode and cross-compares. Not relevant if Jenkins nodes are CPU-only.
+
+**Exit code behavior**: `run_action` itself doesn't call `os.exit()` on test failures — it just logs and updates counters/DB; the process exits 0 even if regression tests failed. (Non-zero `os.exit(1)` calls only occur for configuration errors: missing config at `loadConfigure`, line 543; unknown `--run-only` names, line 858; missing `--source-dir`, line 1657.) **This means a naive Jenkins `sh 'gkeyll runregression run check'` step will NOT fail the build on test failures** — the plan needs to add a step that queries the SQLite DB (or parses log output) for `nfail &gt; 0` and exits non-zero explicitly.
+
+## 2. Existing CI/docs references to regression tests
+
+- **`ci/jenkins/README.md:270-273`** (the Jenkins-CI doc itself) already states the exact gap this task addresses: *"`make -j3 regression` — builds (does not execute) all regression tests, matching today's `.github/workflows/mac_build.yml` scope. **There is no automated regression-test runner yet; running a curated subset of regression tests is a follow-up.**"* This is essentially a TODO note left by whoever wrote the Jenkins setup.
+- **`.github/workflows/mac_build.yml`** (GitHub Actions "Mac Build") only builds unit tests and regression *executables*, never runs them: `make -j 3 core-unit`, `core-regression`, `moments-unit`, `moments-regression`, `vlasov-unit`, `vlasov-regression`, `gyrokinetic-unit`, `gyrokinetic-regression`, `pkpm-regression` (no `pkpm-unit` step even). No `runregression` invocation anywhere.
+- **`ci/jenkins/Jenkinsfile`** `buildAndTest()` (lines 13–46) does: clean → `mkdeps` script → `configure` script → `make -j3 check` (unit tests, built AND run) → `make -j3 regression` (regression tests built, NOT run). No `make install`, no `runregression` call.
+- **No mention of `runregression`** anywhere in `.md`/`.yml`/Jenkinsfile files repo-wide (grep across README.md, ci/jenkins/README.md, .agents/skills — only the skill doc and the tool's own header comment reference it via the Lua tests/instructions, not CI).
+- **`README.md:180-344`** documents the manual developer workflow: build via `make everything -j#` / `make gkeyll -j#`, run Lua inputs via `gkylsoft/gkeyll/bin/gkeyll &lt;file&gt;.lua`, build individual C regression tests via `make build/&lt;layer&gt;/creg/rt_*`, or all of them via `make regression -j#` / `make &lt;layer&gt;-regression -j#`. It documents running the compiled C regression binaries directly (each has its own `-h`-documented CLI, e.g. `-M -c/-d/-e` for MPI parallelism — see `.agents/skills/gkeyll_guide` table) but does **not** mention `runregression.lua` at all — i.e. the top-level README is currently silent on the Lua-orchestrated regression system.
+- **Curated/short list of tests**: Yes — a **MOAT ("Mother Of All Tests")** list already exists and is exactly the kind of curated subset alluded to in the Jenkins README follow-up note. Files:
+  - `&lt;layer&gt;/luareg/moat_lua.lua` and `&lt;layer&gt;/creg/moat_c.lua` for `moments`, `vlasov`, `gyrokinetic`, `pkpm` (8 files total; `core` has neither).
+  - Selected via `runregression run --moat` / `runregression list --moat` (lines 706–711, 775–780, 2209–2210, 2232–2233).
+  - Counts: moments 6 lua + 6 c, vlasov 4 + 4, gyrokinetic 3 + 3, pkpm 4 + 4 → **17 Lua + 17 C = 34 MOAT tests total**, e.g. `gyrokinetic/luareg/moat_lua.lua` lists `rt_gk_ion_sound_1x2v_p1`, `rt_gk_lbo_relax_1x2v_p1`, `rt_gk_sheath_bgk_1x2v_p1`.
+  - There are also per-layer **ignore lists** (`ignore_lua_tests.lua` / `ignore_c_tests.lua`, 8 files) with pre-existing skips (moments 31+41, vlasov 18+25, gyrokinetic 20+19, pkpm 9+10 entries) — these are consulted by default (bypassed only with `--all`), so a plain `run check` already excludes known-broken/flaky tests without extra Jenkins-side curation.
+
+## 3. How `gkylsoft/gkeyll/bin/gkeyll` gets built/installed
+
+- **No plain `make install` target exists at the top level.** Top-level `Makefile` has only per-layer `*-install` targets, chained by dependency: `core-install` (line 277) ← `moments-install` (307, depends on `core-install`) ← `vlasov-install` (333) ← `gyrokinetic-install` (359) ← `pkpm-install` (385) ← **`gkeyll-install`** (line 405: `gkeyll-install: ${BUILD_APP}-install gkeyll`). `BUILD_APP` defaults to `pkpm` (`config.mak:12`, set by `configure` from `--app`, `configure:353`), so **`make gkeyll-install`** is the actual "build everything and install" command a developer/CI would run (the gkeyll_guide skill's "`make -j3 install`" phrasing is a slight simplification/possibly stale — the real target name is `gkeyll-install`).
+  - Chain triggers: `core-install` also copies `config.mak` → `&lt;prefix&gt;/gkeyll/share/config.mak` and generates `&lt;prefix&gt;/gkeyll/share/Makefile` from `Makefile_for_ext_C_input` (Makefile lines 279–280) — **this is exactly the file `runregression.lua`'s `compileCTest` needs** to compile C regression tests on the fly, and the file `detectGpuBuild` reads for GPU detection.
+  - `gkeyll-install` → `cd gkeyll &amp;&amp; make -f Makefile-gkeyll install`, whose `install:` target (`gkeyll/Makefile-gkeyll:72`, deps `gkeyll-install cgkeyll-install gkeyll-header`) actually copies the compiled `gkeyll` executable and Lua stdlib into `${INSTALL_PREFIX}/gkeyll/bin/gkeyll` (see lines 71–90+ of that file) — this is literally what produces `gkylsoft/gkeyll/bin/gkeyll`.
+- **Confirmed gap**: grepping `machines/*.sh`, `ci/jenkins/*`, and `.github/workflows/*.yml` for `"make install"` or any `*-install` target returns **nothing**. Neither Jenkins nor GitHub Actions currently runs any install step — `Jenkinsfile`'s `buildAndTest()` only runs `make -j3 check` then `make -j3 regression`, confirming the user's premise exactly. So **before `runregression` (or even the `gkeyll` binary) can be used at all in Jenkins, a `make -j3 gkeyll-install` (or equivalent) step must be added** to produce the installed `bin/gkeyll`, `share/Makefile`, and `share/config.mak`.
+
+## 4. `make regression`/`creg` — plain C build, unrelated to runregression.lua
+
+- Top-level `Makefile:414`: `regression: pkpm-regression gyrokinetic-regression vlasov-regression moments-regression core-regression`, each in turn (e.g. `core-regression`, line 274) does `cd &lt;layer&gt; &amp;&amp; $(MAKE) -f Makefile-&lt;layer&gt; regression`.
+- Inside e.g. `core/Makefile-core`: `REGS := $(patsubst %.c,../${BUILD_DIR}/core/%,$(wildcard creg/rt_*.c))` (line 34) and `regression: ${LLIB} ${SLLIB} ${REGS}` (line 49). Same pattern in `moments/`, `vlasov/`, `gyrokinetic/`, `pkpm/` Makefiles (per the earlier build/creg pattern rules in the top-level Makefile, e.g. `${BUILD_DIR}/moments/creg/%: moments/creg/%.c ...`). So `make regression` compiles **every `rt_*.c` file under `&lt;layer&gt;/creg/` into a standalone executable** under `build/&lt;layer&gt;/creg/rt_*` — nothing more. It does not run them, does not know about Lua tests, and does not touch SQLite/accepted baselines.
+- **Relationship to `runregression.lua`**: they are two independent systems that both build/run the *same underlying C sources* (`&lt;layer&gt;/creg/rt_*.c`) but via different mechanisms:
+  - `make regression` compiles once into `build/&lt;layer&gt;/creg/`, using the in-repo `Makefile-&lt;layer&gt;` build system (with dev-tree include paths); these binaries are left in `build/` for a developer to run manually (each supports its own `-h`-documented flags, e.g. `-M -c/-d/-e` for MPI/parallel decomposition, `-g` for GPU — see `rt_arg_parse.h`, e.g. `moments/creg/rt_arg_parse.h:98-102`).
+  - `runregression.lua run` compiles **the same source files independently**, per-test, on demand, into ephemeral scratch dirs using the **installed** `share/Makefile` (i.e. it never touches or reuses `build/&lt;layer&gt;/creg/`), then runs them and diffs `.gkyl` output against accepted baselines, storing results in SQLite. It is a "wholly separate Lua-orchestrated harness" layered on top of the same test sources, plus it also natively discovers and runs the Lua-based tests (`&lt;layer&gt;/luareg/rt_*.lua`), which `make regression` has no concept of at all.
+  - Practical implication for CI: `make -j3 regression` (already run by Jenkins) is **not a prerequisite** for `runregression run` — it's redundant/unrelated work for that purpose (though still useful as a fast compile-only smoke check independent of `make install`). The important prerequisite for `runregression` is `make install` (producing `share/Makefile`, `share/config.mak`, `bin/gkeyll`), not `make regression`.
+
+## 5. Scale / practicality signals
+
+Regression source-file counts (`find &lt;layer&gt;/{luareg,creg} -maxdepth 1 -name "rt_*.{lua,c}"`):
+
+| Layer | luareg (Lua) | creg (C) |
+|---|---|---|
+| moments | 140 | 161 |
+| vlasov | 122 | 119 |
+| gyrokinetic | 30 | 110 |
+| pkpm | 27 | 30 |
+| core | — (no luareg dir) | 9 |
+| **Total** | **319** | **429** |
+
+So a full, unfiltered `gkeyll runregression run check` (all layers, no `--moat`, ignore-lists still applied) would attempt on the order of **~748 individual test cases minus ignore-list entries** (ignore lists strip roughly 31+41+18+25+20+19+9+10 ≈ 173 entries across layers, so effectively perhaps ~575 tests actually run) — each C test additionally pays a per-test **compile** cost (`make &lt;testname&gt;` from scratch per scratch dir, no shared object cache) before execution. There is no built-in "quick"/"smoke" flag *per se*, but the **`--moat` flag is exactly that**: a curated, maintained subset of only **34 tests total** (17 Lua + 17 C) across the four layers (moments 12, vlasov 8, gyrokinetic 6, pkpm 8) — explicitly documented as "the core acceptance set" (comment in `gyrokinetic/luareg/moat_lua.lua`). This is almost certainly the right default set for a Jenkins PR-gating job, given the full-suite cost.
+
+No explicit runtime/duration comments were found in `runregression.lua` itself (no "long-running" annotations), but:
+- `--timeout SECS` exists specifically to bound/kill long tests and auto-quarantine repeat offenders into the ignore lists (lines 1687–1691, 2236–2238) — the documented example workflow uses `--timeout 120` for both `create` and `check` (line 2167–2168), implying ~2 minutes/test is treated as a reasonable per-test ceiling by the tool's authors.
+- MPI-parallel Lua tests (`--! {numProc=...}` header) are **skipped entirely** by `runregression` (not yet implemented) — so wall-clock cost is bounded by serial (or `--jobs N`) single-process runs only; no need to provision MPI process counts for CI sizing.
+- `--jobs 0` auto-detects physical CPU count for intra-batch concurrency (C compilation and GPU reruns always serial), so Jenkins nodes with more cores can parallelize the MOAT run further if desired.
+
+### Summary of gaps to close for the Jenkins plan
+1. Add a `make -j3 gkeyll-install` (or `pkpm-install`/whichever scope is desired) step before any regression run — currently absent from both `Jenkinsfile` and `mac_build.yml`.
+2. Add `gkeyll runregression configure --source-dir $WORKSPACE [--prefix $WORKSPACE/gkylsoft]` once per build (workspace is wiped every run per `ci/jenkins/README.md`, so this must run every time, not just once).
+3. Run `gkeyll runregression run --moat check --timeout &lt;N&gt; [-j &lt;cores&gt;]` (34-test curated subset) rather than the full ~575–748 test corpus, matching the "curated subset ... follow-up" note already in `ci/jenkins/README.md:270-273`.
+4. Add an explicit post-step to fail the Jenkins stage on regression failures, since `runregression` itself always exits 0 — need to inspect the per-layer SQLite DBs (`&lt;prefix&gt;/gkeyll-results/&lt;layer&gt;/regressiondb`, `RegressionMeta.nfail`) or grep the tool's stdout/log for failures and `exit 1` accordingly.
+5. Decide whether/how to persist "accepted" baselines across CI runs (workspace is fully wiped each build per `ci/jenkins/README.md:258-263`, meaning `create` baselines would need to be checked in or fetched from a stable location rather than relying on a previous run's `gkylsoft/gkeyll-results/*-accepted/` — currently nothing in the repo commits accepted `.gkyl` baselines to git, so this is an open design question for the plan, not something already solved by existing infrastructure).</result>
+<usage><subagent_tokens>106384</subagent_tokens><tool_uses>40</tool_uses><duration_ms>261068</duration_ms></usage>
+</task-notification>
+
+---
+
+I'm interested in the second option, but if a PR causes acceptable changes (because the physics changed, let's say), how would we tell Jenkins that the new results of a particular test are to be accepted?
+
+---
+
+Just a comment about step 3 above: you copy the baseline (.gkyl files) from one directory to another. These files could be numerous or large. Would it be better or possible to move them instead of copying them so we don't double the storage needed?
+
+---
+
+A tangential question: on GitHub I see there are two checks, continuous-integration/jenkins/branch and continuous-integration/jenkins/pr-head. Why are there two and what's the difference between them?
+
+---
+
+do it in the config please
+
+---
+
+Sure
