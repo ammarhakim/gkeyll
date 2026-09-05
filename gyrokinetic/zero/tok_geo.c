@@ -1502,6 +1502,21 @@ tok_ext_mid_route_zbranch(void)
   return e && e[0] != '\0' && e[0] != '0';
 }
 
+// Escape hatch for the turning-point route's branch-A side hint (see
+// tok_ext_build_via_turning_trace).  Default ON: the only block on this route
+// is LSN_SOL_MID, and no shipped case declares straight_xpt_ray on it, so the
+// hint cannot reach a currently-passing grid.  Set to 0 to A/B it.
+static bool
+tok_ext_via_turn_seed_side(void)
+{
+  static int on = -1;
+  if (on < 0) {
+    const char *e = getenv("GKYL_TOK_EXT_VIA_TURN_SEED_SIDE");
+    on = (e && e[0] == '0') ? 0 : 1;
+  }
+  return on != 0;
+}
+
 static bool
 tok_ext_topology_from_ftype_raw(enum gkyl_tok_geo_type ftype, bool half_domain,
   struct tok_ext_topology *top)
@@ -1690,6 +1705,16 @@ tok_ext_topology_from_ftype_raw(enum gkyl_tok_geo_type ftype, bool half_domain,
 // Stating it as a property covers every block of that shape at once, including
 // ones added later, rather than each being rediscovered the hard way. Routes
 // that are not a Z-monotone branch march never consult it.
+//
+// LSN_SOL_MID has that shape too, and in the sharpest possible form: BOTH of
+// its rays sit on the SAME (lower) X point, so on the separatrix its two
+// endpoints are not merely the same kind of point, they are the same point.
+// It was excluded here only because its route splits at a turning point and
+// chose per branch instead; the exclusion cost TCV its whole separatrix row
+// (measured: the b2 trace ran up the inboard flank and back down it, arc
+// 1.6407 m inside R<=0.8624, against the core block's 1.8142 m out to
+// R=1.0995 -- a 0.42 m seam).  The route clause is gone: the property is about
+// the ENDPOINTS, and every route that consults it now gets the same answer.
 static bool
 tok_ext_topology_from_ftype(enum gkyl_tok_geo_type ftype, bool half_domain,
   struct tok_ext_topology *top)
@@ -1698,9 +1723,7 @@ tok_ext_topology_from_ftype(enum gkyl_tok_geo_type ftype, bool half_domain,
     return false;
   top->seed_names_side =
     top->lower.kind == TOK_EXT_XPT_RAY &&
-    top->upper.kind == TOK_EXT_XPT_RAY &&
-    (top->route == TOK_EXT_ROUTE_OUTBOARD ||
-     top->route == TOK_EXT_ROUTE_INBOARD);
+    top->upper.kind == TOK_EXT_XPT_RAY;
   return true;
 }
 
@@ -2707,6 +2730,28 @@ tok_psi_line_closest_r(const struct gkyl_tok_geo *geo, double psi, double z,
   return true;
 }
 
+// Report which rule picked the FIRST interior station of a Z-branch march.
+// That station is the whole decision: everything after it is plain continuity,
+// so a branch that leaves the seed on the wrong side stays wrong for its whole
+// length.  Naming the rule (not just the outcome) is what separates "the side
+// hint was not consulted" from "it was consulted and still chose that root".
+static void
+tok_ext_zbranch_seed_diag(const struct gkyl_tok_geo_grid_inp *inp, double psi,
+  bool outboard, bool seed_names_side, double rseed, double zstation,
+  const double *R, int nr, double rpick, const char *rule)
+{
+  if (!tok_ordered_map_diag_enabled())
+    return;
+  fprintf(stderr,
+    "TOK_EXT_ZBRANCH_SEED ftype=%d psi=%.17g outboard=%d names_side=%d "
+    "rseed=%.17g z=%.17g nr=%d rpick=%.17g rule=%s roots=",
+    inp->ftype, psi, (int) outboard, (int) seed_names_side, rseed, zstation,
+    nr, rpick, rule);
+  for (int k=0; k<nr; ++k)
+    fprintf(stderr, "%s%.17g", k ? "," : "", R[k]);
+  fprintf(stderr, "\n");
+}
+
 static bool
 tok_ext_z_branch_points(const struct gkyl_tok_geo_grid_inp *inp,
   const struct gkyl_tok_geo *geo, double psi, int n,
@@ -2787,8 +2832,12 @@ tok_ext_z_branch_points(const struct gkyl_tok_geo_grid_inp *inp,
       }
       if (found) {
         r[i] = best;
+        tok_ext_zbranch_seed_diag(inp, psi, outboard, seed_names_side, r[0],
+          z[i], R, nr, r[i], "named_side");
         continue;
       }
+      tok_ext_zbranch_seed_diag(inp, psi, outboard, seed_names_side, r[0],
+        z[i], R, nr, 0.0/0.0, "named_side_none_that_side");
     }
     // Near an X point the branches crowd together, and the nearest root to
     // the seed stops being the one this block wants: at the X point itself
@@ -2807,10 +2856,17 @@ tok_ext_z_branch_points(const struct gkyl_tok_geo_grid_inp *inp,
       }
       if ((r1v-r[0])*(r2v-r[0]) < 0.0 && d2 < 4.0*d1) {
         r[i] = tok_nearest_value(outboard ? inp->rright : inp->rleft, R, nr);
+        tok_ext_zbranch_seed_diag(inp, psi, outboard, seed_names_side, r[0],
+          z[i], R, nr, r[i], "radial_reference");
         continue;
       }
+      tok_ext_zbranch_seed_diag(inp, psi, outboard, seed_names_side, r[0],
+        z[i], R, nr, 0.0/0.0, "no_straddle");
     }
     r[i] = tok_nearest_value(r[i-1], R, nr);
+    if (i == 1)
+      tok_ext_zbranch_seed_diag(inp, psi, outboard, seed_names_side, r[0],
+        z[i], R, nr, r[i], "continuity");
   }
   r[n-1] = r1; z[n-1] = z1;
   return true;
@@ -2893,12 +2949,13 @@ tok_ext_sample_closed_base(const struct gkyl_tok_geo *geo, double psi,
 // `upper` selects which turning point, and the two branches sit on opposite
 // sides of it: LSN_SOL_MID runs outboard->inboard over the top (true, false),
 // while a half-domain CORE_R runs inboard->outboard under the bottom
-// (false, true).
+// (false, true).  `seed_names_side` is the block's own topology property; see
+// the branch-A note below for why this route needs it.
 static bool
 tok_ext_build_via_turning_trace(const struct gkyl_tok_geo_grid_inp *inp,
   const struct gkyl_tok_geo *geo, double psi, int n,
   double r0, double z0, double r1, double z1, bool upper,
-  double *r, double *z, double *s, bool *param_is_r)
+  bool seed_names_side, double *r, double *z, double *s, bool *param_is_r)
 {
   double rt = 0.0, zt = 0.0;
   if (!tok_ext_turning_point(inp, geo, psi, upper, &rt, &zt))
@@ -2913,14 +2970,20 @@ tok_ext_build_via_turning_trace(const struct gkyl_tok_geo_grid_inp *inp,
   double *bz = gkyl_malloc(sizeof(double[nb]));
   double *bs = gkyl_malloc(sizeof(double[nb]));
   double gap_a = 0.0, gap_b = 0.0;
-  // Branch A starts at a real endpoint, so continuity has a trustworthy seed.
   // Branch B starts AT the turning point -- the one place the inboard and
   // outboard roots coalesce -- so its seed cannot name a side, exactly the
-  // condition the closed-core builder passes true for. LSN_SOL_MID is the
-  // block that takes this route, so single-null cases get the same protection
-  // as the double-null ones rather than waiting to rediscover it.
+  // condition the closed-core builder passes true for.
+  //
+  // Branch A starts at a real endpoint, which was read as a trustworthy seed
+  // for continuity.  It is not, for the block that takes this route: both of
+  // LSN_SOL_MID's endpoints are rays off the SAME X point, so on the
+  // separatrix branch A's seed IS the X point, where the two flanks meet and
+  // continuity has nothing to continue from.  `seed_names_side` (true there by
+  // topology) hands the tie to the side the block asked for, the same way the
+  // closed-core builder resolves it.  Set GKYL_TOK_EXT_VIA_TURN_SEED_SIDE=0 to
+  // restore the old unconditional false.
   bool ok = tok_ext_z_branch_points(inp, geo, psi, nside,
-      r0, z0, rt, zt, upper, false, br, bz, &gap_a) &&
+      r0, z0, rt, zt, upper, seed_names_side, br, bz, &gap_a) &&
     tok_ext_z_branch_points(inp, geo, psi, nside,
       rt, zt, r1, z1, !upper, true, br+nside-1, bz+nside-1, &gap_b);
   double gap_resid = fmax(gap_a, gap_b);
@@ -3100,7 +3163,9 @@ tok_ext_build_domain_trace(const struct gkyl_tok_geo_grid_inp *inp,
       break;
     case TOK_EXT_ROUTE_VIA_UPPER:
       ok = tok_ext_build_via_turning_trace(inp, arc_ctx->geo, psi, n,
-        r0, z0, r1, z1, true, r, z, s, param_is_r);
+        r0, z0, r1, z1, true,
+        top.seed_names_side && tok_ext_via_turn_seed_side(),
+        r, z, s, param_is_r);
       break;
     case TOK_EXT_ROUTE_CLOSED_CORE:
       ok = tok_ext_build_closed_core_trace(inp, arc_ctx->geo, psi,
