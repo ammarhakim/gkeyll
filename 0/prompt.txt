@@ -1,0 +1,2 @@
+Ok, the Jenkins run now produced this output: /Users/mfrancis/Downloads/run_14.txt
+can you determine why it failed?
