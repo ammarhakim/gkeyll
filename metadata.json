@@ -3,7 +3,7 @@
   "checkpoint_id": "01M1S6QN64159888GB9KQHBP5W",
   "strategy": "manual-commit",
   "branch": "agent_tools-jenkins",
-  "checkpoints_count": 1,
+  "checkpoints_count": 10,
   "files_touched": [
     "Makefile",
     "ci/jenkins/Jenkinsfile"
@@ -15,13 +15,20 @@
       "compact_transcript": "/0/transcript.jsonl",
       "content_hash": "/0/content_hash.txt",
       "prompt": "/0/prompt.txt"
+    },
+    {
+      "metadata": "/1/metadata.json",
+      "transcript": "/1/full.jsonl",
+      "compact_transcript": "/1/transcript.jsonl",
+      "content_hash": "/1/content_hash.txt",
+      "prompt": "/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 66,
-    "cache_creation_tokens": 260253,
-    "cache_read_tokens": 2633350,
-    "output_tokens": 34887,
-    "api_call_count": 33
+    "input_tokens": 266,
+    "cache_creation_tokens": 1232378,
+    "cache_read_tokens": 11273511,
+    "output_tokens": 158935,
+    "api_call_count": 133
   }
 }
