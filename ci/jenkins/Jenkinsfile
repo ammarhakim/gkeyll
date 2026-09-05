@@ -53,7 +53,14 @@ def buildAndTest(String mkdepsScript, String configureScript) {
         // Needed by 'gkeyll runregression': it compiles C regression tests
         // on the fly using the installed share/Makefile, and 'gkeyll' itself
         // is the interpreter runregression runs as.
-        sh 'make -j3 gkeyll-install'
+        //
+        // Use 'install' (from the generated alltargets.mak), not
+        // 'gkeyll-install' (defined directly in the top-level Makefile):
+        // the latter has two independent prerequisite chains that both
+        // rebuild the same build/**/libg0*.so files, which can race under
+        // -j and fail with e.g. "cp: .../libg0vlasov.so: No such file or
+        // directory" when nothing has pre-built them yet.
+        sh 'make -j3 install'
     }
 
     if (env.CHANGE_ID) {
@@ -110,7 +117,8 @@ def buildRegressionBaseline(String mkdepsScript, String configureScript, String 
         ])
         sh "PREFIX=\"\$WORKSPACE/_main_baseline/gkylsoft\" ./machines/${mkdepsScript}"
         sh "PREFIX=\"\$WORKSPACE/_main_baseline/gkylsoft\" ./machines/${configureScript}"
-        sh 'make -j3 gkeyll-install'
+        // See the comment on the 'Install' stage above re: install vs gkeyll-install.
+        sh 'make -j3 install'
         def gkeyll = "\$WORKSPACE/_main_baseline/gkylsoft/gkeyll/bin/gkeyll"
         sh "\"${gkeyll}\" runregression configure --source-dir \"\$WORKSPACE/_main_baseline\" --prefix \"\$WORKSPACE/_main_baseline/gkylsoft\""
         sh "\"${gkeyll}\" runregression run --moat create --timeout 300"

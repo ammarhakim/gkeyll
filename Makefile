@@ -402,7 +402,7 @@ pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 gkeyll: ${BUILD_APP} ## Build Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll gkeyll
 
-gkeyll-install: ${BUILD_APP}-install gkeyll ## Install Gkeyll executable
+gkeyll-install: ${BUILD_APP}-install ## Install Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll install
 
 ## Targets to build things all parts of the code
