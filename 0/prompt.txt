@@ -1,0 +1,5 @@
+the Jenkins run failed, see the console log here /Users/mfrancis/Downloads/run_11.txt
+
+---
+
+I like the fix in part 3. Before you proceed, answer this: would it be easier to just use "git clone -b" for the specific branch in question?
