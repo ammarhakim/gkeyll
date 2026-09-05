@@ -1,0 +1,9 @@
+THe plan looks reasonable. Just remove the use of strip-trailing-commas.py from format-all.sh, README, GitHub CI workflow, and aget SKILL files.
+
+---
+
+can you show me the plan again?
+
+---
+
+yes, remove strip-trailing-commas.py from pre-commit-config.yaml. And please implement the plan
