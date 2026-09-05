@@ -7,3 +7,7 @@ can you show me the plan again?
 ---
 
 yes, remove strip-trailing-commas.py from pre-commit-config.yaml. And please implement the plan
+
+---
+
+Please commit
