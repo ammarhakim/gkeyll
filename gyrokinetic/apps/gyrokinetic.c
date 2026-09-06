@@ -3331,6 +3331,8 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
       gkyl_array_copy(gk_s->f, gk_s->f_host);
 
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+      // Use f as a valid fallback filtered state when no fbar file is configured.
+      gk_species_damping_set_fbar_to_f(gk_s, &gk_s->damping, gk_s->f);
       gk_species_source_calc(app, gk_s, &gk_s->src, gk_s->lte.f_lte, 0.0);
       // Read volume and time integrated boundary flux diagnostics.
       gk_species_bflux_read_voltime_integrated_mom(app, gk_s, &gk_s->bflux);
@@ -3383,6 +3385,13 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, gk_s->info.name, frame);
   struct gkyl_app_restart_status rstat = gkyl_gyrokinetic_app_from_file_species(app, sidx, fileNm.str);
   cstr_drop(&fileNm);
+
+  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    cstr fbarFileNm = cstr_from_fmt("%s-%s_damping_fbar_%d.gkyl", app->name,
+      gk_s->info.name, frame);
+    rstat.io_status = gk_species_damping_read_fbar(app, gk_s, fbarFileNm.str);
+    cstr_drop(&fbarFileNm);
+  }
 
   // Append to existing integrated diagnostics.
   app->is_first_dt_write_call = false;
@@ -3437,13 +3446,19 @@ gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 {
-  struct gkyl_app_restart_status rstat;
+  struct gkyl_app_restart_status rstat = {
+    .io_status = GKYL_ARRAY_RIO_SUCCESS,
+    .frame = frame,
+    .stime = 0.0,
+  };
   for (int i=0; i<app->num_neut_species; i++) {
     if (app->neut_species[i].info.is_static) {
       gk_neut_species_apply_ic(app, &app->neut_species[i], 0.0);
     }
     else {
       rstat = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, frame);
+      if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS)
+        return rstat;
     }
   }
   for (int i=0; i<app->num_species; i++) {
@@ -3452,6 +3467,8 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
     else {
       rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
+      if (rstat.io_status != GKYL_ARRAY_RIO_SUCCESS)
+        return rstat;
     }
   }
 

@@ -36,6 +36,38 @@ gk_species_damping_set_fbar_to_f(const struct gk_species *gks, struct gk_damping
   damp->set_fbar_to_f_func(gks, damp, f);
 }
 
+static enum gkyl_array_rio_status
+gk_species_damping_read_fbar_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const char *fname)
+{
+  return GKYL_ARRAY_RIO_SUCCESS;
+}
+
+static enum gkyl_array_rio_status
+gk_species_damping_read_fbar_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const char *fname)
+{
+  struct gk_damping *damp = &gks->damping;
+  enum gkyl_array_rio_status status =
+    gkyl_comm_array_read(gks->comm, &gks->grid, &gks->local, damp->fbar_host, fname);
+
+  if (status == GKYL_ARRAY_RIO_SUCCESS) {
+    if (app->use_gpu)
+      gkyl_array_copy(damp->fbar, damp->fbar_host);
+    gkyl_array_copy(damp->fbar1, damp->fbar);
+    gkyl_array_copy(damp->fbarnew, damp->fbar);
+  }
+
+  return status;
+}
+
+enum gkyl_array_rio_status
+gk_species_damping_read_fbar(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const char *fname)
+{
+  return gks->damping.read_fbar_func(app, gks, fname);
+}
+
 // Damping diagnostics write helpers.
 
 void
@@ -62,12 +94,14 @@ gk_species_damping_write_rate_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
     { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm },
     { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame },
   };
-
-  int mpe_drate_len = sizeof(mpe_drate)/sizeof(mpe_drate[0]);
+  int mpe_drate_len = sizeof(mpe_drate) / sizeof(mpe_drate[0]);
   // Package metadata.
-  int io_meta_len[] = {gks->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_basic_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, mpe_drate, app->gk_geom->io_meta_basic};
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  int io_meta_len[] = { gks->io_meta_basic_len, mpe_drate_len,
+    app->gk_geom->io_meta_basic_len };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic, mpe_drate,
+    app->gk_geom->io_meta_basic };
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int),
+    io_meta_len, io_meta);
 
   // Write out the damping rate.
   const char *fmt = "%s-%s_damping_rate_%d.gkyl";
@@ -95,21 +129,22 @@ static void
 gk_species_damping_write_fbar_cellwise_const(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   double tm, int frame)
 {
-  // Metadata from app/species/geometry. fbar is always stored as a p0 field.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-
+  // Metadata from species/geometry. fbar is always stored as a p0 field.
   struct gkyl_msgpack_map_elem mpe_fbar_p0[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "Low-pass-filtered distribution function." },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame },
   };
   int io_meta_fbar_len[] = {
-    app->io_meta_basic_len,
+    gks->io_meta_basic_len,
     (int)(sizeof(mpe_fbar_p0) / sizeof(mpe_fbar_p0[0])),
     app->gk_geom->io_meta_basic_len
   };
   const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {
-    app->io_meta_basic,
+    gks->io_meta_basic,
     mpe_fbar_p0,
     app->gk_geom->io_meta_basic
   };
@@ -136,17 +171,15 @@ static void
 gk_species_damping_write_fbar_same_basis(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   double tm, int frame)
 {
-  // Metadata from app/species/geometry using the species phase-space basis.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  // Metadata from species/geometry using the species phase-space basis.
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
 
   int io_meta_fbar_len[] = {
-    app->io_meta_basic_len,
     gks->io_meta_phase_len,
     app->gk_geom->io_meta_basic_len
   };
   const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {
-    app->io_meta_basic,
     gks->io_meta_phase,
     app->gk_geom->io_meta_basic
   };
@@ -440,6 +473,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   damp->write_func = gk_species_damping_write_disabled;
   damp->write_rate_func = gk_species_damping_write_rate_disabled;
   damp->write_fbar_func = gk_species_damping_write_fbar_disabled;
+  damp->read_fbar_func = gk_species_damping_read_fbar_disabled;
   damp->advance_func = gk_species_damping_advance_disabled;
   damp->set_fbar_to_f_func = gk_species_damping_set_fbar_to_f_disabled;
   damp->calc_fbar_rhs_func = gk_species_damping_calc_fbar_rhs_disabled;
@@ -496,6 +530,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     gkyl_array_clear(damp->fbar, 0.0);
 
     if (damp->write_fbar) {
+      damp->read_fbar_func = gk_species_damping_read_fbar_enabled;
       if (damp->cellwise_const) {
         damp->write_fbar_func = gk_species_damping_write_fbar_cellwise_const;
       }

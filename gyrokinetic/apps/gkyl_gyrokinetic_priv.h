@@ -216,7 +216,7 @@ struct gk_rad_drag {
   struct gk_neut_species *collide_with_neut[GKYL_MAX_SPECIES]; // Neutral cross-species we collide with.
   int collide_with_idx[2*GKYL_MAX_SPECIES]; // Index of species we collide with.
   bool is_neut_species[2*GKYL_MAX_SPECIES]; // Flag of whether neutral or Gk species.
-  
+
   // Drag coefficients in vparallel and mu for each species being collided with.
   struct gkyl_gk_rad_drag *vnu_surf;
   struct gkyl_gk_rad_drag *vnu;
@@ -858,6 +858,8 @@ struct gk_damping {
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_rate_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
   void (*write_fbar_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+  enum gkyl_array_rio_status (*read_fbar_func)(gkyl_gyrokinetic_app* app,
+    struct gk_species *gks, const char *fname);
   void (*advance_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp, 
     const struct gkyl_array *phi, const struct gkyl_array *fin, const struct gkyl_array *fbar_in,
     struct gkyl_array *f_buffer,
@@ -1554,7 +1556,7 @@ struct gkyl_gyrokinetic_app {
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
-  
+
   bool is_multib; // Is this a block in a multiblock sim?
 };
 
@@ -3003,6 +3005,21 @@ void gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_speci
  * @param frame Output frame.
  */
 void gk_species_damping_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+
+/**
+ * Read the filtered distribution function used by low-pass-filter damping.
+ *
+ * This is a runtime-dispatched no-op unless fbar output is enabled. On a
+ * successful read, all filtered-distribution RK stage arrays are synchronized
+ * to the restarted state.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param fname Name of the fbar restart file.
+ * @return Status of the file read.
+ */
+enum gkyl_array_rio_status gk_species_damping_read_fbar(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, const char *fname);
 
 /**
  * Compute filtered distribution RHS for low-pass filter damping:
