@@ -36,6 +36,38 @@ gk_species_damping_set_fbar_to_f(const struct gk_species *gks, struct gk_damping
   damp->set_fbar_to_f_func(gks, damp, f);
 }
 
+static enum gkyl_array_rio_status
+gk_species_damping_read_fbar_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const char *fname)
+{
+  return GKYL_ARRAY_RIO_SUCCESS;
+}
+
+static enum gkyl_array_rio_status
+gk_species_damping_read_fbar_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const char *fname)
+{
+  struct gk_damping *damp = &gks->damping;
+  enum gkyl_array_rio_status status =
+    gkyl_comm_array_read(gks->comm, &gks->grid, &gks->local, damp->fbar_host, fname);
+
+  if (status == GKYL_ARRAY_RIO_SUCCESS) {
+    if (app->use_gpu)
+      gkyl_array_copy(damp->fbar, damp->fbar_host);
+    gkyl_array_copy(damp->fbar1, damp->fbar);
+    gkyl_array_copy(damp->fbarnew, damp->fbar);
+  }
+
+  return status;
+}
+
+enum gkyl_array_rio_status
+gk_species_damping_read_fbar(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const char *fname)
+{
+  return gks->damping.read_fbar_func(app, gks, fname);
+}
+
 // Damping diagnostics write helpers.
 
 void
@@ -441,6 +473,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   damp->write_func = gk_species_damping_write_disabled;
   damp->write_rate_func = gk_species_damping_write_rate_disabled;
   damp->write_fbar_func = gk_species_damping_write_fbar_disabled;
+  damp->read_fbar_func = gk_species_damping_read_fbar_disabled;
   damp->advance_func = gk_species_damping_advance_disabled;
   damp->set_fbar_to_f_func = gk_species_damping_set_fbar_to_f_disabled;
   damp->calc_fbar_rhs_func = gk_species_damping_calc_fbar_rhs_disabled;
@@ -497,6 +530,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
     gkyl_array_clear(damp->fbar, 0.0);
 
     if (damp->write_fbar) {
+      damp->read_fbar_func = gk_species_damping_read_fbar_enabled;
       if (damp->cellwise_const) {
         damp->write_fbar_func = gk_species_damping_write_fbar_cellwise_const;
       }
