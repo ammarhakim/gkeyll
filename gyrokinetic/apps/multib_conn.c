@@ -3,11 +3,6 @@
 #include <gkyl_gyrokinetic_multib_priv.h>
 #include <gkyl_multib_comm_conn.h>
 
-// Maximum number of blocks
-#define GKYL_MAX_BLOCKS 12
-
-
-
 /**
  * Count number of distinct elements in an array of ints
  * .
@@ -120,6 +115,82 @@ get_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighb
  */
 int
 get_num_neighbors(struct gkyl_block_topo *block_topo, int bidx, int dir)
+{
+  int neighbor_idxs[1000] = {-1};
+  int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
+  return neighbor_num;
+}
+
+/**
+ *  Get the block index of adjacent block below in a direction.
+ * 
+ * @param block_topo block topology object
+ * @param bidx block index
+ * @param dir
+ * @param neighbor_idxs on output index of neighboring block below
+ * return number of neighbors below (0 or 1)
+*/
+int
+get_below(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
+{
+  struct gkyl_block_connections conn = block_topo->conn[bidx];
+  int neighbor_num = 0;
+  int e = 0;
+  if (conn.connections[dir][e].edge != GKYL_PHYSICAL) {
+    neighbor_idxs[neighbor_num] = conn.connections[dir][e].bid;
+    neighbor_num += 1;
+  }
+  return neighbor_num;
+}
+
+/**
+ *  Get the number of adjacent blocks below in a direction.
+ * 
+ * @param block_topo block topology object
+ * @param bidx block index
+ * @param direction
+ * return number of neighbors
+ */
+int
+get_num_below(struct gkyl_block_topo *block_topo, int bidx, int dir)
+{
+  int neighbor_idxs[1000] = {-1};
+  int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
+  return neighbor_num;
+}
+
+/**
+ *  Get the block index of adjacent block above in a direction.
+ * 
+ * @param block_topo block topology object
+ * @param bidx block index
+ * @param dir
+ * @param neighbor_idxs on output index of neighboring block above
+ * return number of neighbors above (0 or 1)
+*/
+int
+get_above(struct gkyl_block_topo *block_topo, int bidx, int dir, int *neighbor_idxs)
+{
+  struct gkyl_block_connections conn = block_topo->conn[bidx];
+  int neighbor_num = 0;
+  int e = 1;
+  if (conn.connections[dir][e].edge != GKYL_PHYSICAL) {
+    neighbor_idxs[neighbor_num] = conn.connections[dir][e].bid;
+    neighbor_num += 1;
+  }
+  return neighbor_num;
+}
+
+/**
+ *  Get the number of adjacent blocks above in a direction.
+ * 
+ * @param block_topo block topology object
+ * @param bidx block index
+ * @param direction
+ * return number of neighbors
+ */
+int
+get_num_above(struct gkyl_block_topo *block_topo, int bidx, int dir)
 {
   int neighbor_idxs[1000] = {-1};
   int neighbor_num = get_neighbors(block_topo, bidx, dir, neighbor_idxs);
@@ -286,6 +357,14 @@ gkyl_multib_conn_get_connection(struct gkyl_block_topo *block_topo, int bidx, in
     int edges[2] = {e0,e1};
     num_connected = get_num_corner_connected(block_topo, bidx, edges);
     get_corner_connected(block_topo, bidx, edges, block_list);
+  }
+  else if (conn_id == GKYL_CONN_BELOW) {
+    num_connected = get_num_below(block_topo, bidx, dir);
+    get_below(block_topo, bidx, dir, block_list);
+  }
+  else if (conn_id == GKYL_CONN_ABOVE) {
+    num_connected = get_num_above(block_topo, bidx, dir);
+    get_above(block_topo, bidx, dir, block_list);
   }
 
   return num_connected;

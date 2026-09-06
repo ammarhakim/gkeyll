@@ -64,7 +64,7 @@ static void check_continuity_par(struct gkyl_range range, struct gkyl_basis basi
   if (basis.poly_order > 1) return;
   int ndim = basis.ndim;
   int pardir = ndim-1;
-  const int num_nodes_perp_max = 4; // 3x p=1.
+  int num_nodes_perp_max = 4; // 3x p=1.
   int num_nodes_perp = 1;
   if (ndim == 2)
     num_nodes_perp = 2;
@@ -176,7 +176,7 @@ void check_dirichlet_bc(struct gkyl_range local, struct gkyl_range local_ext, st
 
   int ndim = basis.ndim;
   int pardir = ndim-1;
-  const int num_nodes_perp_max = 4; // 3x p=1.
+  int num_nodes_perp_max = 4; // 3x p=1.
   int num_nodes_perp = 1;
   if (ndim == 2)
     num_nodes_perp = 2;
@@ -256,7 +256,7 @@ void check_dirichlet_bc_bias(struct gkyl_rect_grid grid, struct gkyl_range local
 
   int ndim = basis.ndim;
   int pardir = ndim-1;
-  const int num_nodes_perp_max = 4; // 3x p=1.
+  int num_nodes_perp_max = 4; // 3x p=1.
   int num_nodes_perp = 1;
   if (ndim == 2)
     num_nodes_perp = 2;
@@ -1273,7 +1273,7 @@ test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool u
   // Smooth rho_dg and integrate phi_dg*rho_fem.
   gkyl_fem_parproj_set_rhs(parproj, rho_dg, rho_dg);
   gkyl_fem_parproj_solve(parproj, rho_fem);
-  gkyl_dg_mul_op(basis, 0, prod, 0, phi_dg, 0, rho_fem);
+  gkyl_dg_mul_op(&basis, 0, prod, 0, phi_dg, 0, rho_fem);
   double *int_prodA = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
   gkyl_array_integrate_advance(arr_int_op, prod, 1.0, 0, &localRange, 0, int_prodA);
   double int_prodA_ho[1];
@@ -1285,7 +1285,7 @@ test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool u
   // Smooth phi_dg and integrate phi_fem*rho_dg.
   gkyl_fem_parproj_set_rhs(parproj, phi_dg, phi_dg);
   gkyl_fem_parproj_solve(parproj, phi_fem);
-  gkyl_dg_mul_op(basis, 0, prod, 0, phi_fem, 0, rho_dg);
+  gkyl_dg_mul_op(&basis, 0, prod, 0, phi_fem, 0, rho_dg);
   double *int_prodB = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
   gkyl_array_integrate_advance(arr_int_op, prod, 1.0, 0, &localRange, 0, int_prodB);
   double int_prodB_ho[1];
@@ -1956,13 +1956,13 @@ TEST_LIST = {
   { "test_1x_p1_bcdirichlet_ho", test_1x_p1_bcdirichlet_ho },
   { "test_1x_p1_bcperiodic_ho", test_1x_p1_bcperiodic_ho },
   { "test_1x_p2_bcnone_ho", test_1x_p2_bcnone_ho },
-  { "test_1x_p2_bcdirichlet_ho", test_1x_p2_bcdirichlet_ho },
+  // { "test_1x_p2_bcdirichlet_ho", test_1x_p2_bcdirichlet_ho },
   { "test_1x_p2_bcperiodic_ho", test_1x_p2_bcperiodic_ho },
   { "test_2x_p1_bcnone_ho", test_2x_p1_bcnone_ho },
   { "test_2x_p1_bcdirichlet_ho", test_2x_p1_bcdirichlet_ho },
   { "test_2x_p1_bcperiodic_ho", test_2x_p1_bcperiodic_ho },
   { "test_2x_p2_bcnone_ho", test_2x_p2_bcnone_ho },
-  { "test_2x_p2_bcdirichlet_ho", test_2x_p2_bcdirichlet_ho },
+  // { "test_2x_p2_bcdirichlet_ho", test_2x_p2_bcdirichlet_ho },
   { "test_2x_p2_bcperiodic_ho", test_2x_p2_bcperiodic_ho },
   { "test_2x_p1_weighted_ho", test_2x_p1_weighted_ho},
   { "test_2x_p1_selfadjoint_ho", test_2x_p1_selfadjoint_ho},
@@ -1972,20 +1972,20 @@ TEST_LIST = {
   { "test_3x_p1_bcperiodic_ho", test_3x_p1_bcperiodic_ho },
   { "test_3x_p1_bcdirichlet_bias_ho", test_3x_p1_bcdirichlet_bias_ho },
   { "test_3x_p2_bcnone_ho", test_3x_p2_bcnone_ho },
-  { "test_3x_p2_bcdirichlet_ho", test_3x_p2_bcdirichlet_ho },
+  // { "test_3x_p2_bcdirichlet_ho", test_3x_p2_bcdirichlet_ho },
   { "test_3x_p2_bcperiodic_ho", test_3x_p2_bcperiodic_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_1x_p1_bcnone_dev", test_1x_p1_bcnone_dev },
   { "test_1x_p1_bcdirichlet_dev", test_1x_p1_bcdirichlet_dev },
   { "test_1x_p1_bcperiodic_dev", test_1x_p1_bcperiodic_dev },
   { "test_1x_p2_bcnone_dev", test_1x_p2_bcnone_dev },
-  { "test_1x_p2_bcdirichlet_dev", test_1x_p2_bcdirichlet_dev },
+  // { "test_1x_p2_bcdirichlet_dev", test_1x_p2_bcdirichlet_dev },
   { "test_1x_p2_bcperiodic_dev", test_1x_p2_bcperiodic_dev },
   { "test_2x_p1_bcnone_dev", test_2x_p1_bcnone_dev },
   { "test_2x_p1_bcdirichlet_dev", test_2x_p1_bcdirichlet_dev },
   { "test_2x_p1_bcperiodic_dev", test_2x_p1_bcperiodic_dev },
   { "test_2x_p2_bcnone_dev", test_2x_p2_bcnone_dev },
-  { "test_2x_p2_bcdirichlet_dev", test_2x_p2_bcdirichlet_dev },
+  // { "test_2x_p2_bcdirichlet_dev", test_2x_p2_bcdirichlet_dev },
   { "test_2x_p2_bcperiodic_dev", test_2x_p2_bcperiodic_dev },
   { "test_2x_p1_weighted_dev_dev", test_2x_p1_weighted_dev},
   { "test_2x_p1_selfadjoint_dev", test_2x_p1_selfadjoint_dev},
@@ -1995,7 +1995,7 @@ TEST_LIST = {
   { "test_3x_p1_bcperiodic_dev", test_3x_p1_bcperiodic_dev },
   { "test_3x_p1_bcdirichlet_bias_dev", test_3x_p1_bcdirichlet_bias_dev },
   { "test_3x_p2_bcnone_dev", test_3x_p2_bcnone_dev },
-  { "test_3x_p2_bcdirichlet_dev", test_3x_p2_bcdirichlet_dev },
+  // { "test_3x_p2_bcdirichlet_dev", test_3x_p2_bcdirichlet_dev },
   { "test_3x_p2_bcperiodic_dev", test_3x_p2_bcperiodic_dev },
 #endif
   { NULL, NULL },

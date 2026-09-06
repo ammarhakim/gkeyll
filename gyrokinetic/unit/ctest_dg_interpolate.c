@@ -85,7 +85,7 @@ test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   double lower[] = {0.0}, upper[] = {1.0};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
+  int ndim = sizeof(lower)/sizeof(lower[0]);
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -202,7 +202,7 @@ test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   double lower[] = {0.0, -M_PI}, upper[] = {1.0, M_PI};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
+  int ndim = sizeof(lower)/sizeof(lower[0]);
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -336,7 +336,7 @@ static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *con
 void
 test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vx_min = -6.0;
@@ -344,8 +344,8 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   double lower[] = {x_min, vx_min}, upper[] = {x_max, vx_max};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -571,7 +571,7 @@ void eval_distf_1x2v_vlasov(double t, const double *xn, double* restrict fout, v
 void
 test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vx_min = -6.0;
@@ -581,8 +581,8 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   double lower[] = {x_min, vx_min, vy_min}, upper[] = {x_max, vx_max, vy_max};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -905,7 +905,7 @@ static void calc_moms_gk(struct gkyl_rect_grid *grid, struct gkyl_basis *confBas
 void
 test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vpar_min = -6.0;
@@ -914,8 +914,8 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.0;
   double charge = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -973,15 +973,6 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // Create bmag arrays.
-  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                                      : gkyl_array_acquire(bmag);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1136,11 +1127,8 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_array_release(bmag);
   gkyl_array_release(distf);
-  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
-  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1167,16 +1155,17 @@ void eval_distf_1x2v_gk(double t, const double *xn, double* restrict fout, void 
 
   double vtsq = temp/mass;
 
-  double bmag[1] = {-1.0};
-  eval_bfield_1x(t, xn, bmag, ctx);
+  double bfield[3] = {0.0};
+  eval_bfield_1x(t, xn, bfield, ctx);
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
 
-  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
+  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag/mass)/(2.0*vtsq));
 }
 
 void
 test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vpar_min = -6.0;
@@ -1186,8 +1175,8 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.0;
   double charge = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1246,15 +1235,6 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // Create bmag arrays.
-  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                                      : gkyl_array_acquire(bmag);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1406,11 +1386,8 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_array_release(bmag);
   gkyl_array_release(distf);
-  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
-  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1437,16 +1414,17 @@ void eval_distf_2x2v_gk(double t, const double *xn, double* restrict fout, void 
 
   double vtsq = temp/mass;
 
-  double bmag[1] = {-1.0};
-  eval_bfield_2x(t, xn, bmag, ctx);
+  double bfield[3] = {0.0};
+  eval_bfield_2x(t, xn, bfield, ctx);
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
 
-  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
+  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag/mass)/(2.0*vtsq));
 }
 
 void
 test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 2;
+  int cdim = 2;
 //  double x_min = 0.0;
 //  double x_max = 1.0;
 //  double y_min = 0.0;
@@ -1465,8 +1443,8 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.67e-27*3.973;
   double charge = 1.602e-19;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1525,15 +1503,6 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // Create bmag arrays.
-  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                                      : gkyl_array_acquire(bmag);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_2x, &proj_ctx);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1685,11 +1654,8 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_array_release(bmag);
   gkyl_array_release(distf);
-  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
-  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 
@@ -1716,16 +1682,17 @@ void eval_distf_3x2v_gk(double t, const double *xn, double* restrict fout, void 
 
   double vtsq = temp/mass;
 
-  double bmag[1] = {-1.0};
-  eval_bfield_3x(t, xn, bmag, ctx);
+  double bfield[3] = {0.0};
+  eval_bfield_3x(t, xn, bfield, ctx);
+  double bmag = sqrt(bfield[0]*bfield[0]+bfield[1]*bfield[1]+bfield[2]*bfield[2]);
 
-  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag[0]/mass)/(2.0*vtsq));
+  fout[0] = (den/pow(2.0*M_PI*vtsq,vdim/2.0)) * exp(-(pow(vpar-upar,2)+2.0*mu*bmag/mass)/(2.0*vtsq));
 }
 
 void
 test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 3;
+  int cdim = 3;
 //  double x_min = 0.0;
 //  double x_max = 1.0;
 //  double y_min = 0.0;
@@ -1757,8 +1724,8 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.67e-27*3.973;
   double charge = 1.602e-19;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1818,15 +1785,6 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   for (int d=0; d<cdim; d++) ghost[d] = confGhost[d];
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // Create bmag arrays.
-  struct gkyl_array *bmag = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *bmag_ho = use_gpu? mkarr(false, bmag->ncomp, bmag->size)
-                                      : gkyl_array_acquire(bmag);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_3x, &proj_ctx);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -1978,11 +1936,8 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_array_release(moms);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
-  gkyl_array_release(bmag);
   gkyl_array_release(distf);
-  gkyl_array_release(bmag_ho);
   gkyl_array_release(distf_ho);
-  gkyl_proj_on_basis_release(proj_bmag);
   gkyl_proj_on_basis_release(proj_distf);
 }
 

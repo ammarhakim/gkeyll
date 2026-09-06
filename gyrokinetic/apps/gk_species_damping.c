@@ -58,15 +58,16 @@ gk_species_damping_write_rate_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   struct gkyl_msgpack_map_elem mpe_drate[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Rate of the damping term." },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame },
   };
   int mpe_drate_len = sizeof(mpe_drate) / sizeof(mpe_drate[0]);
-  // Update app basic metadata with time/frame.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   // Package metadata.
-  int io_meta_len[] = { app->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_len };
-  const struct gkyl_msgpack_map_elem *io_meta[] = { app->io_meta_basic, mpe_drate,
-                                                    app->gk_geom->io_meta };
+  int io_meta_len[] = { gks->io_meta_basic_len, mpe_drate_len,
+    app->gk_geom->io_meta_basic_len };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { gks->io_meta_basic, mpe_drate,
+    app->gk_geom->io_meta_basic };
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int),
     io_meta_len, io_meta);
 
@@ -96,23 +97,24 @@ static void
 gk_species_damping_write_fbar_cellwise_const(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   double tm, int frame)
 {
-  // Metadata from app/species/geometry. fbar is always stored as a p0 field.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-
+  // Metadata from species/geometry. fbar is always stored as a p0 field.
   struct gkyl_msgpack_map_elem mpe_fbar_p0[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "Low-pass-filtered distribution function." },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = tm },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = frame },
   };
   int io_meta_fbar_len[] = {
-    app->io_meta_basic_len,
+    gks->io_meta_basic_len,
     (int)(sizeof(mpe_fbar_p0) / sizeof(mpe_fbar_p0[0])),
-    app->gk_geom->io_meta_len
+    app->gk_geom->io_meta_basic_len
   };
   const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {
-    app->io_meta_basic,
+    gks->io_meta_basic,
     mpe_fbar_p0,
-    app->gk_geom->io_meta
+    app->gk_geom->io_meta_basic
   };
   struct gkyl_msgpack_data *mt_fbar = gkyl_msgpack_create_union(
     sizeof(io_meta_fbar_len) / sizeof(int), io_meta_fbar_len, io_meta_fbar);
@@ -137,19 +139,17 @@ static void
 gk_species_damping_write_fbar_same_basis(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   double tm, int frame)
 {
-  // Metadata from app/species/geometry using the species phase-space basis.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  // Metadata from species/geometry using the species phase-space basis.
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
 
   int io_meta_fbar_len[] = {
-    app->io_meta_basic_len,
-    gks->io_meta_len,
-    app->gk_geom->io_meta_len
+    gks->io_meta_phase_len,
+    app->gk_geom->io_meta_basic_len
   };
   const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {
-    app->io_meta_basic,
-    gks->io_meta,
-    app->gk_geom->io_meta
+    gks->io_meta_phase,
+    app->gk_geom->io_meta_basic
   };
   struct gkyl_msgpack_data *mt_fbar = gkyl_msgpack_create_union(
     sizeof(io_meta_fbar_len) / sizeof(int), io_meta_fbar_len, io_meta_fbar);

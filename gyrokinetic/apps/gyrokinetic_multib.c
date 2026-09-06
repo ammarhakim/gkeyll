@@ -3,6 +3,7 @@
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_gyrokinetic_multib_priv.h>
+#include <gkyl_multib_conn.h>
 
 #include <mpack.h>
 
@@ -41,74 +42,6 @@ calc_tot_and_max_cuts(const struct gkyl_gk_block_geom *gk_block_geom, int tot_ma
   }
   tot_max[0] = tot_cuts;
   tot_max[1] = max_cuts;
-}
-
-// Construct the mpack meta-data for multi-block data files.
-static struct gkyl_msgpack_data *
-gyrokinetic_multib_meta(struct gyrokinetic_multib_output_meta meta)
-{
-  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof *mt);
-
-  mt->meta_sz = 0;
-  mpack_writer_t writer;
-  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
-
-  // Add some data to mpack.
-  mpack_build_map(&writer);
-  
-  mpack_write_cstr(&writer, "time");
-  mpack_write_double(&writer, meta.stime);
-
-  mpack_write_cstr(&writer, "frame");
-  mpack_write_i64(&writer, meta.frame);
-
-  mpack_write_cstr(&writer, "topo_file");
-  mpack_write_cstr(&writer, meta.topo_file_name);
-
-  mpack_write_cstr(&writer, "app_name");
-  mpack_write_cstr(&writer, meta.app_name);
-
-  mpack_write_cstr(&writer, "Git_commit_hash");
-  mpack_write_cstr(&writer, GIT_COMMIT_ID);
-
-  mpack_complete_map(&writer);
-
-  int status = mpack_writer_destroy(&writer);
-
-  if (status != mpack_ok) {
-    free(mt->meta); // We need to use free here as mpack does its own malloc.
-    gkyl_free(mt);
-    mt = 0;
-  }
-
-  return mt;  
-}
-
-// Write out multi-block data files.
-static int
-gyrokinetic_multib_data_write(const char *fname, struct gyrokinetic_multib_output_meta meta)
-{
-  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
-  FILE *fp = 0;
-  int err;
-  with_file (fp, fname, "w") {
-    struct gkyl_msgpack_data *amet = gyrokinetic_multib_meta(meta);
-    if (amet) {
-      status = gkyl_header_meta_write_fp( &(struct gkyl_array_header_info) {
-          .file_type = gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],
-          .meta_size = amet->meta_sz,
-          .meta = amet->meta
-        },
-        fp
-      );
-      MPACK_FREE(amet->meta);
-      gkyl_free(amet);
-    }
-    else {
-      status = GKYL_ARRAY_RIO_META_FAILED;
-    }
-  }
-  return status;
 }
 
 // Construct single-block App geometry for given block ID.
@@ -164,6 +97,13 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   parallel_inp.comm = comm;
   // Copy parallelism input into app input.
   memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
+
+  app_inp.num_periodic_dir = mbinp->num_periodic_dir;
+  for(int i = 0; i < mbinp->cdim; i++)
+    app_inp.periodic_dirs[i] = mbinp->periodic_dirs[i];
+
+  app_inp.metadata.num_attributes = mbapp->io_meta_basic_len;
+  app_inp.metadata.attributes = mbapp->io_meta_basic;
 
   return gkyl_gyrokinetic_app_new_geom(&app_inp);
 }
@@ -258,11 +198,33 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
       species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
     }
 
-    // Set species physical BCs.
+    int pardir = cdim-1;
+    int num_below = gkyl_multib_conn_get_num_connected(mbapp->block_topo,
+      bid, pardir, 0, GKYL_CONN_BELOW);
+    int num_above = gkyl_multib_conn_get_num_connected(mbapp->block_topo,
+      bid, pardir, 0, GKYL_CONN_ABOVE);
+
     int bc_count_sp[num_blocks];
     for (int i=0; i<num_blocks; i++)
       bc_count_sp[i] = 0;
 
+    if (cdim ==3) {
+      if (num_below > 0) {
+        species_inp.bcs[bc_count_sp[bid]].dir = pardir;
+        species_inp.bcs[bc_count_sp[bid]].edge = GKYL_LOWER_EDGE;
+        species_inp.bcs[bc_count_sp[bid]].type = GKYL_BC_GK_SPECIES_TWISTSHIFT;
+        bc_count_sp[bid] += 1;
+      }
+
+      if (num_above > 0) {
+        species_inp.bcs[bc_count_sp[bid]].dir = pardir;
+        species_inp.bcs[bc_count_sp[bid]].edge = GKYL_UPPER_EDGE;
+        species_inp.bcs[bc_count_sp[bid]].type = GKYL_BC_GK_SPECIES_TWISTSHIFT;
+        bc_count_sp[bid] += 1;
+      }
+    }
+
+    // Set species physical BCs.
     for (int i=0; i<sp->num_physical_bcs; ++i) {
       if (bid == sp->bcs[i].bidx) {
         species_inp.bcs[bc_count_sp[bid]].dir = sp->bcs[i].dir;
@@ -428,7 +390,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
 
-gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
+gkyl_gyrokinetic_multib_app*
+gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
 {
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
@@ -522,6 +485,9 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   for (int i=0; i<mbinp->num_neut_species; ++i)
     strcpy(mbapp->neut_species_name[i], mbinp->neut_species[i].name);  
+
+  // Write the block topo file.
+  gkyl_gyrokinetic_multib_app_write_topo(mbapp);
 
   // Create single-block grids and geometries.
   for (int i=0; i<num_local_blocks; ++i)
@@ -602,6 +568,30 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   mbapp->num_local_blocks = num_local_blocks;  
 
+  // Create multiblock metadata to pass to each block, and combine with user's metadata.
+  const char *fmt_btopo = "%s-block_topo.gkyl";
+  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
+  char fileNm_btopo[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
+
+  // Basic metadata for I/O (including metadata optional from user).
+  const char* build_id = GIT_COMMIT_ID;
+  const char* build_date = GKYL_BUILD_DATE;
+  struct gkyl_msgpack_map_elem io_meta_default[] = {
+    { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
+    { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
+    { .key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1 },
+    { .key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo },
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_union[] = {io_meta_default, mbinp->metadata.attributes};
+  int io_meta_union_len[] = {sizeof(io_meta_default)/sizeof(io_meta_default[0]), mbinp->metadata.num_attributes};
+
+  mbapp->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_union)/sizeof(io_meta_union[0]),
+    io_meta_union_len, io_meta_union, &mbapp->io_meta_basic_len);
+
+  // Write the block topo file.
+  gkyl_gyrokinetic_multib_app_write_topo(mbapp);
+
   printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
   for (int i=0; i<num_local_blocks; ++i)
     printf("  Rank %d handles block %d\n", my_rank, mbapp->local_blocks[i]);
@@ -615,7 +605,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     mbapp->num_species = mbinp->num_species;
     mbapp->num_neut_species = mbinp->num_neut_species;
     mbapp->update_field = !mbinp->skip_field; // Note inversion of truth value (default: update field).
-
 
     mbapp->singleb_apps = gkyl_malloc(num_local_blocks*sizeof(struct gkyl_gyrokinetic_app*));
   }
@@ -648,13 +637,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   gkyl_comm_allreduce_host(mbapp->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local, &bmag_max_global);
 
   mbapp->bmag_ref = (bmag_max_global + bmag_min_global)/2.0;
-
-  // Create the rest of the single-block solvers.
-  for (int i=0; i<num_local_blocks; ++i)
-    singleb_app_new_solver(mbinp, mbapp->local_blocks[i], mbapp, mbapp->singleb_apps[i]);
-
-  // Create the MB field app.
-  mbapp->field = gk_multib_field_new(mbinp, mbapp);
 
   // Create connections needed for conf-space syncs.
   int ghost[] = { 1, 1, 1 };
@@ -701,6 +683,105 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     gkyl_multib_comm_conn_sort(mbcc_r);
     gkyl_multib_comm_conn_sort(mbcc_s);
   }
+
+  // Sync the conf-space volume Jacobian needed for syncing quantities that include a
+  // jacobgeo factor in them.
+  struct gkyl_array *jacs_vol[mbapp->num_local_blocks];
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+    jacs_vol[b] = sbapp->gk_geom->geo_int.jacobgeo_ghost;
+  }
+  // Sync across blocks.
+  gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+    mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs_vol, jacs_vol);
+
+  // Sync the surface conf-space Jacobian, compute its reciprocal, and 
+  // store its product with the Jacobian of this block (in the ghost cell).
+  for (int d = 0; d<cdim; d++) {
+    // Sync jacobgeo.
+    struct gkyl_array *jacs[mbapp->num_local_blocks];
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+      struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
+      jacs[b] = geo_surf.jacobgeo_ratio;
+      gkyl_array_copy_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_lower_skin[d]);
+      gkyl_array_copy_range_to_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]);
+    }
+    gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+      mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
+
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+      struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
+      struct gkyl_array *jacgeo = mkarr(mbapp->use_gpu, geo_surf.jacobgeo_ratio->ncomp, geo_surf.jacobgeo_ratio->size);
+
+      // Compute 1/jacobgeo in ghost cells.
+      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
+      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
+      gkyl_dg_inv_op_range(&sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->local_lower_ghost[d]);
+      gkyl_dg_inv_op_range(&sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->local_upper_ghost[d]);
+      // Multiply by the Jacobian of this block.
+      gkyl_array_copy_range_to_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_lower_ghost[d], &sbapp->local_lower_skin[d]);
+      gkyl_array_copy_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_upper_ghost[d]);
+      gkyl_dg_mul_op_range(&sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
+        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
+      gkyl_dg_mul_op_range(&sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
+        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
+      // Set the ratio to 1 in the interior (shouldn't be in use).
+      gkyl_array_clear_range(geo_surf.jacobgeo_ratio, 0.0, &sbapp->local);
+      gkyl_array_shiftc_range(geo_surf.jacobgeo_ratio, pow(sqrt(2.0),sbapp->cdim), 0, &sbapp->local);
+
+      gkyl_array_release(jacgeo);
+    }
+
+  }
+
+  const struct gkyl_gk_block_geom_info *bgi0 = gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, 0);
+
+  if (cdim > 1 && bgi0->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    // Sync the surface deltats. Need to copy the upper ghost into the upper skin before syncing.
+    for (int d = 0; d<cdim; d++) {
+      struct gkyl_array *deltats[mbapp->num_local_blocks];
+      for (int b=0; b<mbapp->num_local_blocks; ++b) {
+        struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+        struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
+        deltats[b] = geo_surf.deltats;
+        gkyl_array_copy_range_to_range(deltats[b], deltats[b], &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]);
+      }
+      gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+        mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, deltats, deltats);
+    }
+    // Accumulate the appropriate shift
+    for (int b=0; b<mbapp->num_local_blocks; ++b) {
+      int par_dir = cdim-1;
+      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+      struct gkyl_array *delta_ts = sbapp->gk_geom->geo_surf[par_dir].deltats;
+      struct gkyl_array *buffer = mkarr(sbapp->use_gpu, delta_ts->ncomp, delta_ts->size);
+
+      gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->local_upper_skin[par_dir], &sbapp->local_upper_ghost[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_upper_skin[par_dir]);
+
+      gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->local_lower_skin[par_dir], &sbapp->local_lower_ghost[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_lower_skin[par_dir]);
+
+      gkyl_array_release(buffer);
+
+      // Deflate delta_ts.
+      gyrokinetic_deflate_delta_ts(sbapp, delta_ts);
+
+      // Write the twistshift shift.
+      gyrokinetic_app_write_ts_shift(sbapp);
+    }
+  }
+
+
+  // Create the rest of the single-block solvers.
+  for (int i=0; i<num_local_blocks; ++i)
+    singleb_app_new_solver(mbinp, mbapp->local_blocks[i], mbapp, mbapp->singleb_apps[i]);
+
+  // Create the MB field app.
+  mbapp->field = gk_multib_field_new(mbinp, mbapp);
+
 
   // Create connections needed for syncing charged species phase-space quantities.
   mbapp->mbcc_sync_charged = gkyl_malloc(mbapp->num_species * sizeof(struct gkyl_mbcc_sr));
@@ -768,58 +849,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     }
   }
 
-  // Sync the conf-space volume Jacobian needed for syncing quantities that include a
-  // jacobgeo factor in them.
-  struct gkyl_array *jacs_vol[mbapp->num_local_blocks];
-  for (int b=0; b<mbapp->num_local_blocks; ++b) {
-    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-    jacs_vol[b] = sbapp->gk_geom->geo_int.jacobgeo_ghost;
-  }
-  // Sync across blocks.
-  gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
-    mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs_vol, jacs_vol);
-
-  // Sync the surface conf-space Jacobian, compute its reciprocal, and 
-  // store its product with the Jacobian of this block (in the ghost cell).
-  for (int d = 0; d<cdim; d++) {
-    // Sync jacobgeo.
-    struct gkyl_array *jacs[mbapp->num_local_blocks];
-    for (int b=0; b<mbapp->num_local_blocks; ++b) {
-      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-      struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
-      jacs[b] = geo_surf.jacobgeo_ratio;
-      gkyl_array_copy_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_lower_skin[d]);
-      gkyl_array_copy_range_to_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]);
-    }
-    gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
-      mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
-
-    for (int b=0; b<mbapp->num_local_blocks; ++b) {
-      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
-      struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
-      struct gkyl_array *jacgeo = mkarr(mbapp->use_gpu, geo_surf.jacobgeo_ratio->ncomp, geo_surf.jacobgeo_ratio->size);
-
-      // Compute 1/jacobgeo in ghost cells.
-      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
-      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
-      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->local_lower_ghost[d]);
-      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->local_upper_ghost[d]);
-      // Multiply by the Jacobian of this block.
-      gkyl_array_copy_range_to_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_lower_ghost[d], &sbapp->local_lower_skin[d]);
-      gkyl_array_copy_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_upper_ghost[d]);
-      gkyl_dg_mul_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
-        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
-      gkyl_dg_mul_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
-        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
-      // Set the ratio to 1 in the interior (shouldn't be in use).
-      gkyl_array_clear_range(geo_surf.jacobgeo_ratio, 0.0, &sbapp->local);
-      gkyl_array_shiftc_range(geo_surf.jacobgeo_ratio, pow(sqrt(2.0),sbapp->cdim), 0, &sbapp->local);
-
-      gkyl_array_release(jacgeo);
-    }
-
-  }
-
   // Sync the effective diffusivity of the anomalous diffusion operator.
   // Assume they either all have anomalous diffusion or none of them do.
   bool any_anomalous_diff = false;
@@ -832,6 +861,14 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
     if (has_anomalous_diff) {
       any_anomalous_diff = true;
+      // Divide diffD by dz before the transfer
+      for (int b=0; b<mbapp->num_local_blocks; ++b) {
+        struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+        int d  = 0;
+        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD, sbapp->grid.dx[sbapp->cdim-1], &sbapp->global);
+      }
+
+      // Sync
       struct gkyl_array *gkad_nu[mbapp->num_local_blocks];
       for (int b=0; b<mbapp->num_local_blocks; ++b) {
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
@@ -839,6 +876,14 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       }
       gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
         mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, gkad_nu, gkad_nu);
+
+      // Multiply by diffD dz after the transfer to achieve rescaling
+      for (int b=0; b<mbapp->num_local_blocks; ++b) {
+        struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+        int d  = 0;
+        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD, 1.0/sbapp->grid.dx[sbapp->cdim-1], &sbapp->global_ext);
+      }
+
     }
   }
 
@@ -1125,7 +1170,7 @@ gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app)
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   if (0 == rank) {
-    cstr file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
+    cstr file_name = cstr_from_fmt("%s-block_topo.gkyl", app->name);
     gkyl_block_topo_write(app->block_topo, file_name.str);
     cstr_drop(&file_name);
   }
@@ -1137,29 +1182,6 @@ gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app *app, double
   for (int b=0; b<app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_field(app->singleb_apps[b], tm, frame);
   }
-
-// MF 2024/10/20: This stuff is corrupting the file.
-//  if (app->update_field) {
-//    int rank;
-//    gkyl_comm_get_rank(app->comm, &rank);
-//    if (0 == rank) {
-//      cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-//      cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
-//      
-//      gyrokinetic_multib_data_write(file_name.str, (struct gyrokinetic_multib_output_meta) {
-//          .frame = frame,
-//          .stime = tm,
-//          .topo_file_name = topo_file_name.str,
-//          .app_name = app->name
-//        }
-//      );
-//      
-//      cstr_drop(&topo_file_name);
-//      cstr_drop(&file_name);
-//    }
-//  }
-//
-//  gkyl_comm_barrier(app->comm);
 }
 
 void
@@ -1226,27 +1248,6 @@ gkyl_gyrokinetic_multib_app_write_species(gkyl_gyrokinetic_multib_app* app, int 
   for (int b=0; b<app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species(app->singleb_apps[b], sidx, tm, frame);
   }
-
-// MF 2024/10/20: This stuff is corrupting the file.
-//  int rank;
-//  gkyl_comm_get_rank(app->comm, &rank);
-//  if (0 == rank) {
-//    cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species_name[sidx], frame);
-//    cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
-//      
-//    gyrokinetic_multib_data_write(file_name.str, (struct gyrokinetic_multib_output_meta) {
-//        .frame = frame,
-//        .stime = tm,
-//        .topo_file_name = topo_file_name.str,
-//        .app_name = app->name
-//      }
-//    );
-//    
-//    cstr_drop(&topo_file_name);
-//    cstr_drop(&file_name);
-//  }
-//
-//  gkyl_comm_barrier(app->comm);
 }
 
 void
@@ -1255,27 +1256,6 @@ gkyl_gyrokinetic_multib_app_write_neut_species(gkyl_gyrokinetic_multib_app* app,
   for (int b=0; b<app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species(app->singleb_apps[b], sidx, tm, frame);
   }
-
-// MF 2024/10/20: This stuff is corrupting the file.
-//  int rank;
-//  gkyl_comm_get_rank(app->comm, &rank);
-//  if (0 == rank) {
-//    cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->neut_species_name[sidx], frame);
-//    cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
-//      
-//    gyrokinetic_multib_data_write(file_name.str, (struct gyrokinetic_multib_output_meta) {
-//        .frame = frame,
-//        .stime = tm,
-//        .topo_file_name = topo_file_name.str,
-//        .app_name = app->name
-//      }
-//    );
-//    
-//    cstr_drop(&topo_file_name);
-//    cstr_drop(&file_name);
-//  }
-//
-//  gkyl_comm_barrier(app->comm);
 }
 
 void
@@ -1830,11 +1810,6 @@ gkyl_gyrokinetic_multib_app_print_timings(gkyl_gyrokinetic_multib_app* app, FILE
   gkyl_gyrokinetic_multib_app_cout(app, iostream, "    * Accounted for:                   %4.2f %%.\n", ratio_to_percent(stat->io_sum_tm, stat->io_tm, 100.0));
 }
 
-void gkyl_gyrokinetic_multib_app_species_ktm_rhs(gkyl_gyrokinetic_multib_app* app, int update_vol_term)
-{
-  // TO DO
-}
-
 void
 gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app)
 {
@@ -1859,8 +1834,16 @@ gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app* app)
 
     struct timespec wtm = gkyl_wall_clock();
     if (app->is_first_dt_write_call) {
-      gkyl_dynvec_write(app->dts, fileNm);
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size." }
+      };
+      int io_meta_len[] = {app->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, io_meta_phi};
+      struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+      gkyl_dynvec_write_wmeta(app->dts, fileNm, mt);
       app->is_first_dt_write_call = false;
+      gkyl_msgpack_data_release(mt);
     }
     else {
       gkyl_dynvec_awrite(app->dts, fileNm);
@@ -1877,9 +1860,9 @@ gkyl_gyrokinetic_multib_app_save_dt(gkyl_gyrokinetic_multib_app* app, double tm,
   gkyl_dynvec_append(app->dts, tm, &dt);
 }
 
-void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp)
+void
+gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp)
 {
-
   if (mbapp->singleb_apps) {
     for (int i=0; i<mbapp->num_local_blocks; ++i)
       gkyl_gyrokinetic_app_release_geom(mbapp->singleb_apps[i]);
@@ -1905,10 +1888,13 @@ void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp
   
   gkyl_comm_release(mbapp->comm);
 
+  gkyl_msgpack_map_elem_release(mbapp->io_meta_basic_len, mbapp->io_meta_basic);
+
   gkyl_free(mbapp);
 }
 
-void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
+void
+gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
 {
   for (int i=0; i<mbapp->num_neut_species; ++i) {
     for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {

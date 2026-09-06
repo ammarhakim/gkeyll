@@ -446,7 +446,15 @@ gk_species_bflux_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app,
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name);
 
         if (bflux->is_first_intmom_write_call[b]) {
-          gkyl_dynvec_write(bflux->intmom[b*num_diag_int_mom+m], fileNm);
+          struct gkyl_msgpack_map_elem io_meta_phi[] = {
+            { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of the boundary flux." }
+          };
+          int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+          const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+          struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  
+          gkyl_dynvec_write_wmeta(bflux->intmom[b*num_diag_int_mom+m], fileNm, mt);
+          gkyl_msgpack_data_release(mt);
         }
         else {
           gkyl_dynvec_awrite(bflux->intmom[b*num_diag_int_mom+m], fileNm);
@@ -484,10 +492,13 @@ gk_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *spec_in,
   const struct gk_species *gks = spec_in;
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
+  struct gkyl_msgpack_map_elem desc[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Velocity-space moment of the boundary flux." }
+  };
+  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   int rank, comm_size;
@@ -653,7 +664,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
           bflux->boundaries_phase_skin[num_bound] = e==0? &gk_s->local_lower_skin[d] : &gk_s->local_upper_skin[d];
           bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->local_lower_ghost[d] : &gk_s->local_upper_ghost[d];
           bflux->boundaries_conf_skin_fullx[num_bound] = bflux->boundaries_conf_skin[num_bound];
-          if (e == 0? gk_s->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL : gk_s->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
+          if (d == app->cdim-1 && app->gk_geom->has_LCFS) {
             // Use SOL ranges only for parallel boundary fluxes.
             bflux->boundaries_conf_skin[num_bound] = e==0? &app->local_lower_skin_par_sol : &app->local_upper_skin_par_sol;
             bflux->boundaries_conf_ghost[num_bound] = e==0? &app->local_lower_ghost_par_sol : &app->local_upper_ghost_par_sol;
