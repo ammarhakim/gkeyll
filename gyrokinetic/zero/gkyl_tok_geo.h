@@ -346,6 +346,23 @@ gkyl_tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *
 struct gkyl_tok_geo_stat gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo);
 
 /**
+ * Does this block take the extended, topology-aware construction?
+ *
+ * Exposed because it is a property of a block that its NEIGHBOURS need to
+ * agree with.  The extended path reparameterizes a block's separatrix row (the
+ * theta ladder, and the |grad psi| poloidal measure) while the legacy path does
+ * not, so two blocks that share that row and disagree about taking it will
+ * place different nodes along it -- a seam error that is invisible per block
+ * and grows with resolution.  A multiblock consistency check needs to ask this
+ * question of both sides of an interface, so the predicate lives here rather
+ * than being restated where it is checked.
+ *
+ * @param inp Grid input for one block
+ * @return true if this block uses the extended construction
+ */
+bool gkyl_tok_geo_uses_extended_construction(const struct gkyl_tok_geo_grid_inp *inp);
+
+/**
  * Delete updater.
  *
  * @param geo Geometry object to delete

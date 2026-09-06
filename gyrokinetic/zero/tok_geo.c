@@ -7896,6 +7896,12 @@ gkyl_tok_geo_get_stat(const struct gkyl_tok_geo *geo)
   return geo->stat;
 }
 
+bool
+gkyl_tok_geo_uses_extended_construction(const struct gkyl_tok_geo_grid_inp *inp)
+{
+  return tok_ext_construction(inp);
+}
+
 void
 gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
 {

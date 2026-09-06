@@ -454,7 +454,16 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   
   mbapp->gk_block_geom = gkyl_gk_block_geom_acquire(mbinp->gk_block_geom);
   mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->gk_block_geom);
-  
+
+  // Check the declaration before anything is built from it.  This is the only
+  // point where every block's input and the topology are both in hand, so it is
+  // the only place a cross-block declaration error can be caught at all -- a
+  // per-block construction cannot see that its NEIGHBOUR disagrees with it.
+  // Reports by default and does not abort; see the participation check in
+  // block_gk_geom.c for what it looks for and why.  Called on BOTH entry
+  // points: the geometry-only one is what the device geometry drivers use.
+  gkyl_gk_block_geom_check_consistency(mbapp->gk_block_geom);
+
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
 
@@ -709,7 +718,16 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   
   mbapp->gk_block_geom = gkyl_gk_block_geom_acquire(mbinp->gk_block_geom);
   mbapp->block_topo = gkyl_gk_block_geom_topo(mbinp->gk_block_geom);
-  
+
+  // Check the declaration before anything is built from it.  This is the only
+  // point where every block's input and the topology are both in hand, so it is
+  // the only place a cross-block declaration error can be caught at all -- a
+  // per-block construction cannot see that its NEIGHBOUR disagrees with it.
+  // Reports by default and does not abort; see the participation check in
+  // block_gk_geom.c for what it looks for and why.  Called on BOTH entry
+  // points: the geometry-only one is what the device geometry drivers use.
+  gkyl_gk_block_geom_check_consistency(mbapp->gk_block_geom);
+
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
 
