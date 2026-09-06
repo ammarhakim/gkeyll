@@ -81,6 +81,18 @@ gkyl_dg_lbo_vlasov_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_b
       boundary_surf_vz_kernels = ser_boundary_surf_vz_kernels;
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      // Tensor p=1 is the tensor p=1 hybrid (p=2 in velocity space), the
+      // basis the LBO needs for energy conservation at p=1.
+      vol_kernels = ten_vol_kernels;
+      surf_vx_kernels = ten_surf_vx_kernels;
+      surf_vy_kernels = ten_surf_vy_kernels;
+      surf_vz_kernels = ten_surf_vz_kernels;
+      boundary_surf_vx_kernels = ten_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernels = ten_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernels = ten_boundary_surf_vz_kernels;
+      break;
+
     default:
       assert(false);
       break;    

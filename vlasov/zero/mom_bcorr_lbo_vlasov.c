@@ -52,9 +52,9 @@ gkyl_mom_bcorr_lbo_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl
       mom_bcorr_lbo_vlasov_kernels = ser_mom_bcorr_lbo_vlasov_kernels;
       break;
 
-    /* case GKYL_BASIS_MODAL_TENSOR: */
-    /*   mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels; */
-    /*   break; */
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_bcorr_lbo_vlasov_kernels = ten_mom_bcorr_lbo_vlasov_kernels;
+      break;
 
     default:
       assert(false);
